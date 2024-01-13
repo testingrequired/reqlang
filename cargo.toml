@@ -1,3 +1,5 @@
 [workspace]
 
-members = []
+members = ["ast", "errors", "grammar", "lexer", "span", "token", "types"]
+edition = "2021"
+resolver = "2"

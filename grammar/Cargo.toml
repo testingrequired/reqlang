@@ -1,0 +1,16 @@
+[package]
+name = "grammar"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+lalrpop-util = "0.20.0"
+ast = { path = "../ast" }
+token = { path = "../token" }
+lexer = { path = "../lexer" }
+errors = { path = "../errors" }
+
+[build-dependencies]
+lalrpop = "0.20.0"

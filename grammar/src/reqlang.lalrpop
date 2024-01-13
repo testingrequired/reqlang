@@ -1,0 +1,25 @@
+use token::Token;
+use errors::LexicalError;
+use ast;
+
+grammar;
+
+pub Request: ast::Request =
+  <verb:VERB>" "<target:Url>" "<http_version:HttpVersion>"\n" => ast::Request {<>};
+
+HttpVersion: ast::HttpVersion = <HTTP> => ast::HttpVersion::OneOne;
+
+Spanned<T>: ast::Spanned<T> = <l:@L> <t:T> <r:@R> => (t, l..r);
+
+extern {
+  type Location = usize;
+  type Error = LexicalError;
+
+  enum Token {
+    " " => Token::SP,
+    "\n" => Token::NL,
+    HTTP => Token::HttpVersion,
+    VERB => Token::Verb(<String>),
+    Url => Token::Url(<String>)
+  }
+}
