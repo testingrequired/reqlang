@@ -14,6 +14,8 @@ pub enum Token {
     Verb(String),
     #[regex(r#"[-_a-zA-Z0-9/:?%&.]+"#, lex_string)]
     Url(String),
+    #[token("---")]
+    TripleDash,
 }
 
 fn lex_string(lexer: &mut logos::Lexer<Token>) -> String {
