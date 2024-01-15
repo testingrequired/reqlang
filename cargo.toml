@@ -1,5 +1,5 @@
 [workspace]
 
-members = ["ast", "cli", "errors", "grammar", "lexer", "span", "token", "types"]
+members = ["ast", "cli", "reqlang-export", "errors", "grammar", "lexer", "span", "token", "types"]
 edition = "2021"
 resolver = "2"
