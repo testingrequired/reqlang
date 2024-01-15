@@ -48,7 +48,8 @@ mod tests {
                 request: Request {
                     verb: "GET".to_string(),
                     target: "http://example.com".to_string(),
-                    http_version: ast::HttpVersion::OneOne
+                    http_version: "HTTP/1.1".to_string(),
+                    headers: vec![]
                 }
             }
         )

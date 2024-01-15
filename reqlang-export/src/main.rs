@@ -81,29 +81,49 @@ fn main() {
         Format::Curl => {
             match document.request.verb.as_str() {
                 "GET" => {
-                    println!("curl {}", document.request.target);
+                    let headers: Vec<String> = document
+                        .request
+                        .headers
+                        .iter()
+                        .map(|x| format!(r#"-H "{}: {}""#, x.0, x.1))
+                        .collect();
+
+                    println!("curl {} {}", document.request.target, headers.join(" "));
                 }
                 _ => {
+                    let headers: Vec<String> = document
+                        .request
+                        .headers
+                        .iter()
+                        .map(|x| format!(r#"-H "{}: {}""#, x.0, x.1))
+                        .collect();
+
                     println!(
-                        "curl -X {} {}",
-                        document.request.verb, document.request.target
+                        "curl -X {} {} {}",
+                        document.request.verb,
+                        document.request.target,
+                        headers.join(" ")
                     );
                 }
             };
         }
         Format::Powershell => {
+            let headers: Vec<String> = document
+                .request
+                .headers
+                .iter()
+                .map(|x| format!(r#"'{}' = '{}'"#, x.0, x.1))
+                .collect();
+
+            let header_values = format!("{}", headers.join("; "));
+
             println!(
-                "Invoke-RestMethod -Uri {} -Method {}",
-                document.request.target, document.request.verb
+                "$headers = @{{ {} }}\nInvoke-RestMethod -Uri {} -Method {} -Headers $headers",
+                header_values, document.request.target, document.request.verb
             );
         }
         Format::Javascript => {
-            let code = format!(
-                "(async () => fetch(\"{}\", {{\n\t\"method\": \"{}\"\n}})\n\t.then(res => res.text())\n\t.then(text => console.log(text)\n))();",
-                document.request.target, document.request.verb
-            );
-
-            println!("{code}");
+            println!("Exporting to javascript isn't support yet");
         }
     };
 }

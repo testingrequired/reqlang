@@ -7,16 +7,6 @@ pub struct Document {
 pub struct Request {
     pub verb: String,
     pub target: String,
-    pub http_version: HttpVersion,
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub enum HttpVersion {
-    OneOne,
-}
-
-impl Default for HttpVersion {
-    fn default() -> Self {
-        Self::OneOne
-    }
+    pub http_version: String,
+    pub headers: Vec<(String, String)>,
 }

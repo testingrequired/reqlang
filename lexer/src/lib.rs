@@ -36,152 +36,229 @@ mod tests {
     use super::*;
     use errors::LexicalError;
 
-    #[test]
-    fn lex_invalid_token() {
-        let exp: Vec<Result<(usize, Token, usize), (LexicalError, std::ops::Range<usize>)>> =
-            vec![Err((LexicalError::InvalidToken("@".to_string()), 0..1))];
-        let got: Vec<Result<(usize, Token, usize), (LexicalError, std::ops::Range<usize>)>> =
-            Lexer::new("@").collect::<Vec<_>>();
-        assert_eq!(exp, got);
+    macro_rules! lex_test {
+        ($test_name:ident, $request:expr, $tokens:expr) => {
+            #[test]
+            fn $test_name() {
+                let exp: Vec<
+                    Result<(usize, Token, usize), (LexicalError, std::ops::Range<usize>)>,
+                > = $tokens;
+                let got: Vec<
+                    Result<(usize, Token, usize), (LexicalError, std::ops::Range<usize>)>,
+                > = Lexer::new($request).collect::<Vec<_>>();
+                assert_eq!(exp, got);
+            }
+        };
     }
 
-    #[test]
-    fn lex_get_request() {
-        let exp: Vec<Result<(usize, Token, usize), (LexicalError, std::ops::Range<usize>)>> = vec![
-            Ok((0, Token::String("GET".to_string()), 3)),
-            Ok((3, Token::SP, 4)),
-            Ok((4, Token::Url("http://example.com".to_string()), 22)),
-            Ok((22, Token::SP, 23)),
-            Ok((23, Token::HttpVersion, 31)),
-        ];
-        let got: Vec<Result<(usize, Token, usize), (LexicalError, std::ops::Range<usize>)>> =
-            Lexer::new("GET http://example.com HTTP/1.1").collect::<Vec<_>>();
-        assert_eq!(exp, got);
-    }
+    lex_test!(
+        lex_invalid_token,
+        "@",
+        vec![Err((LexicalError::InvalidToken("@".to_string()), 0..1))]
+    );
 
-    #[test]
-    fn lex_post_request() {
-        let exp: Vec<Result<(usize, Token, usize), (LexicalError, std::ops::Range<usize>)>> = vec![
-            Ok((0, Token::String("POST".to_string()), 4)),
-            Ok((4, Token::SP, 5)),
-            Ok((5, Token::Url("http://example.com".to_string()), 23)),
-            Ok((23, Token::SP, 24)),
-            Ok((24, Token::HttpVersion, 32)),
-        ];
-        let got: Vec<Result<(usize, Token, usize), (LexicalError, std::ops::Range<usize>)>> =
-            Lexer::new("POST http://example.com HTTP/1.1").collect::<Vec<_>>();
-        assert_eq!(exp, got);
-    }
-
-    #[test]
-    fn lex_put_request() {
-        let exp: Vec<Result<(usize, Token, usize), (LexicalError, std::ops::Range<usize>)>> = vec![
-            Ok((0, Token::String("PUT".to_string()), 3)),
-            Ok((3, Token::SP, 4)),
-            Ok((4, Token::Url("http://example.com".to_string()), 22)),
-            Ok((22, Token::SP, 23)),
-            Ok((23, Token::HttpVersion, 31)),
-        ];
-        let got: Vec<Result<(usize, Token, usize), (LexicalError, std::ops::Range<usize>)>> =
-            Lexer::new("PUT http://example.com HTTP/1.1").collect::<Vec<_>>();
-        assert_eq!(exp, got);
-    }
-
-    #[test]
-    fn lex_delete_request() {
-        let exp: Vec<Result<(usize, Token, usize), (LexicalError, std::ops::Range<usize>)>> = vec![
-            Ok((0, Token::String("DELETE".to_string()), 6)),
-            Ok((6, Token::SP, 7)),
-            Ok((7, Token::Url("http://example.com".to_string()), 25)),
-            Ok((25, Token::SP, 26)),
-            Ok((26, Token::HttpVersion, 34)),
-        ];
-        let got: Vec<Result<(usize, Token, usize), (LexicalError, std::ops::Range<usize>)>> =
-            Lexer::new("DELETE http://example.com HTTP/1.1").collect::<Vec<_>>();
-        assert_eq!(exp, got);
-    }
-
-    #[test]
-    fn lex_head_request() {
-        let exp: Vec<Result<(usize, Token, usize), (LexicalError, std::ops::Range<usize>)>> = vec![
-            Ok((0, Token::String("HEAD".to_string()), 4)),
-            Ok((4, Token::SP, 5)),
-            Ok((5, Token::Url("http://example.com".to_string()), 23)),
-            Ok((23, Token::SP, 24)),
-            Ok((24, Token::HttpVersion, 32)),
-        ];
-        let got: Vec<Result<(usize, Token, usize), (LexicalError, std::ops::Range<usize>)>> =
-            Lexer::new("HEAD http://example.com HTTP/1.1").collect::<Vec<_>>();
-        assert_eq!(exp, got);
-    }
-
-    #[test]
-    fn lex_options_request() {
-        let exp: Vec<Result<(usize, Token, usize), (LexicalError, std::ops::Range<usize>)>> = vec![
-            Ok((0, Token::String("OPTIONS".to_string()), 7)),
+    lex_test!(
+        lex_get_request,
+        concat!("---\n", "GET http://example.com HTTP/1.1\n", "---\n",),
+        vec![
+            Ok((0, Token::TripleDash, 3)),
+            Ok((3, Token::NL, 4)),
+            Ok((4, Token::Verb("GET".to_string()), 7)),
             Ok((7, Token::SP, 8)),
             Ok((8, Token::Url("http://example.com".to_string()), 26)),
             Ok((26, Token::SP, 27)),
-            Ok((27, Token::HttpVersion, 35)),
-        ];
-        let got: Vec<Result<(usize, Token, usize), (LexicalError, std::ops::Range<usize>)>> =
-            Lexer::new("OPTIONS http://example.com HTTP/1.1").collect::<Vec<_>>();
-        assert_eq!(exp, got);
-    }
+            Ok((27, Token::HttpVersion("HTTP/1.1".to_string()), 35)),
+            Ok((35, Token::NL, 36)),
+            Ok((36, Token::TripleDash, 39)),
+            Ok((39, Token::NL, 40)),
+        ]
+    );
 
-    #[test]
-    fn lex_patch_request() {
-        let exp: Vec<Result<(usize, Token, usize), (LexicalError, std::ops::Range<usize>)>> = vec![
-            Ok((0, Token::String("PATCH".to_string()), 5)),
-            Ok((5, Token::SP, 6)),
-            Ok((6, Token::Url("http://example.com".to_string()), 24)),
-            Ok((24, Token::SP, 25)),
-            Ok((25, Token::HttpVersion, 33)),
-        ];
-        let got: Vec<Result<(usize, Token, usize), (LexicalError, std::ops::Range<usize>)>> =
-            Lexer::new("PATCH http://example.com HTTP/1.1").collect::<Vec<_>>();
-        assert_eq!(exp, got);
-    }
+    lex_test!(
+        lex_get_request_with_single_header,
+        concat!(
+            "---\n",
+            "GET / HTTP/1.1\n",
+            "host: http://example.com\n",
+            "accept: text/html\n",
+            "---\n",
+        ),
+        vec![
+            Ok((0, Token::TripleDash, 3)),
+            Ok((3, Token::NL, 4)),
+            Ok((4, Token::Verb("GET".to_string()), 7)),
+            Ok((7, Token::SP, 8)),
+            Ok((8, Token::Url("/".to_string()), 9)),
+            Ok((9, Token::SP, 10)),
+            Ok((10, Token::HttpVersion("HTTP/1.1".to_string()), 18)),
+            Ok((18, Token::NL, 19)),
+            Ok((
+                19,
+                Token::HeaderKeyValue(("host".to_string(), "http://example.com".to_string())),
+                43
+            )),
+            Ok((43, Token::NL, 44)),
+            Ok((
+                44,
+                Token::HeaderKeyValue(("accept".to_string(), "text/html".to_string())),
+                61
+            )),
+            Ok((61, Token::NL, 62)),
+            Ok((62, Token::TripleDash, 65)),
+            Ok((65, Token::NL, 66)),
+        ]
+    );
 
-    #[test]
-    fn lex_connect_request() {
-        let exp: Vec<Result<(usize, Token, usize), (LexicalError, std::ops::Range<usize>)>> = vec![
-            Ok((0, Token::String("CONNECT".to_string()), 7)),
+    lex_test!(
+        lex_post_request,
+        concat!("---\n", "POST http://example.com HTTP/1.1\n", "---\n",),
+        vec![
+            Ok((0, Token::TripleDash, 3)),
+            Ok((3, Token::NL, 4)),
+            Ok((4, Token::Verb("POST".to_string()), 8)),
+            Ok((8, Token::SP, 9)),
+            Ok((9, Token::Url("http://example.com".to_string()), 27)),
+            Ok((27, Token::SP, 28)),
+            Ok((28, Token::HttpVersion("HTTP/1.1".to_string()), 36)),
+            Ok((36, Token::NL, 37)),
+            Ok((37, Token::TripleDash, 40)),
+            Ok((40, Token::NL, 41)),
+        ]
+    );
+
+    lex_test!(
+        lex_put_request,
+        concat!("---\n", "PUT http://example.com HTTP/1.1\n", "---\n",),
+        vec![
+            Ok((0, Token::TripleDash, 3)),
+            Ok((3, Token::NL, 4)),
+            Ok((4, Token::Verb("PUT".to_string()), 7)),
             Ok((7, Token::SP, 8)),
             Ok((8, Token::Url("http://example.com".to_string()), 26)),
             Ok((26, Token::SP, 27)),
-            Ok((27, Token::HttpVersion, 35)),
-        ];
-        let got: Vec<Result<(usize, Token, usize), (LexicalError, std::ops::Range<usize>)>> =
-            Lexer::new("CONNECT http://example.com HTTP/1.1").collect::<Vec<_>>();
-        assert_eq!(exp, got);
-    }
+            Ok((27, Token::HttpVersion("HTTP/1.1".to_string()), 35)),
+            Ok((35, Token::NL, 36)),
+            Ok((36, Token::TripleDash, 39)),
+            Ok((39, Token::NL, 40)),
+        ]
+    );
 
-    #[test]
-    fn lex_trace_request() {
-        let exp: Vec<Result<(usize, Token, usize), (LexicalError, std::ops::Range<usize>)>> = vec![
-            Ok((0, Token::String("TRACE".to_string()), 5)),
-            Ok((5, Token::SP, 6)),
-            Ok((6, Token::Url("http://example.com".to_string()), 24)),
-            Ok((24, Token::SP, 25)),
-            Ok((25, Token::HttpVersion, 33)),
-        ];
-        let got: Vec<Result<(usize, Token, usize), (LexicalError, std::ops::Range<usize>)>> =
-            Lexer::new("TRACE http://example.com HTTP/1.1").collect::<Vec<_>>();
-        assert_eq!(exp, got);
-    }
+    lex_test!(
+        lex_delete_request,
+        concat!("---\n", "DELETE http://example.com HTTP/1.1\n", "---\n",),
+        vec![
+            Ok((0, Token::TripleDash, 3)),
+            Ok((3, Token::NL, 4)),
+            Ok((4, Token::Verb("DELETE".to_string()), 10)),
+            Ok((10, Token::SP, 11)),
+            Ok((11, Token::Url("http://example.com".to_string()), 29)),
+            Ok((29, Token::SP, 30)),
+            Ok((30, Token::HttpVersion("HTTP/1.1".to_string()), 38)),
+            Ok((38, Token::NL, 39)),
+            Ok((39, Token::TripleDash, 42)),
+            Ok((42, Token::NL, 43)),
+        ]
+    );
 
-    #[test]
-    fn lex_nonstandard_verb_request() {
-        let exp: Vec<Result<(usize, Token, usize), (LexicalError, std::ops::Range<usize>)>> = vec![
-            Ok((0, Token::String("FOO".to_string()), 3)),
-            Ok((3, Token::SP, 4)),
-            Ok((4, Token::Url("http://example.com".to_string()), 22)),
-            Ok((22, Token::SP, 23)),
-            Ok((23, Token::HttpVersion, 31)),
-        ];
-        let got: Vec<Result<(usize, Token, usize), (LexicalError, std::ops::Range<usize>)>> =
-            Lexer::new("FOO http://example.com HTTP/1.1").collect::<Vec<_>>();
-        assert_eq!(exp, got);
-    }
+    lex_test!(
+        lex_head_request,
+        concat!("---\n", "HEAD http://example.com HTTP/1.1\n", "---\n",),
+        vec![
+            Ok((0, Token::TripleDash, 3)),
+            Ok((3, Token::NL, 4)),
+            Ok((4, Token::Verb("HEAD".to_string()), 8)),
+            Ok((8, Token::SP, 9)),
+            Ok((9, Token::Url("http://example.com".to_string()), 27)),
+            Ok((27, Token::SP, 28)),
+            Ok((28, Token::HttpVersion("HTTP/1.1".to_string()), 36)),
+            Ok((36, Token::NL, 37)),
+            Ok((37, Token::TripleDash, 40)),
+            Ok((40, Token::NL, 41)),
+        ]
+    );
+
+    lex_test!(
+        lex_options_request,
+        concat!("---\n", "OPTIONS http://example.com HTTP/1.1\n", "---\n",),
+        vec![
+            Ok((0, Token::TripleDash, 3)),
+            Ok((3, Token::NL, 4)),
+            Ok((4, Token::Verb("OPTIONS".to_string()), 11)),
+            Ok((11, Token::SP, 12)),
+            Ok((12, Token::Url("http://example.com".to_string()), 30)),
+            Ok((30, Token::SP, 31)),
+            Ok((31, Token::HttpVersion("HTTP/1.1".to_string()), 39)),
+            Ok((39, Token::NL, 40)),
+            Ok((40, Token::TripleDash, 43)),
+            Ok((43, Token::NL, 44)),
+        ]
+    );
+
+    lex_test!(
+        lex_patch_request,
+        concat!("---\n", "PATCH http://example.com HTTP/1.1\n", "---\n",),
+        vec![
+            Ok((0, Token::TripleDash, 3)),
+            Ok((3, Token::NL, 4)),
+            Ok((4, Token::Verb("PATCH".to_string()), 9)),
+            Ok((9, Token::SP, 10)),
+            Ok((10, Token::Url("http://example.com".to_string()), 28)),
+            Ok((28, Token::SP, 29)),
+            Ok((29, Token::HttpVersion("HTTP/1.1".to_string()), 37)),
+            Ok((37, Token::NL, 38)),
+            Ok((38, Token::TripleDash, 41)),
+            Ok((41, Token::NL, 42)),
+        ]
+    );
+
+    lex_test!(
+        lex_connect_request,
+        concat!("---\n", "CONNECT http://example.com HTTP/1.1\n", "---\n",),
+        vec![
+            Ok((0, Token::TripleDash, 3)),
+            Ok((3, Token::NL, 4)),
+            Ok((4, Token::Verb("CONNECT".to_string()), 11)),
+            Ok((11, Token::SP, 12)),
+            Ok((12, Token::Url("http://example.com".to_string()), 30)),
+            Ok((30, Token::SP, 31)),
+            Ok((31, Token::HttpVersion("HTTP/1.1".to_string()), 39)),
+            Ok((39, Token::NL, 40)),
+            Ok((40, Token::TripleDash, 43)),
+            Ok((43, Token::NL, 44)),
+        ]
+    );
+
+    lex_test!(
+        lex_trace_request,
+        concat!("---\n", "TRACE http://example.com HTTP/1.1\n", "---\n",),
+        vec![
+            Ok((0, Token::TripleDash, 3)),
+            Ok((3, Token::NL, 4)),
+            Ok((4, Token::Verb("TRACE".to_string()), 9)),
+            Ok((9, Token::SP, 10)),
+            Ok((10, Token::Url("http://example.com".to_string()), 28)),
+            Ok((28, Token::SP, 29)),
+            Ok((29, Token::HttpVersion("HTTP/1.1".to_string()), 37)),
+            Ok((37, Token::NL, 38)),
+            Ok((38, Token::TripleDash, 41)),
+            Ok((41, Token::NL, 42)),
+        ]
+    );
+
+    lex_test!(
+        lex_invalid_verb_request,
+        concat!("---\n", "FOO http://example.com HTTP/1.1\n", "---\n",),
+        vec![
+            Ok((0, Token::TripleDash, 3)),
+            Ok((3, Token::NL, 4)),
+            Err((LexicalError::InvalidToken("FOO".to_string()), 4..7)),
+            Ok((7, Token::SP, 8)),
+            Ok((8, Token::Url("http://example.com".to_string()), 26)),
+            Ok((26, Token::SP, 27)),
+            Ok((27, Token::HttpVersion("HTTP/1.1".to_string()), 35)),
+            Ok((35, Token::NL, 36)),
+            Ok((36, Token::TripleDash, 39)),
+            Ok((39, Token::NL, 40)),
+        ]
+    );
 }

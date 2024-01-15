@@ -1,0 +1,5 @@
+#!/usr/bin/env reqlang
+---
+GET https://www.reddit.com/.json HTTP/1.1
+accept: application/json
+---

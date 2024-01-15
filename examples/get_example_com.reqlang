@@ -1,4 +1,5 @@
 #!/usr/bin/env reqlang
 ---
-GET https://example.com HTTP/1.1
+GET http://example.com HTTP/1.1
+accept: text/html
 ---

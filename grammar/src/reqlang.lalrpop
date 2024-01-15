@@ -5,7 +5,7 @@ use ast;
 grammar;
 
 pub Document: ast::Document =
-  <_shebang:("#!"<url>" "<string>"\n")?>
+  <_shebang:(<shebang>"\n")?>
   "---" "\n"
   <request:Request>
   "---" "\n" => ast::Document {
@@ -13,9 +13,16 @@ pub Document: ast::Document =
   };
 
 Request: ast::Request =
-  <verb:string>" "<target:url>" "<http_version:HttpVersion>"\n" => ast::Request {<>};
+  <verb:verb>" "<target:url>" "<http_version:http_version>"\n"
+  <headers:Headers>
+  => ast::Request {
+      verb,
+      target,
+      http_version,
+      headers
+    };
 
-HttpVersion: ast::HttpVersion = <http_version> => ast::HttpVersion::OneOne;
+Headers: Vec<(String, String)> = <(<header>"\n")*> => <>;
 
 extern {
   type Location = usize;
@@ -24,10 +31,11 @@ extern {
   enum Token {
     " " => Token::SP,
     "\n" => Token::NL,
-    "#!" => Token::Shebang,
-    http_version => Token::HttpVersion,
-    string => Token::String(<String>),
+    shebang => Token::Shebang,
+    http_version => Token::HttpVersion(<String>),
+    verb => Token::Verb(<String>),
     url => Token::Url(<String>),
+    header => Token::HeaderKeyValue(<(String, String)>),
     "---" => Token::TripleDash,
   }
 }
