@@ -11,13 +11,9 @@ mod tests {
 
     #[test]
     fn test() {
-        let offset = 0;
         let input = concat!("---\n", "GET http://example.com HTTP/1.1\n", "---\n");
 
-        let lexer = Lexer::new(input).map(|token| match token {
-            Ok((l, token, r)) => Ok((l + offset, token, r + offset)),
-            Err((e, span)) => Err((e, span.start + offset..span.end + offset)),
-        });
+        let lexer = Lexer::new(input);
 
         let parser = reqlang::DocumentParser::new();
 
