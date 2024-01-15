@@ -42,9 +42,9 @@ mod tests {
     #[test]
     fn lex_get_request() {
         let exp: Vec<Result<(usize, Token, usize), (LexicalError, std::ops::Range<usize>)>> = vec![
-            Ok((0, Token::Verb("GET".to_string()), 3)),
+            Ok((0, Token::String("GET".to_string()), 3)),
             Ok((3, Token::SP, 4)),
-            Ok((4, Token::Url("http://example.com".to_string()), 22)),
+            Ok((4, Token::String("http://example.com".to_string()), 22)),
             Ok((22, Token::SP, 23)),
             Ok((23, Token::HttpVersion, 31)),
         ];
@@ -56,9 +56,9 @@ mod tests {
     #[test]
     fn lex_post_request() {
         let exp: Vec<Result<(usize, Token, usize), (LexicalError, std::ops::Range<usize>)>> = vec![
-            Ok((0, Token::Verb("POST".to_string()), 4)),
+            Ok((0, Token::String("POST".to_string()), 4)),
             Ok((4, Token::SP, 5)),
-            Ok((5, Token::Url("http://example.com".to_string()), 23)),
+            Ok((5, Token::String("http://example.com".to_string()), 23)),
             Ok((23, Token::SP, 24)),
             Ok((24, Token::HttpVersion, 32)),
         ];
@@ -70,9 +70,9 @@ mod tests {
     #[test]
     fn lex_put_request() {
         let exp: Vec<Result<(usize, Token, usize), (LexicalError, std::ops::Range<usize>)>> = vec![
-            Ok((0, Token::Verb("PUT".to_string()), 3)),
+            Ok((0, Token::String("PUT".to_string()), 3)),
             Ok((3, Token::SP, 4)),
-            Ok((4, Token::Url("http://example.com".to_string()), 22)),
+            Ok((4, Token::String("http://example.com".to_string()), 22)),
             Ok((22, Token::SP, 23)),
             Ok((23, Token::HttpVersion, 31)),
         ];
@@ -84,9 +84,9 @@ mod tests {
     #[test]
     fn lex_delete_request() {
         let exp: Vec<Result<(usize, Token, usize), (LexicalError, std::ops::Range<usize>)>> = vec![
-            Ok((0, Token::Verb("DELETE".to_string()), 6)),
+            Ok((0, Token::String("DELETE".to_string()), 6)),
             Ok((6, Token::SP, 7)),
-            Ok((7, Token::Url("http://example.com".to_string()), 25)),
+            Ok((7, Token::String("http://example.com".to_string()), 25)),
             Ok((25, Token::SP, 26)),
             Ok((26, Token::HttpVersion, 34)),
         ];
@@ -98,9 +98,9 @@ mod tests {
     #[test]
     fn lex_head_request() {
         let exp: Vec<Result<(usize, Token, usize), (LexicalError, std::ops::Range<usize>)>> = vec![
-            Ok((0, Token::Verb("HEAD".to_string()), 4)),
+            Ok((0, Token::String("HEAD".to_string()), 4)),
             Ok((4, Token::SP, 5)),
-            Ok((5, Token::Url("http://example.com".to_string()), 23)),
+            Ok((5, Token::String("http://example.com".to_string()), 23)),
             Ok((23, Token::SP, 24)),
             Ok((24, Token::HttpVersion, 32)),
         ];
@@ -112,9 +112,9 @@ mod tests {
     #[test]
     fn lex_options_request() {
         let exp: Vec<Result<(usize, Token, usize), (LexicalError, std::ops::Range<usize>)>> = vec![
-            Ok((0, Token::Verb("OPTIONS".to_string()), 7)),
+            Ok((0, Token::String("OPTIONS".to_string()), 7)),
             Ok((7, Token::SP, 8)),
-            Ok((8, Token::Url("http://example.com".to_string()), 26)),
+            Ok((8, Token::String("http://example.com".to_string()), 26)),
             Ok((26, Token::SP, 27)),
             Ok((27, Token::HttpVersion, 35)),
         ];
@@ -126,9 +126,9 @@ mod tests {
     #[test]
     fn lex_patch_request() {
         let exp: Vec<Result<(usize, Token, usize), (LexicalError, std::ops::Range<usize>)>> = vec![
-            Ok((0, Token::Verb("PATCH".to_string()), 5)),
+            Ok((0, Token::String("PATCH".to_string()), 5)),
             Ok((5, Token::SP, 6)),
-            Ok((6, Token::Url("http://example.com".to_string()), 24)),
+            Ok((6, Token::String("http://example.com".to_string()), 24)),
             Ok((24, Token::SP, 25)),
             Ok((25, Token::HttpVersion, 33)),
         ];
@@ -140,9 +140,9 @@ mod tests {
     #[test]
     fn lex_connect_request() {
         let exp: Vec<Result<(usize, Token, usize), (LexicalError, std::ops::Range<usize>)>> = vec![
-            Ok((0, Token::Verb("CONNECT".to_string()), 7)),
+            Ok((0, Token::String("CONNECT".to_string()), 7)),
             Ok((7, Token::SP, 8)),
-            Ok((8, Token::Url("http://example.com".to_string()), 26)),
+            Ok((8, Token::String("http://example.com".to_string()), 26)),
             Ok((26, Token::SP, 27)),
             Ok((27, Token::HttpVersion, 35)),
         ];
@@ -154,9 +154,9 @@ mod tests {
     #[test]
     fn lex_trace_request() {
         let exp: Vec<Result<(usize, Token, usize), (LexicalError, std::ops::Range<usize>)>> = vec![
-            Ok((0, Token::Verb("TRACE".to_string()), 5)),
+            Ok((0, Token::String("TRACE".to_string()), 5)),
             Ok((5, Token::SP, 6)),
-            Ok((6, Token::Url("http://example.com".to_string()), 24)),
+            Ok((6, Token::String("http://example.com".to_string()), 24)),
             Ok((24, Token::SP, 25)),
             Ok((25, Token::HttpVersion, 33)),
         ];
@@ -168,9 +168,9 @@ mod tests {
     #[test]
     fn lex_nonstandard_verb_request() {
         let exp: Vec<Result<(usize, Token, usize), (LexicalError, std::ops::Range<usize>)>> = vec![
-            Ok((0, Token::Verb("FOO".to_string()), 3)),
+            Ok((0, Token::String("FOO".to_string()), 3)),
             Ok((3, Token::SP, 4)),
-            Ok((4, Token::Url("http://example.com".to_string()), 22)),
+            Ok((4, Token::String("http://example.com".to_string()), 22)),
             Ok((22, Token::SP, 23)),
             Ok((23, Token::HttpVersion, 31)),
         ];

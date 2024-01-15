@@ -10,7 +10,7 @@ pub Document: ast::Document =
   "---" "\n" => ast::Document {<>};
 
 Request: ast::Request =
-  <verb:RequestVerb>" "<target:Url>" "<http_version:HttpVersion>"\n" => ast::Request {<>};
+  <verb:string>" "<target:string>" "<http_version:HttpVersion>"\n" => ast::Request {<>};
 
 HttpVersion: ast::HttpVersion = <Http> => ast::HttpVersion::OneOne;
 
@@ -22,8 +22,7 @@ extern {
     " " => Token::SP,
     "\n" => Token::NL,
     Http => Token::HttpVersion,
-    RequestVerb => Token::Verb(<String>),
-    Url => Token::Url(<String>),
+    string => Token::String(<String>),
     "---" => Token::TripleDash,
   }
 }
