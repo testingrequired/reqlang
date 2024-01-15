@@ -14,8 +14,8 @@ struct Args {
     /// Format to export
     #[arg(
         long,
-        default_value_t = Format::Curl,
-        value_parser = clap::builder::PossibleValuesParser::new(["curl", "javascript", "powershell"])
+        default_value_t = Format::Http,
+        value_parser = clap::builder::PossibleValuesParser::new(["http", "curl", "javascript", "powershell"])
             .map(|s| s.parse::<Format>().unwrap()),
     )]
     format: Format,
@@ -23,6 +23,7 @@ struct Args {
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 enum Format {
+    Http,
     Curl,
     Javascript,
     Powershell,
@@ -31,6 +32,7 @@ enum Format {
 impl Display for Format {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            Format::Http => write!(f, "http"),
             Format::Curl => write!(f, "curl"),
             Format::Javascript => write!(f, "javascript"),
             Format::Powershell => write!(f, "powershell"),
@@ -43,6 +45,7 @@ impl std::str::FromStr for Format {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
+            "http" => Ok(Self::Http),
             "curl" => Ok(Self::Curl),
             "javascript" => Ok(Self::Javascript),
             "powershell" => Ok(Self::Powershell),
@@ -69,6 +72,12 @@ fn main() {
     };
 
     match args.format {
+        Format::Http => {
+            println!(
+                "{} {} HTTP/1.1\n",
+                document.request.verb, document.request.target
+            );
+        }
         Format::Curl => {
             match document.request.verb.as_str() {
                 "GET" => {
