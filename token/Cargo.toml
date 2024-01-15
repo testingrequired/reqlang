@@ -8,3 +8,4 @@ edition = "2021"
 [dependencies]
 logos = "0.13.0"
 url = "2.5.0"
+errors = { path = "../errors" }

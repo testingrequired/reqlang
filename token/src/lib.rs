@@ -10,8 +10,10 @@ pub enum Token {
     NL,
     #[token("HTTP/1.1")]
     HttpVersion,
-    #[regex(r#"[-_a-zA-Z0-9/:?%&.=]+"#, lex_string)]
+    #[regex(r#"[a-zA-Z][-_a-zA-Z0-9/:?%&.=]+"#, lex_string)]
     String(String),
+    #[regex(r#"(?:(?:http|https)://|/)[-_a-zA-Z0-9/:?%&.=]+"#, lex_string)]
+    Url(String),
     #[token("---")]
     TripleDash,
 }

@@ -10,9 +10,9 @@ pub Document: ast::Document =
   "---" "\n" => ast::Document {<>};
 
 Request: ast::Request =
-  <verb:string>" "<target:string>" "<http_version:HttpVersion>"\n" => ast::Request {<>};
+  <verb:string>" "<target:url>" "<http_version:HttpVersion>"\n" => ast::Request {<>};
 
-HttpVersion: ast::HttpVersion = <Http> => ast::HttpVersion::OneOne;
+HttpVersion: ast::HttpVersion = <http_version> => ast::HttpVersion::OneOne;
 
 extern {
   type Location = usize;
@@ -21,8 +21,9 @@ extern {
   enum Token {
     " " => Token::SP,
     "\n" => Token::NL,
-    Http => Token::HttpVersion,
+    http_version => Token::HttpVersion,
     string => Token::String(<String>),
+    url => Token::Url(<String>),
     "---" => Token::TripleDash,
   }
 }
