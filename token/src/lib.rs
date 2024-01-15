@@ -8,6 +8,8 @@ pub enum Token {
     SP,
     #[token("\n")]
     NL,
+    #[token("#!")]
+    Shebang,
     #[token("HTTP/1.1")]
     HttpVersion,
     #[regex(r#"[a-zA-Z][-_a-zA-Z0-9/:?%&.=]+"#, lex_string)]

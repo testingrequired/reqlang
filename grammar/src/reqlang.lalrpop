@@ -5,9 +5,12 @@ use ast;
 grammar;
 
 pub Document: ast::Document =
+  <_shebang:("#!"<url>" "<string>"\n")?>
   "---" "\n"
   <request:Request>
-  "---" "\n" => ast::Document {<>};
+  "---" "\n" => ast::Document {
+    request
+  };
 
 Request: ast::Request =
   <verb:string>" "<target:url>" "<http_version:HttpVersion>"\n" => ast::Request {<>};
@@ -21,6 +24,7 @@ extern {
   enum Token {
     " " => Token::SP,
     "\n" => Token::NL,
+    "#!" => Token::Shebang,
     http_version => Token::HttpVersion,
     string => Token::String(<String>),
     url => Token::Url(<String>),

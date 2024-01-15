@@ -11,7 +11,12 @@ mod tests {
 
     #[test]
     fn test() {
-        let input = concat!("---\n", "GET http://example.com HTTP/1.1\n", "---\n");
+        let input = concat!(
+            "#!/usr/bin/env reqlang\n",
+            "---\n",
+            "GET http://example.com HTTP/1.1\n",
+            "---\n"
+        );
 
         let lexer = Lexer::new(input);
 
