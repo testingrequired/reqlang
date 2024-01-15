@@ -11,6 +11,7 @@ ast = { path = "../ast" }
 token = { path = "../token" }
 lexer = { path = "../lexer" }
 errors = { path = "../errors" }
+span = { path = "../span" }
 
 [build-dependencies]
 lalrpop = "0.20.0"
