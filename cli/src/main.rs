@@ -1,7 +1,7 @@
 use std::{fs, process::exit};
 
 use clap::Parser;
-use grammar::reqlang;
+use grammar::reqlang::DocumentParser;
 use lexer::Lexer;
 
 /// Run a request file
@@ -19,15 +19,12 @@ fn main() {
 
     let lexer = Lexer::new(&contents);
 
-    let parser = reqlang::DocumentParser::new();
-
-    let mut parser_errors = Vec::new();
+    let parser = DocumentParser::new();
 
     let document = match parser.parse(lexer) {
         Ok(program) => program,
         Err(err) => {
             eprintln!("Errors parsing file: {:?}", err);
-            parser_errors.push(err);
             exit(1);
         }
     };
