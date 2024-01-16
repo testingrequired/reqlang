@@ -73,9 +73,27 @@ fn main() {
 
     match args.format {
         Format::Http => {
+            let headers: Vec<String> = document
+                .request
+                .headers
+                .iter()
+                .map(|x| format!("{}: {}", x.0, x.1))
+                .collect();
+
+            let has_body = document.request.body.is_some();
+
+            let body = if has_body {
+                document.request.body.unwrap()
+            } else {
+                "".to_string()
+            };
+
             println!(
-                "{} {} HTTP/1.1\n",
-                document.request.verb, document.request.target
+                "{} {} HTTP/1.1\n{}\n\n{}",
+                document.request.verb,
+                document.request.target,
+                headers.join("\n"),
+                body
             );
         }
         Format::Curl => {
