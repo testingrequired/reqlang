@@ -15,12 +15,16 @@ pub Document: ast::Document =
 Request: ast::Request =
   <verb:verb>" "<target:url>" "<http_version:http_version>"\n"
   <headers:Headers>
+  <body:Body>
   => ast::Request {
       verb,
       target,
       http_version,
-      headers
+      headers,
+      body
     };
+
+Body: Option<String> = <body:("\n" <body> "\n")?> => <>;
 
 Headers: Vec<(String, String)> = <(<header>"\n")*> => <>;
 
@@ -37,5 +41,6 @@ extern {
     url => Token::Url(<String>),
     header => Token::HeaderKeyValue(<(String, String)>),
     "---" => Token::TripleDash,
+    body => Token::Body(<String>),
   }
 }

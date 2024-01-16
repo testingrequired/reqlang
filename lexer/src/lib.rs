@@ -75,7 +75,7 @@ mod tests {
     );
 
     lex_test!(
-        lex_get_request_with_single_header,
+        lex_get_request_with_headers,
         concat!(
             "---\n",
             "GET / HTTP/1.1\n",
@@ -106,6 +106,48 @@ mod tests {
             Ok((61, Token::NL, 62)),
             Ok((62, Token::TripleDash, 65)),
             Ok((65, Token::NL, 66)),
+        ]
+    );
+
+    lex_test!(
+        lex_post_request_with_headers_and_body,
+        concat!(
+            "---\n",
+            "POST / HTTP/1.1\n",
+            "host: http://example.com\n",
+            "content-type: application/json\n",
+            "\n",
+            "```\n",
+            "[1, 2, 3]\n",
+            "```\n",
+            "---\n",
+        ),
+        vec![
+            Ok((0, Token::TripleDash, 3)),
+            Ok((3, Token::NL, 4)),
+            Ok((4, Token::Verb("POST".to_string()), 8)),
+            Ok((8, Token::SP, 9)),
+            Ok((9, Token::Url("/".to_string()), 10)),
+            Ok((10, Token::SP, 11)),
+            Ok((11, Token::HttpVersion("HTTP/1.1".to_string()), 19)),
+            Ok((19, Token::NL, 20)),
+            Ok((
+                20,
+                Token::HeaderKeyValue(("host".to_string(), "http://example.com".to_string())),
+                44
+            )),
+            Ok((44, Token::NL, 45)),
+            Ok((
+                45,
+                Token::HeaderKeyValue(("content-type".to_string(), "application/json".to_string())),
+                75
+            )),
+            Ok((75, Token::NL, 76)),
+            Ok((76, Token::NL, 77)),
+            Ok((77, Token::Body("```\n[1, 2, 3]\n```".to_string()), 94)),
+            Ok((94, Token::NL, 95)),
+            Ok((95, Token::TripleDash, 98)),
+            Ok((98, Token::NL, 99)),
         ]
     );
 

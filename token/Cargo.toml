@@ -9,3 +9,4 @@ edition = "2021"
 logos = "0.13.0"
 url = "2.5.0"
 errors = { path = "../errors" }
+regex = "1.10.2"

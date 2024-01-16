@@ -9,4 +9,5 @@ pub struct Request {
     pub target: String,
     pub http_version: String,
     pub headers: Vec<(String, String)>,
+    pub body: Option<String>,
 }

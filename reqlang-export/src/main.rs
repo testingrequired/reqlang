@@ -88,7 +88,17 @@ fn main() {
                         .map(|x| format!(r#"-H "{}: {}""#, x.0, x.1))
                         .collect();
 
-                    println!("curl {} {}", document.request.target, headers.join(" "));
+                    let data = match document.request.body {
+                        Some(body) => format!("-d '{body}'"),
+                        None => "".to_string(),
+                    };
+
+                    println!(
+                        "curl {} {} {}",
+                        document.request.target,
+                        headers.join(" "),
+                        data
+                    );
                 }
                 _ => {
                     let headers: Vec<String> = document
@@ -98,11 +108,17 @@ fn main() {
                         .map(|x| format!(r#"-H "{}: {}""#, x.0, x.1))
                         .collect();
 
+                    let data = match document.request.body {
+                        Some(body) => format!("-d '{body}'"),
+                        None => "".to_string(),
+                    };
+
                     println!(
-                        "curl -X {} {} {}",
+                        "curl -X {} {} {} {}",
                         document.request.verb,
                         document.request.target,
-                        headers.join(" ")
+                        headers.join(" "),
+                        data
                     );
                 }
             };
@@ -117,9 +133,28 @@ fn main() {
 
             let header_values = format!("{}", headers.join("; "));
 
+            let header_arg = if headers.is_empty() {
+                ""
+            } else {
+                "-Headers $headers"
+            };
+
+            let body_arg = if document.request.body.is_some() {
+                "-Body $body"
+            } else {
+                ""
+            };
+
+            let body_value = document.request.body.unwrap_or_default();
+
             println!(
-                "$headers = @{{ {} }}\nInvoke-RestMethod -Uri {} -Method {} -Headers $headers",
-                header_values, document.request.target, document.request.verb
+                "$headers = @{{ {} }}\n$body = '{}'\nInvoke-RestMethod -Uri {} -Method {} {} {}",
+                header_values,
+                body_value,
+                document.request.target,
+                document.request.verb,
+                header_arg,
+                body_arg
             );
         }
         Format::Javascript => {
