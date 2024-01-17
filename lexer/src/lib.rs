@@ -144,7 +144,7 @@ mod tests {
             )),
             Ok((75, Token::NL, 76)),
             Ok((76, Token::NL, 77)),
-            Ok((77, Token::Body("```\n[1, 2, 3]\n```".to_string()), 94)),
+            Ok((77, Token::Body("[1, 2, 3]".to_string()), 94)),
             Ok((94, Token::NL, 95)),
             Ok((95, Token::TripleDash, 98)),
             Ok((98, Token::NL, 99)),
