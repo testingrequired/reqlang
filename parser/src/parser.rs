@@ -65,7 +65,12 @@ impl RequestFileParser {
         let mut headers = [httparse::EMPTY_HEADER; 64];
         let mut req = httparse::Request::new(&mut headers);
 
-        let _ = req.parse(_request.as_bytes());
+        let size_minus_body = match req.parse(_request.as_bytes()).unwrap() {
+            httparse::Status::Complete(x) => x,
+            httparse::Status::Partial => 0,
+        };
+
+        let body = &_request[size_minus_body..];
 
         let mut mapped_headers = HashMap::new();
 
@@ -84,7 +89,7 @@ impl RequestFileParser {
             target: req.path.unwrap().to_string(),
             http_version: format!("1.{}", req.version.unwrap().to_string()),
             headers: mapped_headers,
-            ..Default::default()
+            body: Some(body.to_string()),
         }
     }
 
@@ -135,10 +140,12 @@ mod test {
     fn full_request_file() {
         let reqfile = concat!(
             "---\n",
-            "GET / HTTP/1.1\n",
+            "POST / HTTP/1.1\n",
             "host: {{:base_url}}\n",
             "x-test: {{?test_value}}\n",
             "x-api-key: {{!api_key}}\n",
+            "\n",
+            "[1, 2, 3]\n",
             "\n",
             "---\n",
             "HTTP/1.1 200 OK\n",
@@ -174,11 +181,11 @@ mod test {
 
         assert_eq!(
             Request {
-                verb: "GET".to_string(),
+                verb: "POST".to_string(),
                 target: "/".to_string(),
                 http_version: "1.1".to_string(),
                 headers: expected_headers,
-                body: None
+                body: Some("[1, 2, 3]\n\n".to_string())
             },
             unresolved_reqfile.request
         );

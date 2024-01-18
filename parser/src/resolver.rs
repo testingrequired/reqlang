@@ -50,10 +50,13 @@ mod test {
     fn full_request_file() {
         let reqfile = concat!(
             "---\n",
-            "GET / HTTP/1.1\n",
+            "POST / HTTP/1.1\n",
             "host: {{:base_url}}\n",
             "x-test: {{?test_value}}\n",
             "x-api-key: {{!api_key}}\n",
+            "\n",
+            "[1, 2, 3]\n",
+            "\n",
             "---\n",
             "HTTP/1.1 200 OK\n",
             "---\n",
@@ -85,11 +88,11 @@ mod test {
 
         assert_eq!(
             Request {
-                verb: "GET".to_string(),
+                verb: "POST".to_string(),
                 target: "/".to_string(),
                 http_version: "1.1".to_string(),
                 headers: expected_headers,
-                body: None
+                body: Some("[1, 2, 3]\n\n".to_string())
             },
             unresolved_reqfile.request
         );
