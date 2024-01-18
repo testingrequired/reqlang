@@ -28,7 +28,14 @@ impl RequestFileResolver {
         Ok(ResolvedRequestFile {
             config: ResolvedRequestFileConfig {
                 env: env.to_string(),
-                vars: HashMap::new(),
+                vars: reqfile
+                    .config
+                    .as_ref()
+                    .unwrap()
+                    .envs
+                    .get(env)
+                    .unwrap()
+                    .clone(),
                 prompts: prompts.clone(),
                 secrets: secrets.clone(),
             },
@@ -148,7 +155,10 @@ mod test {
         assert_eq!("dev", resolved_reqfile.config.env);
 
         let mut expected_resolved_vars = HashMap::new();
-        expected_resolved_vars.insert("base_url".to_string(), "http://dev.example.com".to_string());
+        expected_resolved_vars.insert(
+            "base_url".to_string(),
+            "https://dev.example.com".to_string(),
+        );
         assert_eq!(expected_resolved_vars, resolved_reqfile.config.vars);
 
         let mut expected_resolved_prompts = HashMap::new();

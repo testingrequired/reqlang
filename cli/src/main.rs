@@ -1,4 +1,4 @@
-use std::{fs, process::exit};
+use std::{collections::HashMap, fs, process::exit};
 
 use clap::Parser;
 
@@ -15,7 +15,7 @@ fn main() {
 
     let contents = fs::read_to_string(args.path).expect("Should have been able to read the file");
 
-    let reqfile = parser::parse(&contents, "dev");
+    let reqfile = parser::parse(&contents, "dev", HashMap::new(), HashMap::new());
 
     let reqfile = match reqfile {
         Ok(reqfile) => reqfile,
