@@ -10,52 +10,43 @@ pub struct Request {
     pub verb: String,
     pub target: String,
     pub http_version: String,
+    pub headers: HashMap<String, String>,
+    pub body: Option<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Default)]
+pub struct Response {
+    pub http_version: String,
+    pub status_code: String,
+    pub status_text: String,
     pub headers: Vec<(String, String)>,
     pub body: Option<String>,
 }
 
-/// A request file with an environement applied and values (vars, prompts, secrets)
-/// resolved
 #[derive(Clone, Debug, PartialEq, Default)]
-pub struct RequestFile {
-    pub config: RequestFileConfig,
-    pub request: String,
-    pub response: Option<String>,
+pub struct UnresolvedRequestFile {
+    pub config: UnresolvedRequestFileConfig,
+    pub request: Request,
+    pub response: Option<Response>,
 }
 
-/// A request file config with an environement applied and values (vars, prompts, secrets)
-/// resolved
 #[derive(Clone, Debug, PartialEq, Default)]
-pub struct RequestFileConfig {
-    pub env: String,
-    pub vars: HashMap<String, String>,
-    pub prompts: HashMap<String, String>,
-    pub secrets: HashMap<String, String>,
+pub struct UnresolvedRequestFileConfig {
+    pub envs: HashMap<String, String>,
+    pub vars: Vec<String>,
+    pub prompts: HashMap<String, Option<String>>,
+    pub secrets: Vec<String>,
 }
 
-/// A template file without an environement set or templating applied
 #[derive(Clone, Debug, PartialEq, Default)]
-pub struct TemplateFileUntemplated {
-    pub config: TemplateFileUntemplatedConfig,
+pub struct ResolvedRequestFile {
+    pub config: ResolvedRequestFileConfig,
+    pub request: Request,
+    pub response: Option<Response>,
 }
 
-/// A template file config without an environement set or templating applied
 #[derive(Clone, Debug, PartialEq, Default)]
-pub struct TemplateFileUntemplatedConfig {
-    pub template: Option<String>,
-}
-
-/// A template file with an environement applied and values (vars, prompts, secrets)
-/// resolved
-#[derive(Clone, Debug, PartialEq, Default)]
-pub struct TemplateFile {
-    pub config: TemplateFileConfig,
-}
-
-/// A template file config with an environement applied and values (vars, prompts, secrets)
-/// resolved
-#[derive(Clone, Debug, PartialEq, Default)]
-pub struct TemplateFileConfig {
+pub struct ResolvedRequestFileConfig {
     pub env: String,
     pub vars: HashMap<String, String>,
     pub prompts: HashMap<String, String>,
