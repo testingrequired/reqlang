@@ -40,6 +40,7 @@ mod tests {
             "HTTP/1.1 200 OK\n",
             "---\n",
             "vars = [\"base_url\"]\n",
+            "secrets = [\"api_key\"]\n",
             "\n",
             "[envs.dev]\n",
             "base_url = \"https://dev.example.com\"\n",
@@ -47,9 +48,8 @@ mod tests {
             "[envs.prod]\n",
             "base_url = \"https://example.com\"\n",
             "\n",
-            "prompts = [\"test_value\"]",
-            "\n",
-            "secrets = [\"api_key\"]",
+            "[prompts]\n",
+            "test_value = \"\"",
             "\n",
             "---\n"
         );

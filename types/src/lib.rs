@@ -1,3 +1,4 @@
+use serde::Deserialize;
 use std::collections::HashMap;
 
 #[derive(Clone, Debug, PartialEq, Default)]
@@ -25,15 +26,15 @@ pub struct Response {
 
 #[derive(Clone, Debug, PartialEq, Default)]
 pub struct UnresolvedRequestFile {
-    pub config: UnresolvedRequestFileConfig,
+    pub config: Option<UnresolvedRequestFileConfig>,
     pub request: Request,
     pub response: Option<Response>,
 }
 
-#[derive(Clone, Debug, PartialEq, Default)]
+#[derive(Clone, Debug, PartialEq, Default, Deserialize)]
 pub struct UnresolvedRequestFileConfig {
-    pub envs: HashMap<String, String>,
     pub vars: Vec<String>,
+    pub envs: HashMap<String, HashMap<String, String>>,
     pub prompts: HashMap<String, Option<String>>,
     pub secrets: Vec<String>,
 }

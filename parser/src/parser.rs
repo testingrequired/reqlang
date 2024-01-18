@@ -56,12 +56,22 @@ impl RequestFileParser {
         })
     }
 
-    fn parse_config(&self, _config: Option<String>) -> UnresolvedRequestFileConfig {
-        UnresolvedRequestFileConfig::default()
+    fn parse_config(&self, _config: Option<String>) -> Option<UnresolvedRequestFileConfig> {
+        _config.map(|c| toml::from_str(&c).unwrap())
     }
 
     fn parse_request(&self, _request: String) -> Request {
-        Request::default()
+        let mut headers = [httparse::EMPTY_HEADER; 64];
+        let mut req = httparse::Request::new(&mut headers);
+
+        let _ = req.parse(_request.as_bytes());
+
+        Request {
+            verb: req.method.unwrap().to_string(),
+            target: req.path.unwrap().to_string(),
+            http_version: format!("1.{}", req.version.unwrap().to_string()),
+            ..Default::default()
+        }
     }
 
     fn parse_response(&self, _response: Option<String>) -> Option<Response> {
@@ -119,16 +129,17 @@ mod test {
             "HTTP/1.1 200 OK\n",
             "---\n",
             "vars = [\"base_url\"]\n",
+            "secrets = [\"api_key\"]",
             "\n",
+            "[envs]\n",
             "[envs.dev]\n",
             "base_url = \"https://dev.example.com\"\n",
             "\n",
             "[envs.prod]\n",
             "base_url = \"https://example.com\"\n",
             "\n",
-            "prompts = [\"test_value\"]",
-            "\n",
-            "secrets = [\"api_key\"]",
+            "[prompts]\n",
+            "test_value = \"\"",
             "\n",
             "---\n"
         );
@@ -162,14 +173,17 @@ mod test {
         let expected_vars = vec!["base_url".to_string()];
 
         let mut expected_envs = HashMap::new();
-        expected_envs.insert(
-            "dev___base_url".to_string(),
-            "http://dev.example.com".to_string(),
-        );
-        expected_envs.insert(
-            "prod___base_url".to_string(),
-            "http://example.com".to_string(),
-        );
+
+        let mut dev_env = HashMap::new();
+
+        dev_env.insert("base_url".to_string(), "http://dev.example.com".to_string());
+
+        let mut prod_env = HashMap::new();
+
+        prod_env.insert("base_url".to_string(), "http://example.com".to_string());
+
+        expected_envs.insert("dev".to_string(), dev_env);
+        expected_envs.insert("prod".to_string(), prod_env);
 
         let mut expected_prompts = HashMap::new();
         expected_prompts.insert("test_value".to_string(), None);
@@ -177,12 +191,12 @@ mod test {
         let expected_secrets = vec!["api_key".to_string()];
 
         assert_eq!(
-            UnresolvedRequestFileConfig {
+            Some(UnresolvedRequestFileConfig {
                 vars: expected_vars,
                 envs: expected_envs,
                 prompts: expected_prompts,
                 secrets: expected_secrets
-            },
+            }),
             unresolved_reqfile.config
         );
     }
