@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use types::{Request, Response, UnresolvedRequestFile, UnresolvedRequestFileConfig};
 
 pub struct RequestFileParser {}
@@ -39,7 +40,7 @@ impl RequestFileParser {
             return Err("Request file has too many document dividers");
         }
 
-        let request = documents.get(1).map(|x| x.trim().to_string()).unwrap();
+        let request = documents.get(1).map(|x| x.to_string()).unwrap();
         let response = documents
             .get(2)
             .map(|x| x.trim().to_string())
@@ -66,10 +67,23 @@ impl RequestFileParser {
 
         let _ = req.parse(_request.as_bytes());
 
+        let mut mapped_headers = HashMap::new();
+
+        req.headers
+            .into_iter()
+            .filter(|x| !x.name.is_empty())
+            .for_each(|x| {
+                mapped_headers.insert(
+                    x.name.to_string(),
+                    std::str::from_utf8(x.value).unwrap().to_string(),
+                );
+            });
+
         Request {
             verb: req.method.unwrap().to_string(),
             target: req.path.unwrap().to_string(),
             http_version: format!("1.{}", req.version.unwrap().to_string()),
+            headers: mapped_headers,
             ..Default::default()
         }
     }
@@ -125,6 +139,7 @@ mod test {
             "host: {{:base_url}}\n",
             "x-test: {{?test_value}}\n",
             "x-api-key: {{!api_key}}\n",
+            "\n",
             "---\n",
             "HTTP/1.1 200 OK\n",
             "---\n",
@@ -176,17 +191,20 @@ mod test {
 
         let mut dev_env = HashMap::new();
 
-        dev_env.insert("base_url".to_string(), "http://dev.example.com".to_string());
+        dev_env.insert(
+            "base_url".to_string(),
+            "https://dev.example.com".to_string(),
+        );
 
         let mut prod_env = HashMap::new();
 
-        prod_env.insert("base_url".to_string(), "http://example.com".to_string());
+        prod_env.insert("base_url".to_string(), "https://example.com".to_string());
 
         expected_envs.insert("dev".to_string(), dev_env);
         expected_envs.insert("prod".to_string(), prod_env);
 
         let mut expected_prompts = HashMap::new();
-        expected_prompts.insert("test_value".to_string(), None);
+        expected_prompts.insert("test_value".to_string(), Some("".to_string()));
 
         let expected_secrets = vec!["api_key".to_string()];
 

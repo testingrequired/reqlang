@@ -102,17 +102,20 @@ mod test {
 
         let mut dev_env = HashMap::new();
 
-        dev_env.insert("base_url".to_string(), "http://dev.example.com".to_string());
+        dev_env.insert(
+            "base_url".to_string(),
+            "https://dev.example.com".to_string(),
+        );
 
         let mut prod_env = HashMap::new();
 
-        prod_env.insert("base_url".to_string(), "http://example.com".to_string());
+        prod_env.insert("base_url".to_string(), "https://example.com".to_string());
 
         expected_envs.insert("dev".to_string(), dev_env);
         expected_envs.insert("prod".to_string(), prod_env);
 
         let mut expected_prompts = HashMap::new();
-        expected_prompts.insert("test_value".to_string(), None);
+        expected_prompts.insert("test_value".to_string(), Some("".to_string()));
 
         let expected_secrets = vec!["api_key".to_string()];
 
