@@ -62,42 +62,44 @@ mod tests {
             "---\n"
         );
 
-        let mut secrets = HashMap::new();
-        secrets.insert("api_key".to_string(), "api_key_value".to_string());
-
-        let mut prompts = HashMap::new();
-        prompts.insert("test_value".to_string(), "test_value_value".to_string());
-
-        let resolved_reqfile = parse(&reqfile, "dev", prompts, secrets).unwrap();
+        let resolved_reqfile = parse(
+            &reqfile,
+            "dev",
+            HashMap::from([("test_value".to_string(), "test_value_value".to_string())]),
+            HashMap::from([("api_key".to_string(), "api_key_value".to_string())]),
+        )
+        .unwrap();
 
         assert_eq!("dev", resolved_reqfile.config.env);
 
-        let mut expected_resolved_vars = HashMap::new();
-        expected_resolved_vars.insert(
-            "base_url".to_string(),
-            "https://dev.example.com".to_string(),
+        assert_eq!(
+            HashMap::from([(
+                "base_url".to_string(),
+                "https://dev.example.com".to_string()
+            )]),
+            resolved_reqfile.config.vars
         );
-        assert_eq!(expected_resolved_vars, resolved_reqfile.config.vars);
 
-        let mut expected_resolved_prompts = HashMap::new();
-        expected_resolved_prompts.insert("test_value".to_string(), "test_value_value".to_string());
-        assert_eq!(expected_resolved_prompts, resolved_reqfile.config.prompts);
+        assert_eq!(
+            HashMap::from([("test_value".to_string(), "test_value_value".to_string())]),
+            resolved_reqfile.config.prompts
+        );
 
-        let mut expected_resolved_secrets = HashMap::new();
-        expected_resolved_secrets.insert("api_key".to_string(), "api_key_value".to_string());
-        assert_eq!(expected_resolved_secrets, resolved_reqfile.config.secrets);
-
-        let mut expected_headers = HashMap::new();
-        expected_headers.insert("host".to_string(), "{{:base_url}}".to_string());
-        expected_headers.insert("x-test".to_string(), "{{?test_value}}".to_string());
-        expected_headers.insert("x-api-key".to_string(), "{{!api_key}}".to_string());
+        assert_eq!(
+            HashMap::from([("api_key".to_string(), "api_key_value".to_string())]),
+            resolved_reqfile.config.secrets
+        );
 
         assert_eq!(
             Request {
                 verb: "POST".to_string(),
                 target: "/".to_string(),
                 http_version: "1.1".to_string(),
-                headers: expected_headers,
+                headers: HashMap::from([
+                    ("host".to_string(), "{{:base_url}}".to_string()),
+                    ("x-test".to_string(), "{{?test_value}}".to_string()),
+                    ("x-api-key".to_string(), "{{!api_key}}".to_string()),
+                ]),
                 body: Some("[1, 2, 3]\n\n".to_string())
             },
             resolved_reqfile.request
