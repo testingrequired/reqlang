@@ -43,7 +43,7 @@ impl RequestFileParser {
         let request = documents.get(1).map(|x| x.to_string()).unwrap();
         let response = documents
             .get(2)
-            .map(|x| x.trim().to_string())
+            .map(|x| x.trim_start().to_string())
             .filter(|x| !x.is_empty());
         let config = documents
             .get(3)
@@ -94,7 +94,37 @@ impl RequestFileParser {
     }
 
     fn parse_response(&self, _response: Option<String>) -> Option<Response> {
-        None
+        let mut headers = [httparse::EMPTY_HEADER; 64];
+        let mut res = httparse::Response::new(&mut headers);
+
+        let response = _response.unwrap();
+
+        let size_minus_body = match res.parse(response.as_bytes()).unwrap() {
+            httparse::Status::Complete(x) => x,
+            httparse::Status::Partial => 0,
+        };
+
+        let body = &response[size_minus_body..];
+
+        let mut mapped_headers = HashMap::new();
+
+        res.headers
+            .into_iter()
+            .filter(|x| !x.name.is_empty())
+            .for_each(|x| {
+                mapped_headers.insert(
+                    x.name.to_string(),
+                    std::str::from_utf8(x.value).unwrap().to_string(),
+                );
+            });
+
+        Some(Response {
+            http_version: format!("1.{}", res.version.unwrap().to_string()),
+            status_code: res.code.unwrap().to_string(),
+            status_text: res.reason.unwrap().to_string(),
+            headers: mapped_headers,
+            body: Some(body.to_string()),
+        })
     }
 }
 
@@ -102,7 +132,7 @@ impl RequestFileParser {
 mod test {
     use std::collections::HashMap;
 
-    use types::{Request, UnresolvedRequestFileConfig};
+    use types::{Request, Response, UnresolvedRequestFileConfig};
 
     use crate::parser::RequestFileParser;
 
@@ -148,7 +178,7 @@ mod test {
             "[1, 2, 3]\n",
             "\n",
             "---\n",
-            "HTTP/1.1 200 OK\n",
+            "HTTP/1.1 200 OK\n\n",
             "---\n",
             "vars = [\"base_url\"]\n",
             "secrets = [\"api_key\"]",
@@ -190,7 +220,16 @@ mod test {
             unresolved_reqfile.request
         );
 
-        assert_eq!(None, unresolved_reqfile.response);
+        assert_eq!(
+            Some(Response {
+                http_version: "1.1".to_string(),
+                status_code: "200".to_string(),
+                status_text: "OK".to_string(),
+                headers: HashMap::new(),
+                body: Some("".to_string())
+            }),
+            unresolved_reqfile.response
+        );
 
         let expected_vars = vec!["base_url".to_string()];
 

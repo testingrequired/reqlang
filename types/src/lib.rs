@@ -20,7 +20,7 @@ pub struct Response {
     pub http_version: String,
     pub status_code: String,
     pub status_text: String,
-    pub headers: Vec<(String, String)>,
+    pub headers: HashMap<String, String>,
     pub body: Option<String>,
 }
 

@@ -40,7 +40,7 @@ impl RequestFileResolver {
                 secrets: secrets.clone(),
             },
             request: reqfile.request.clone(),
-            response: None,
+            response: reqfile.response.clone(),
         })
     }
 }
@@ -49,7 +49,7 @@ impl RequestFileResolver {
 mod test {
     use std::collections::HashMap;
 
-    use types::{Request, UnresolvedRequestFileConfig};
+    use types::{Request, Response, UnresolvedRequestFileConfig};
 
     use crate::{parser::RequestFileParser, resolver::RequestFileResolver};
 
@@ -65,7 +65,7 @@ mod test {
             "[1, 2, 3]\n",
             "\n",
             "---\n",
-            "HTTP/1.1 200 OK\n",
+            "HTTP/1.1 200 OK\n\n",
             "---\n",
             "vars = [\"base_url\"]\n",
             "secrets = [\"api_key\"]\n",
@@ -104,7 +104,16 @@ mod test {
             unresolved_reqfile.request
         );
 
-        assert_eq!(None, unresolved_reqfile.response);
+        assert_eq!(
+            Some(Response {
+                http_version: "1.1".to_string(),
+                status_code: "200".to_string(),
+                status_text: "OK".to_string(),
+                headers: HashMap::new(),
+                body: Some("".to_string())
+            }),
+            unresolved_reqfile.response
+        );
 
         let expected_vars = vec!["base_url".to_string()];
 
@@ -170,6 +179,15 @@ mod test {
         assert_eq!(expected_resolved_secrets, resolved_reqfile.config.secrets);
 
         assert_eq!(unresolved_reqfile.request, resolved_reqfile.request);
-        assert_eq!(unresolved_reqfile.response, resolved_reqfile.response);
+        assert_eq!(
+            Some(Response {
+                http_version: "1.1".to_string(),
+                status_code: "200".to_string(),
+                status_text: "OK".to_string(),
+                headers: HashMap::new(),
+                body: Some("".to_string())
+            }),
+            resolved_reqfile.response
+        );
     }
 }

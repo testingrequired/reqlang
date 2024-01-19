@@ -3,7 +3,15 @@
 POST https://example.com HTTP/1.1
 content-type: application/json
 
-```
 { "value": [1, 2, 3] }
-```
+---
+HTTP/1.1 200 OK
+
+---
+vars = []
+secrets = []
+[envs]
+[envs.dev]
+[envs.prod]
+[prompts]
 ---

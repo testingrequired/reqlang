@@ -29,7 +29,7 @@ pub fn parse(
 mod tests {
     use std::collections::HashMap;
 
-    use types::Request;
+    use types::{Request, Response};
 
     use crate::parse;
 
@@ -45,7 +45,7 @@ mod tests {
             "[1, 2, 3]\n",
             "\n",
             "---\n",
-            "HTTP/1.1 200 OK\n",
+            "HTTP/1.1 200 OK\n\n",
             "---\n",
             "vars = [\"base_url\"]\n",
             "secrets = [\"api_key\"]\n",
@@ -102,6 +102,15 @@ mod tests {
             },
             resolved_reqfile.request
         );
-        assert_eq!(None, resolved_reqfile.response);
+        assert_eq!(
+            Some(Response {
+                http_version: "1.1".to_string(),
+                status_code: "200".to_string(),
+                status_text: "OK".to_string(),
+                headers: HashMap::new(),
+                body: Some("".to_string())
+            }),
+            resolved_reqfile.response
+        );
     }
 }
