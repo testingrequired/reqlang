@@ -103,7 +103,10 @@ fn main() {
                         .collect();
 
                     let data = match reqfile.request.body {
-                        Some(body) => format!("-d '{body}'"),
+                        Some(body) => match body.is_empty() {
+                            true => "".to_string(),
+                            false => format!("-d '{body}'"),
+                        },
                         None => "".to_string(),
                     };
 
@@ -123,7 +126,10 @@ fn main() {
                         .collect();
 
                     let data = match reqfile.request.body {
-                        Some(body) => format!("-d '{body}'"),
+                        Some(body) => match body.is_empty() {
+                            true => "".to_string(),
+                            false => format!("-d '{body}'"),
+                        },
                         None => "".to_string(),
                     };
 
