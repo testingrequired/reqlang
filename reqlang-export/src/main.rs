@@ -69,28 +69,7 @@ fn main() {
 
     match args.format {
         Format::Http => {
-            let headers: Vec<String> = reqfile
-                .request
-                .headers
-                .iter()
-                .map(|x| format!("{}: {}", x.0, x.1))
-                .collect();
-
-            let has_body = reqfile.request.body.is_some();
-
-            let body = if has_body {
-                reqfile.request.body.unwrap()
-            } else {
-                "".to_string()
-            };
-
-            println!(
-                "{} {} HTTP/1.1\n{}\n\n{}",
-                reqfile.request.verb,
-                reqfile.request.target,
-                headers.join("\n"),
-                body
-            );
+            println!("{}", reqfile.request);
         }
         Format::Curl => {
             match reqfile.request.verb.as_str() {

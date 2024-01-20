@@ -1,5 +1,6 @@
 use serde::Deserialize;
 use std::collections::HashMap;
+use std::fmt::Display;
 
 #[derive(Clone, Debug, PartialEq, Default)]
 pub struct Document {
@@ -13,6 +14,35 @@ pub struct Request {
     pub http_version: String,
     pub headers: HashMap<String, String>,
     pub body: Option<String>,
+}
+
+impl Display for Request {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let headers = self
+            .headers
+            .clone()
+            .into_iter()
+            .map(|x| format!("{}: {}", x.0, x.1))
+            .collect::<Vec<String>>()
+            .join("\n");
+
+        let headers = if headers.is_empty() {
+            "".to_string()
+        } else {
+            format!("{}\n\n", &headers)[..].to_string()
+        };
+
+        let body = match &self.body {
+            Some(x) => format!("{x}\n\n"),
+            None => "".to_string(),
+        };
+
+        write!(
+            f,
+            "{} {} HTTP/{}\n{}{}",
+            self.verb, self.target, self.http_version, headers, body
+        )
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Default)]
@@ -52,4 +82,62 @@ pub struct ResolvedRequestFileConfig {
     pub vars: HashMap<String, String>,
     pub prompts: HashMap<String, String>,
     pub secrets: HashMap<String, String>,
+}
+
+#[cfg(test)]
+mod tests {
+    mod request_display {
+        use std::collections::HashMap;
+
+        use crate::Request;
+
+        #[test]
+        fn post_request() {
+            let req = Request {
+                verb: "POST".to_string(),
+                target: "/".to_string(),
+                http_version: "1.1".to_string(),
+                headers: HashMap::from([("host".to_string(), "https://example.com".to_string())]),
+                body: Some("[1, 2, 3]".to_string()),
+            };
+
+            assert_eq!(
+                format!("{req}"),
+                concat!(
+                    "POST / HTTP/1.1\n",
+                    "host: https://example.com\n\n",
+                    "[1, 2, 3]\n\n"
+                )
+            );
+        }
+
+        #[test]
+        fn get_request() {
+            let req = Request {
+                verb: "GET".to_string(),
+                target: "/".to_string(),
+                http_version: "1.1".to_string(),
+                headers: HashMap::from([("host".to_string(), "https://example.com".to_string())]),
+                body: None,
+            };
+
+            assert_eq!(
+                format!("{req}"),
+                concat!("GET / HTTP/1.1\n", "host: https://example.com\n\n")
+            );
+        }
+
+        #[test]
+        fn get_request_no_headers() {
+            let req = Request {
+                verb: "GET".to_string(),
+                target: "/".to_string(),
+                http_version: "1.1".to_string(),
+                headers: HashMap::new(),
+                body: None,
+            };
+
+            assert_eq!(format!("{req}"), concat!("GET / HTTP/1.1\n"));
+        }
+    }
 }
