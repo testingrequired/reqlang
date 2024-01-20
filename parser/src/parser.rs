@@ -97,7 +97,10 @@ impl RequestFileParser {
         let mut headers = [httparse::EMPTY_HEADER; 64];
         let mut res = httparse::Response::new(&mut headers);
 
-        let response = _response.unwrap();
+        let response = match _response {
+            Some(x) => x,
+            None => return None,
+        };
 
         let size_minus_body = match res.parse(response.as_bytes()).unwrap() {
             httparse::Status::Complete(x) => x,
@@ -230,8 +233,8 @@ mod test {
 
         assert_eq!(
             Some(UnresolvedRequestFileConfig {
-                vars: vec!["base_url".to_string()],
-                envs: HashMap::from([
+                vars: Some(vec!["base_url".to_string()]),
+                envs: Some(HashMap::from([
                     (
                         "dev".to_string(),
                         HashMap::from([(
@@ -246,9 +249,12 @@ mod test {
                             "https://example.com".to_string()
                         )])
                     ),
-                ]),
-                prompts: HashMap::from([("test_value".to_string(), Some("".to_string()))]),
-                secrets: vec!["api_key".to_string()]
+                ])),
+                prompts: Some(HashMap::from([(
+                    "test_value".to_string(),
+                    Some("".to_string())
+                )])),
+                secrets: Some(vec!["api_key".to_string()])
             }),
             unresolved_reqfile.config
         );

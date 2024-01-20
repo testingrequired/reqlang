@@ -1,6 +1,9 @@
 use std::collections::HashMap;
 
-use types::{ResolvedRequestFile, ResolvedRequestFileConfig, UnresolvedRequestFile};
+use types::{
+    ResolvedRequestFile, ResolvedRequestFileConfig, UnresolvedRequestFile,
+    UnresolvedRequestFileConfig,
+};
 
 pub struct RequestFileResolver {}
 
@@ -28,20 +31,32 @@ impl RequestFileResolver {
         Ok(ResolvedRequestFile {
             config: ResolvedRequestFileConfig {
                 env: env.to_string(),
-                vars: reqfile
-                    .config
-                    .as_ref()
-                    .unwrap()
-                    .envs
-                    .get(env)
-                    .unwrap()
-                    .clone(),
+                vars: self.resolve_vars_from_envs(reqfile, env),
                 prompts: prompts.clone(),
                 secrets: secrets.clone(),
             },
             request: reqfile.request.clone(),
             response: reqfile.response.clone(),
         })
+    }
+
+    fn resolve_vars_from_envs(
+        &self,
+        reqfile: &UnresolvedRequestFile,
+        env: &str,
+    ) -> HashMap<String, String> {
+        let vars = reqfile
+            .config
+            .clone()
+            .unwrap_or(UnresolvedRequestFileConfig::default())
+            .clone()
+            .envs
+            .unwrap_or_default()
+            .get(env)
+            .unwrap_or(&HashMap::new())
+            .clone();
+
+        vars
     }
 }
 
@@ -116,8 +131,8 @@ mod test {
 
         assert_eq!(
             Some(UnresolvedRequestFileConfig {
-                vars: vec!["base_url".to_string()],
-                envs: HashMap::from([
+                vars: Some(vec!["base_url".to_string()]),
+                envs: Some(HashMap::from([
                     (
                         "dev".to_string(),
                         HashMap::from([(
@@ -132,9 +147,12 @@ mod test {
                             "https://example.com".to_string()
                         )])
                     ),
-                ]),
-                prompts: HashMap::from([("test_value".to_string(), Some("".to_string()))]),
-                secrets: vec!["api_key".to_string()]
+                ])),
+                prompts: Some(HashMap::from([(
+                    "test_value".to_string(),
+                    Some("".to_string())
+                )])),
+                secrets: Some(vec!["api_key".to_string()])
             }),
             unresolved_reqfile.config
         );

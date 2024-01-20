@@ -26,7 +26,7 @@ pub fn parse(
 }
 
 #[cfg(test)]
-mod tests {
+mod parserlib {
     use std::collections::HashMap;
 
     use types::{Request, Response};

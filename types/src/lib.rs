@@ -33,10 +33,10 @@ pub struct UnresolvedRequestFile {
 
 #[derive(Clone, Debug, PartialEq, Default, Deserialize)]
 pub struct UnresolvedRequestFileConfig {
-    pub vars: Vec<String>,
-    pub envs: HashMap<String, HashMap<String, String>>,
-    pub prompts: HashMap<String, Option<String>>,
-    pub secrets: Vec<String>,
+    pub vars: Option<Vec<String>>,
+    pub envs: Option<HashMap<String, HashMap<String, String>>>,
+    pub prompts: Option<HashMap<String, Option<String>>>,
+    pub secrets: Option<Vec<String>>,
 }
 
 #[derive(Clone, Debug, PartialEq, Default)]
