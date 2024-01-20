@@ -40,7 +40,17 @@ impl RequestFileParser {
             return Err("Request file has too many document dividers");
         }
 
-        let request = documents.get(1).map(|x| x.to_string()).unwrap();
+        let mut request = documents.get(1).map(|x| x.to_string()).unwrap();
+
+        // Fixes requests that doesn't end in correct number of new lines
+        if !request.ends_with("\n") {
+            request = format!("{request}\n\n");
+        }
+
+        if request.ends_with("\n") && !request.ends_with("\n\n") {
+            request = format!("{request}\n");
+        }
+
         let response = documents
             .get(2)
             .map(|x| x.trim_start().to_string())
@@ -135,7 +145,7 @@ impl RequestFileParser {
 mod test {
     use std::collections::HashMap;
 
-    use types::{Request, Response, UnresolvedRequestFileConfig};
+    use types::{Request, Response, UnresolvedRequestFile, UnresolvedRequestFileConfig};
 
     use crate::parser::RequestFileParser;
 
@@ -167,6 +177,54 @@ mod test {
             "---\n"
         ),
         Err("Request file has too many document dividers")
+    );
+
+    splitter_test!(
+        just_request_ends_with_no_newline,
+        concat!("---\n", "GET http://example.com HTTP/1.1", "---\n"),
+        Ok(UnresolvedRequestFile {
+            config: None,
+            request: Request {
+                verb: "GET".to_string(),
+                target: "http://example.com".to_string(),
+                http_version: "1.1".to_string(),
+                headers: HashMap::new(),
+                body: Some("".to_string())
+            },
+            response: None
+        })
+    );
+
+    splitter_test!(
+        just_request_ends_with_single_newline,
+        concat!("---\n", "GET http://example.com HTTP/1.1\n", "---\n"),
+        Ok(UnresolvedRequestFile {
+            config: None,
+            request: Request {
+                verb: "GET".to_string(),
+                target: "http://example.com".to_string(),
+                http_version: "1.1".to_string(),
+                headers: HashMap::new(),
+                body: Some("".to_string())
+            },
+            response: None
+        })
+    );
+
+    splitter_test!(
+        just_request_ends_with_multiple_newlines,
+        concat!("---\n", "GET http://example.com HTTP/1.1\n\n", "---\n"),
+        Ok(UnresolvedRequestFile {
+            config: None,
+            request: Request {
+                verb: "GET".to_string(),
+                target: "http://example.com".to_string(),
+                http_version: "1.1".to_string(),
+                headers: HashMap::new(),
+                body: Some("".to_string())
+            },
+            response: None
+        })
     );
 
     #[test]
@@ -262,7 +320,7 @@ mod test {
 }
 
 /// Delimiter used to split request files
-const DELIMITER: &str = "---";
+const DELIMITER: &str = "---\n";
 
 struct RequestFileSplitUp {
     request: String,
