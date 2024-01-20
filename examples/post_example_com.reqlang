@@ -3,7 +3,5 @@
 POST https://example.com HTTP/1.1
 content-type: application/json
 
-```
 { "value": [1, 2, 3] }
-```
 ---

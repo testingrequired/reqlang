@@ -1,9 +1,7 @@
 use clap::builder::TypedValueParser;
-use std::{fmt::Display, fs, process::exit};
+use std::{collections::HashMap, fmt::Display, fs, process::exit};
 
 use clap::Parser;
-use grammar::reqlang::DocumentParser;
-use lexer::Lexer;
 
 /// Export a request file to another format
 #[derive(Parser, Debug)]
@@ -59,12 +57,10 @@ fn main() {
 
     let contents = fs::read_to_string(args.path).expect("Should have been able to read the file");
 
-    let lexer = Lexer::new(&contents);
+    let reqfile = parser::parse(&contents, "dev", HashMap::new(), HashMap::new());
 
-    let parser = DocumentParser::new();
-
-    let document = match parser.parse(lexer) {
-        Ok(program) => program,
+    let reqfile = match reqfile {
+        Ok(reqfile) => reqfile,
         Err(err) => {
             eprintln!("There were errors parsing request file:\n\n{:#?}", err);
             exit(1);
@@ -73,68 +69,53 @@ fn main() {
 
     match args.format {
         Format::Http => {
-            let headers: Vec<String> = document
-                .request
-                .headers
-                .iter()
-                .map(|x| format!("{}: {}", x.0, x.1))
-                .collect();
-
-            let has_body = document.request.body.is_some();
-
-            let body = if has_body {
-                document.request.body.unwrap()
-            } else {
-                "".to_string()
-            };
-
-            println!(
-                "{} {} HTTP/1.1\n{}\n\n{}",
-                document.request.verb,
-                document.request.target,
-                headers.join("\n"),
-                body
-            );
+            println!("{}", reqfile.request);
         }
         Format::Curl => {
-            match document.request.verb.as_str() {
+            match reqfile.request.verb.as_str() {
                 "GET" => {
-                    let headers: Vec<String> = document
+                    let headers: Vec<String> = reqfile
                         .request
                         .headers
                         .iter()
                         .map(|x| format!(r#"-H "{}: {}""#, x.0, x.1))
                         .collect();
 
-                    let data = match document.request.body {
-                        Some(body) => format!("-d '{body}'"),
+                    let data = match reqfile.request.body {
+                        Some(body) => match body.is_empty() {
+                            true => "".to_string(),
+                            false => format!("-d '{body}'"),
+                        },
                         None => "".to_string(),
                     };
 
                     println!(
                         "curl {} {} {}",
-                        document.request.target,
+                        reqfile.request.target,
                         headers.join(" "),
                         data
                     );
                 }
                 _ => {
-                    let headers: Vec<String> = document
+                    let headers: Vec<String> = reqfile
                         .request
                         .headers
                         .iter()
                         .map(|x| format!(r#"-H "{}: {}""#, x.0, x.1))
                         .collect();
 
-                    let data = match document.request.body {
-                        Some(body) => format!("-d '{body}'"),
+                    let data = match reqfile.request.body {
+                        Some(body) => match body.is_empty() {
+                            true => "".to_string(),
+                            false => format!("-d '{body}'"),
+                        },
                         None => "".to_string(),
                     };
 
                     println!(
                         "curl -X {} {} {} {}",
-                        document.request.verb,
-                        document.request.target,
+                        reqfile.request.verb,
+                        reqfile.request.target,
                         headers.join(" "),
                         data
                     );
@@ -142,7 +123,7 @@ fn main() {
             };
         }
         Format::Powershell => {
-            let headers: Vec<String> = document
+            let headers: Vec<String> = reqfile
                 .request
                 .headers
                 .iter()
@@ -157,20 +138,20 @@ fn main() {
                 "-Headers $headers"
             };
 
-            let body_arg = if document.request.body.is_some() {
+            let body_arg = if reqfile.request.body.is_some() {
                 "-Body $body"
             } else {
                 ""
             };
 
-            let body_value = document.request.body.unwrap_or_default();
+            let body_value = reqfile.request.body.unwrap_or_default();
 
             println!(
                 "$headers = @{{ {} }}\n$body = '{}'\nInvoke-RestMethod -Uri {} -Method {} {} {}",
                 header_values,
                 body_value,
-                document.request.target,
-                document.request.verb,
+                reqfile.request.target,
+                reqfile.request.verb,
                 header_arg,
                 body_arg
             );

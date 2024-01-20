@@ -1,8 +1,6 @@
-use std::{fs, process::exit};
+use std::{collections::HashMap, fs, process::exit};
 
 use clap::Parser;
-use grammar::reqlang::DocumentParser;
-use lexer::Lexer;
 
 /// Run a request file
 #[derive(Parser, Debug)]
@@ -17,17 +15,15 @@ fn main() {
 
     let contents = fs::read_to_string(args.path).expect("Should have been able to read the file");
 
-    let lexer = Lexer::new(&contents);
+    let reqfile = parser::parse(&contents, "dev", HashMap::new(), HashMap::new());
 
-    let parser = DocumentParser::new();
-
-    let document = match parser.parse(lexer) {
-        Ok(program) => program,
+    let reqfile = match reqfile {
+        Ok(reqfile) => reqfile,
         Err(err) => {
             eprintln!("There were errors parsing request file:\n\n{:#?}", err);
             exit(1);
         }
     };
 
-    println!("{:#?}", document);
+    println!("{:#?}", reqfile);
 }

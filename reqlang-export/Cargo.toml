@@ -7,6 +7,4 @@ edition = "2021"
 
 [dependencies]
 clap = { version = "4.4.16", features = ["derive"] }
-lexer = { path = "../lexer" }
-grammar = { path = "../grammar" }
-ast = { path = "../ast" }
+parser = { path = "../parser" }
