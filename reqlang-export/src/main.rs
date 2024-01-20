@@ -72,55 +72,33 @@ fn main() {
             println!("{}", reqfile.request);
         }
         Format::Curl => {
-            match reqfile.request.verb.as_str() {
-                "GET" => {
-                    let headers: Vec<String> = reqfile
-                        .request
-                        .headers
-                        .iter()
-                        .map(|x| format!(r#"-H "{}: {}""#, x.0, x.1))
-                        .collect();
-
-                    let data = match reqfile.request.body {
-                        Some(body) => match body.is_empty() {
-                            true => "".to_string(),
-                            false => format!("-d '{body}'"),
-                        },
-                        None => "".to_string(),
-                    };
-
-                    println!(
-                        "curl {} {} {}",
-                        reqfile.request.target,
-                        headers.join(" "),
-                        data
-                    );
-                }
-                _ => {
-                    let headers: Vec<String> = reqfile
-                        .request
-                        .headers
-                        .iter()
-                        .map(|x| format!(r#"-H "{}: {}""#, x.0, x.1))
-                        .collect();
-
-                    let data = match reqfile.request.body {
-                        Some(body) => match body.is_empty() {
-                            true => "".to_string(),
-                            false => format!("-d '{body}'"),
-                        },
-                        None => "".to_string(),
-                    };
-
-                    println!(
-                        "curl -X {} {} {} {}",
-                        reqfile.request.verb,
-                        reqfile.request.target,
-                        headers.join(" "),
-                        data
-                    );
-                }
+            let verb = if reqfile.request.verb == "GET" {
+                "".to_string()
+            } else {
+                format!("-X {}", reqfile.request.verb)
             };
+
+            let target = reqfile.request.target;
+            let headers: String = reqfile
+                .request
+                .headers
+                .iter()
+                .map(|x| format!(r#"-H "{}: {}""#, x.0, x.1))
+                .collect::<Vec<String>>()
+                .join(" ");
+
+            let data = match reqfile.request.body {
+                Some(body) => match body.is_empty() {
+                    true => "".to_string(),
+                    false => format!("-d '{body}'"),
+                },
+                None => "".to_string(),
+            };
+
+            println!(
+                "curl {} {} {} {} --http{}",
+                verb, target, headers, data, reqfile.request.http_version
+            );
         }
         Format::Powershell => {
             let headers: Vec<String> = reqfile
