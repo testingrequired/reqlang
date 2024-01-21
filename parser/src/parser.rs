@@ -198,7 +198,7 @@ mod test {
 
     use crate::parser::RequestFileParser;
 
-    macro_rules! splitter_test {
+    macro_rules! parser_test {
         ($test_name:ident, $reqfile:expr, $result:expr) => {
             #[test]
             fn $test_name() {
@@ -207,15 +207,15 @@ mod test {
         };
     }
 
-    splitter_test!(empty, "", Err(ParseError::EmptyFileError.into()));
+    parser_test!(empty, "", Err(ParseError::EmptyFileError.into()));
 
-    splitter_test!(
+    parser_test!(
         no_doc_dividers,
         "GET http://example.com HTTP/1.1\n",
         Err(ParseError::NoDividersError.into())
     );
 
-    splitter_test!(
+    parser_test!(
         too_many_doc_dividers,
         concat!(
             "---\n",
@@ -228,7 +228,7 @@ mod test {
         Err(ParseError::TooManyDividersError.into())
     );
 
-    splitter_test!(
+    parser_test!(
         just_request_ends_with_no_newline,
         concat!("---\n", "GET http://example.com HTTP/1.1", "---\n"),
         Ok(UnresolvedRequestFile {
@@ -244,7 +244,7 @@ mod test {
         })
     );
 
-    splitter_test!(
+    parser_test!(
         just_request_ends_with_single_newline,
         concat!("---\n", "GET http://example.com HTTP/1.1\n", "---\n"),
         Ok(UnresolvedRequestFile {
@@ -260,7 +260,7 @@ mod test {
         })
     );
 
-    splitter_test!(
+    parser_test!(
         just_request_ends_with_multiple_newlines,
         concat!("---\n", "GET http://example.com HTTP/1.1\n\n", "---\n"),
         Ok(UnresolvedRequestFile {
@@ -276,7 +276,7 @@ mod test {
         })
     );
 
-    splitter_test!(
+    parser_test!(
         full_request_file,
         concat!(
             "---\n",
