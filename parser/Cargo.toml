@@ -10,3 +10,4 @@ types = { path = "../types"}
 errors = { path = "../errors"}
 httparse = "1.8.0"
 toml = "0.8.8"
+regex = "1.10.3"

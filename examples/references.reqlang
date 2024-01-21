@@ -1,0 +1,12 @@
+#!/usr/bin/env reqlang
+---
+GET http://example.com HTTP/1.1
+host: {{:base_url}}
+example-header: {{?example_header_key}}
+x-api-key: {{!api_key}}
+
+---
+HTTP/1.1 OK 200
+
+{{?expected_response_body}}
+---

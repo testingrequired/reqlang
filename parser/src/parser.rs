@@ -1,10 +1,13 @@
 use errors::{ParseError, ReqlangError};
-use std::collections::HashMap;
-use types::{Request, Response, UnresolvedRequestFile, UnresolvedRequestFileConfig};
+use regex::Regex;
+use std::{collections::HashMap, vec};
+use types::{ReferenceType, Request, Response, UnresolvedRequestFile, UnresolvedRequestFileConfig};
 
 pub struct RequestFileParser {}
 
 impl RequestFileParser {
+    const TEMPLATE_REFERENCE_PATTERN: &'static str = r"\{\{([:?!]{1})([a-zA-Z][_a-zA-Z]+)\}\}";
+
     pub fn new() -> Self {
         Self {}
     }
@@ -16,6 +19,10 @@ impl RequestFileParser {
     /// Parse a string in to an request file with unresolved template values.
     pub fn parse(&self, input: &str) -> Result<UnresolvedRequestFile, ReqlangError> {
         self.split(input).and_then(|x| {
+            let request_refs = self.extract_references(x.request.as_str());
+            let response_refs =
+                self.extract_references(x.response.clone().unwrap_or_default().as_str());
+
             let request = match self.parse_request(x.request) {
                 Ok(request) => request,
                 Err(err) => {
@@ -43,6 +50,9 @@ impl RequestFileParser {
                 request,
                 response,
                 config,
+                request_refs,
+                response_refs,
+                config_refs: vec![],
             })
         })
     }
@@ -105,6 +115,24 @@ impl RequestFileParser {
                 })
             })
         })
+    }
+
+    /// Extract template references from a string
+    fn extract_references(&self, input: &str) -> Vec<ReferenceType> {
+        let re = Regex::new(RequestFileParser::TEMPLATE_REFERENCE_PATTERN).unwrap();
+
+        let mut captured_refs: Vec<ReferenceType> = vec![];
+
+        for (_, [prefix, name]) in re.captures_iter(&input).map(|cap| cap.extract()) {
+            captured_refs.push(match prefix {
+                ":" => ReferenceType::Variable(name.to_string()),
+                "?" => ReferenceType::Prompt(name.to_string()),
+                "!" => ReferenceType::Secret(name.to_string()),
+                _ => ReferenceType::Unknown(name.to_string()),
+            });
+        }
+
+        return captured_refs;
     }
 
     fn parse_request(&self, request: String) -> Result<Request, ReqlangError> {
@@ -194,7 +222,9 @@ mod test {
     use std::collections::HashMap;
 
     use errors::ParseError;
-    use types::{Request, Response, UnresolvedRequestFile, UnresolvedRequestFileConfig};
+    use types::{
+        ReferenceType, Request, Response, UnresolvedRequestFile, UnresolvedRequestFileConfig,
+    };
 
     use crate::parser::RequestFileParser;
 
@@ -240,7 +270,10 @@ mod test {
                 headers: HashMap::new(),
                 body: Some("".to_string())
             },
-            response: None
+            response: None,
+            request_refs: vec![],
+            response_refs: vec![],
+            config_refs: vec![],
         })
     );
 
@@ -256,7 +289,10 @@ mod test {
                 headers: HashMap::new(),
                 body: Some("".to_string())
             },
-            response: None
+            response: None,
+            request_refs: vec![],
+            response_refs: vec![],
+            config_refs: vec![],
         })
     );
 
@@ -272,7 +308,10 @@ mod test {
                 headers: HashMap::new(),
                 body: Some("".to_string())
             },
-            response: None
+            response: None,
+            request_refs: vec![],
+            response_refs: vec![],
+            config_refs: vec![],
         })
     );
 
@@ -288,7 +327,10 @@ mod test {
             "[1, 2, 3]\n",
             "\n",
             "---\n",
-            "HTTP/1.1 200 OK\n\n",
+            "HTTP/1.1 200 OK\n",
+            "\n",
+            "{{?expected_response_body}}\n",
+            "\n",
             "---\n",
             "vars = [\"base_url\"]\n",
             "secrets = [\"api_key\"]",
@@ -346,8 +388,15 @@ mod test {
                 status_code: "200".to_string(),
                 status_text: "OK".to_string(),
                 headers: HashMap::new(),
-                body: Some("".to_string())
-            })
+                body: Some("{{?expected_response_body}}\n\n".to_string())
+            }),
+            request_refs: vec![
+                ReferenceType::Variable("base_url".to_string()),
+                ReferenceType::Prompt("test_value".to_string()),
+                ReferenceType::Secret("api_key".to_string())
+            ],
+            response_refs: vec![ReferenceType::Prompt("expected_response_body".to_string())],
+            config_refs: vec![],
         })
     );
 }

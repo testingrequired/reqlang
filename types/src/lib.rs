@@ -45,6 +45,14 @@ impl Display for Request {
     }
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub enum ReferenceType {
+    Variable(String),
+    Prompt(String),
+    Secret(String),
+    Unknown(String),
+}
+
 #[derive(Clone, Debug, PartialEq, Default)]
 pub struct Response {
     pub http_version: String,
@@ -59,6 +67,10 @@ pub struct UnresolvedRequestFile {
     pub config: Option<UnresolvedRequestFileConfig>,
     pub request: Request,
     pub response: Option<Response>,
+
+    pub config_refs: Vec<ReferenceType>,
+    pub request_refs: Vec<ReferenceType>,
+    pub response_refs: Vec<ReferenceType>,
 }
 
 #[derive(Clone, Debug, PartialEq, Default, Deserialize)]
@@ -74,6 +86,10 @@ pub struct ResolvedRequestFile {
     pub config: ResolvedRequestFileConfig,
     pub request: Request,
     pub response: Option<Response>,
+
+    pub config_refs: Vec<ReferenceType>,
+    pub request_refs: Vec<ReferenceType>,
+    pub response_refs: Vec<ReferenceType>,
 }
 
 #[derive(Clone, Debug, PartialEq, Default)]
