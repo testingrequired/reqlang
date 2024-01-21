@@ -96,8 +96,8 @@ fn main() {
             };
 
             println!(
-                "curl {} {} {} {} --http{}",
-                verb, target, headers, data, reqfile.request.http_version
+                "curl {} {} --http{} {} {}",
+                verb, target, reqfile.request.http_version, headers, data
             );
         }
         Format::Powershell => {
@@ -125,9 +125,10 @@ fn main() {
             let body_value = reqfile.request.body.unwrap_or_default();
 
             println!(
-                "$headers = @{{ {} }}\n$body = '{}'\nInvoke-RestMethod -Uri {} -Method {} {} {}",
+                "$headers = @{{ {} }}\n$body = '{}'\nInvoke-RestMethod -HttpVersion {} -Uri {} -Method {} {} {}",
                 header_values,
                 body_value,
+                reqfile.request.http_version,
                 reqfile.request.target,
                 reqfile.request.verb,
                 header_arg,
