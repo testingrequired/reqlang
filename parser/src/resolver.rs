@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use errors::ReqlangError;
 use types::{
     ResolvedRequestFile, ResolvedRequestFileConfig, UnresolvedRequestFile,
     UnresolvedRequestFileConfig,
@@ -17,7 +18,7 @@ impl RequestFileResolver {
         env: &str,
         prompts: &HashMap<String, String>,
         secrets: &HashMap<String, String>,
-    ) -> Result<ResolvedRequestFile, &'static str> {
+    ) -> Result<ResolvedRequestFile, ReqlangError> {
         RequestFileResolver::new().resolve(reqfile, env, prompts, secrets)
     }
 
@@ -27,7 +28,7 @@ impl RequestFileResolver {
         env: &str,
         prompts: &HashMap<String, String>,
         secrets: &HashMap<String, String>,
-    ) -> Result<ResolvedRequestFile, &'static str> {
+    ) -> Result<ResolvedRequestFile, ReqlangError> {
         Ok(ResolvedRequestFile {
             config: ResolvedRequestFileConfig {
                 env: env.to_string(),

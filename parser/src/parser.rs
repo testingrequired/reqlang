@@ -1,3 +1,4 @@
+use errors::{ParseError, ReqlangError};
 use std::collections::HashMap;
 use types::{Request, Response, UnresolvedRequestFile, UnresolvedRequestFileConfig};
 
@@ -8,36 +9,62 @@ impl RequestFileParser {
         Self {}
     }
 
-    pub fn parse_string(input: &str) -> Result<UnresolvedRequestFile, &'static str> {
+    pub fn parse_string(input: &str) -> Result<UnresolvedRequestFile, ReqlangError> {
         RequestFileParser::new().parse(input)
     }
 
     /// Parse a string in to an request file with unresolved template values.
-    pub fn parse(&self, input: &str) -> Result<UnresolvedRequestFile, &'static str> {
-        let split = self.split(input).and_then(|x| {
-            Ok(UnresolvedRequestFile {
-                config: self.parse_config(x.config),
-                request: self.parse_request(x.request),
-                response: self.parse_response(x.response),
-            })
-        });
+    pub fn parse(&self, input: &str) -> Result<UnresolvedRequestFile, ReqlangError> {
+        self.split(input).and_then(|x| {
+            let request = match self.parse_request(x.request) {
+                Ok(request) => request,
+                Err(err) => {
+                    return Err(err);
+                }
+            };
 
-        split
+            let response = match self.parse_response(x.response) {
+                Some(Ok(response)) => Some(response),
+                Some(Err(err)) => {
+                    return Err(err);
+                }
+                None => None,
+            };
+
+            let config = match self.parse_config(x.config) {
+                Some(Ok(config)) => Some(config),
+                Some(Err(err)) => {
+                    return Err(err);
+                }
+                None => None,
+            };
+
+            Ok(UnresolvedRequestFile {
+                request,
+                response,
+                config,
+            })
+        })
     }
 
-    fn split(&self, input: &str) -> Result<RequestFileSplitUp, &'static str> {
+    /// Map an `Into<ReqlangError>` in to a `Result<T, ReqlangError>`
+    fn err<T>(&self, err: impl Into<ReqlangError>) -> Result<T, ReqlangError> {
+        Err(err.into())
+    }
+
+    fn split(&self, input: &str) -> Result<RequestFileSplitUp, ReqlangError> {
         if input.is_empty() {
-            return Err("Request file is an empty file");
+            return self.err(ParseError::EmptyFileError);
         }
 
         let documents: Vec<&str> = input.split(DELIMITER).collect();
 
         if documents.len() < 2 {
-            return Err("Request file has no document dividers");
+            return self.err(ParseError::NoDividersError);
         }
 
         if documents.len() > 5 {
-            return Err("Request file has too many document dividers");
+            return self.err(ParseError::TooManyDividersError);
         }
 
         let mut request = documents.get(1).map(|x| x.to_string()).unwrap();
@@ -67,20 +94,41 @@ impl RequestFileParser {
         })
     }
 
-    fn parse_config(&self, _config: Option<String>) -> Option<UnresolvedRequestFileConfig> {
-        _config.map(|c| toml::from_str(&c).unwrap())
+    fn parse_config(
+        &self,
+        config: Option<String>,
+    ) -> Option<Result<UnresolvedRequestFileConfig, ReqlangError>> {
+        config.map(|c| {
+            toml::from_str(&c).map_err(|x| {
+                ReqlangError::ParseError(ParseError::InvalidConfigError {
+                    message: x.message().to_string(),
+                })
+            })
+        })
     }
 
-    fn parse_request(&self, _request: String) -> Request {
+    fn parse_request(&self, request: String) -> Result<Request, ReqlangError> {
         let mut headers = [httparse::EMPTY_HEADER; 64];
         let mut req = httparse::Request::new(&mut headers);
 
-        let size_minus_body = match req.parse(_request.as_bytes()).unwrap() {
+        let parse_result = req.parse(request.as_bytes());
+
+        if let Err(error) = parse_result {
+            return self.err(ParseError::InvalidRequestError {
+                message: format!("{error}"),
+            });
+        }
+
+        let size_minus_body = match parse_result.unwrap() {
             httparse::Status::Complete(x) => x,
-            httparse::Status::Partial => 0,
+            httparse::Status::Partial => {
+                return self.err(ParseError::InvalidRequestError {
+                    message: "Unable to parse a partial request".to_string(),
+                })
+            }
         };
 
-        let body = &_request[size_minus_body..];
+        let body = &request[size_minus_body..];
 
         let mut mapped_headers = HashMap::new();
 
@@ -94,20 +142,20 @@ impl RequestFileParser {
                 );
             });
 
-        Request {
+        Ok(Request {
             verb: req.method.unwrap().to_string(),
             target: req.path.unwrap().to_string(),
             http_version: format!("1.{}", req.version.unwrap().to_string()),
             headers: mapped_headers,
             body: Some(body.to_string()),
-        }
+        })
     }
 
-    fn parse_response(&self, _response: Option<String>) -> Option<Response> {
+    fn parse_response(&self, response: Option<String>) -> Option<Result<Response, ReqlangError>> {
         let mut headers = [httparse::EMPTY_HEADER; 64];
         let mut res = httparse::Response::new(&mut headers);
 
-        let response = match _response {
+        let response = match response {
             Some(x) => x,
             None => return None,
         };
@@ -131,13 +179,13 @@ impl RequestFileParser {
                 );
             });
 
-        Some(Response {
+        Some(Ok(Response {
             http_version: format!("1.{}", res.version.unwrap().to_string()),
             status_code: res.code.unwrap().to_string(),
             status_text: res.reason.unwrap().to_string(),
             headers: mapped_headers,
             body: Some(body.to_string()),
-        })
+        }))
     }
 }
 
@@ -145,6 +193,7 @@ impl RequestFileParser {
 mod test {
     use std::collections::HashMap;
 
+    use errors::ParseError;
     use types::{Request, Response, UnresolvedRequestFile, UnresolvedRequestFileConfig};
 
     use crate::parser::RequestFileParser;
@@ -158,12 +207,12 @@ mod test {
         };
     }
 
-    splitter_test!(empty, "", Err("Request file is an empty file"));
+    splitter_test!(empty, "", Err(ParseError::EmptyFileError.into()));
 
     splitter_test!(
         no_doc_dividers,
         "GET http://example.com HTTP/1.1\n",
-        Err("Request file has no document dividers")
+        Err(ParseError::NoDividersError.into())
     );
 
     splitter_test!(
@@ -176,7 +225,7 @@ mod test {
             "---\n",
             "---\n"
         ),
-        Err("Request file has too many document dividers")
+        Err(ParseError::TooManyDividersError.into())
     );
 
     splitter_test!(
@@ -227,9 +276,9 @@ mod test {
         })
     );
 
-    #[test]
-    fn full_request_file() {
-        let reqfile = concat!(
+    splitter_test!(
+        full_request_file,
+        concat!(
             "---\n",
             "POST / HTTP/1.1\n",
             "host: {{:base_url}}\n",
@@ -255,42 +304,9 @@ mod test {
             "test_value = \"\"",
             "\n",
             "---\n"
-        );
-
-        let parser = RequestFileParser::new();
-
-        let unresolved_reqfile = parser.parse(&reqfile);
-        assert_eq!(unresolved_reqfile.is_ok(), true);
-        let unresolved_reqfile = unresolved_reqfile.unwrap();
-
-        assert_eq!(
-            Request {
-                verb: "POST".to_string(),
-                target: "/".to_string(),
-                http_version: "1.1".to_string(),
-                headers: HashMap::from([
-                    ("host".to_string(), "{{:base_url}}".to_string()),
-                    ("x-test".to_string(), "{{?test_value}}".to_string()),
-                    ("x-api-key".to_string(), "{{!api_key}}".to_string()),
-                ]),
-                body: Some("[1, 2, 3]\n\n".to_string())
-            },
-            unresolved_reqfile.request
-        );
-
-        assert_eq!(
-            Some(Response {
-                http_version: "1.1".to_string(),
-                status_code: "200".to_string(),
-                status_text: "OK".to_string(),
-                headers: HashMap::new(),
-                body: Some("".to_string())
-            }),
-            unresolved_reqfile.response
-        );
-
-        assert_eq!(
-            Some(UnresolvedRequestFileConfig {
+        ),
+        Ok(UnresolvedRequestFile {
+            config: Some(UnresolvedRequestFileConfig {
                 vars: Some(vec!["base_url".to_string()]),
                 envs: Some(HashMap::from([
                     (
@@ -314,9 +330,26 @@ mod test {
                 )])),
                 secrets: Some(vec!["api_key".to_string()])
             }),
-            unresolved_reqfile.config
-        );
-    }
+            request: Request {
+                verb: "POST".to_string(),
+                target: "/".to_string(),
+                http_version: "1.1".to_string(),
+                headers: HashMap::from([
+                    ("host".to_string(), "{{:base_url}}".to_string()),
+                    ("x-test".to_string(), "{{?test_value}}".to_string()),
+                    ("x-api-key".to_string(), "{{!api_key}}".to_string()),
+                ]),
+                body: Some("[1, 2, 3]\n\n".to_string())
+            },
+            response: Some(Response {
+                http_version: "1.1".to_string(),
+                status_code: "200".to_string(),
+                status_text: "OK".to_string(),
+                headers: HashMap::new(),
+                body: Some("".to_string())
+            })
+        })
+    );
 }
 
 /// Delimiter used to split request files

@@ -1,14 +1,33 @@
-use span::Spanned;
+use thiserror::Error;
 
-#[derive(Clone, Debug, PartialEq)]
-pub enum LexicalError {
-    InvalidToken(String),
+#[derive(Debug, Error, PartialEq)]
+pub enum ReqlangError {
+    #[error("ParseError: {0}")]
+    ParseError(ParseError),
 }
 
-impl Default for LexicalError {
-    fn default() -> Self {
-        Self::InvalidToken("".to_string())
-    }
+#[derive(Debug, Error, PartialEq)]
+pub enum ParseError {
+    #[error("Request file is an empty file")]
+    EmptyFileError,
+    #[error("Request file has no document dividers")]
+    NoDividersError,
+    #[error("Request file has too many document dividers")]
+    TooManyDividersError,
+    #[error("Request is invalid: {message}")]
+    InvalidRequestError { message: String },
+    #[error("Config is invalid: {message}")]
+    InvalidConfigError { message: String },
 }
 
-pub type ErrorS = Spanned<LexicalError>;
+macro_rules! impl_from_error {
+    ($($error:tt),+) => {$(
+        impl From<$error> for ReqlangError {
+            fn from(e: $error) -> Self {
+                ReqlangError::$error(e)
+            }
+        }
+    )+};
+}
+
+impl_from_error!(ParseError);

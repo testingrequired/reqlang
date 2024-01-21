@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use errors::ReqlangError;
 use parser::RequestFileParser;
 use resolver::RequestFileResolver;
 use types::ResolvedRequestFile;
@@ -13,7 +14,7 @@ pub fn parse(
     env: &str,
     prompts: HashMap<String, String>,
     secrets: HashMap<String, String>,
-) -> Result<ResolvedRequestFile, &'static str> {
+) -> Result<ResolvedRequestFile, ReqlangError> {
     let reqfile = RequestFileParser::parse_string(input);
 
     if let Err(err) = reqfile {

@@ -7,3 +7,4 @@ edition = "2021"
 
 [dependencies]
 span = { path = "../span" }
+thiserror = "1.0.56"

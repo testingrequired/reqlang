@@ -7,5 +7,6 @@ edition = "2021"
 
 [dependencies]
 types = { path = "../types"}
+errors = { path = "../errors"}
 httparse = "1.8.0"
 toml = "0.8.8"
