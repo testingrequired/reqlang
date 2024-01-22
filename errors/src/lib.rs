@@ -18,6 +18,8 @@ pub enum ParseError {
     InvalidRequestError { message: String },
     #[error("Config is invalid: {message}")]
     InvalidConfigError { message: String },
+    #[error("Undefined template reference: {name}")]
+    UndefinedReferenceError { name: String },
 }
 
 macro_rules! impl_from_error {

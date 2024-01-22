@@ -87,7 +87,6 @@ mod test {
             "HTTP/1.1 200 OK\n",
             "\n",
             "{{?expected_response_body}}\n",
-            "\n",
             "---\n",
             "vars = [\"base_url\"]\n",
             "secrets = [\"api_key\"]",
@@ -100,7 +99,8 @@ mod test {
             "base_url = \"https://example.com\"\n",
             "\n",
             "[prompts]\n",
-            "test_value = \"\"",
+            "test_value = \"\"\n",
+            "expected_response_body = \"\"\n",
             "\n",
             "---\n"
         );
@@ -149,7 +149,7 @@ mod test {
                     status_code: "200".to_string(),
                     status_text: "OK".to_string(),
                     headers: HashMap::new(),
-                    body: Some("{{?expected_response_body}}\n\n".to_string())
+                    body: Some("{{?expected_response_body}}\n".to_string())
                 }),
                 request_refs: vec![
                     ReferenceType::Variable("base_url".to_string()),

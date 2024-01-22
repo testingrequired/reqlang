@@ -46,6 +46,132 @@ impl RequestFileParser {
                 None => None,
             };
 
+            for refs in request_refs.iter() {
+                match refs {
+                    ReferenceType::Variable(name) => {
+                        if let Some(ref config) = config {
+                            if let Some(vars) = &config.vars {
+                                if !vars.contains(name) {
+                                    return self.err(ParseError::UndefinedReferenceError {
+                                        name: name.to_string(),
+                                    });
+                                }
+                            } else {
+                                return self.err(ParseError::UndefinedReferenceError {
+                                    name: name.to_string(),
+                                });
+                            }
+                        } else {
+                            return self.err(ParseError::UndefinedReferenceError {
+                                name: name.to_string(),
+                            });
+                        }
+                    }
+                    ReferenceType::Prompt(name) => {
+                        if let Some(ref config) = config {
+                            if let Some(prompts) = &config.prompts {
+                                if !prompts.contains_key(name) {
+                                    return self.err(ParseError::UndefinedReferenceError {
+                                        name: name.to_string(),
+                                    });
+                                }
+                            } else {
+                                return self.err(ParseError::UndefinedReferenceError {
+                                    name: name.to_string(),
+                                });
+                            }
+                        } else {
+                            return self.err(ParseError::UndefinedReferenceError {
+                                name: name.to_string(),
+                            });
+                        }
+                    }
+                    ReferenceType::Secret(name) => {
+                        if let Some(ref config) = config {
+                            if let Some(secrets) = &config.secrets {
+                                if !secrets.contains(name) {
+                                    return self.err(ParseError::UndefinedReferenceError {
+                                        name: name.to_string(),
+                                    });
+                                }
+                            } else {
+                                return self.err(ParseError::UndefinedReferenceError {
+                                    name: name.to_string(),
+                                });
+                            }
+                        } else {
+                            return self.err(ParseError::UndefinedReferenceError {
+                                name: name.to_string(),
+                            });
+                        }
+                    }
+                    ReferenceType::Unknown(_name) => {}
+                }
+            }
+
+            for refs in response_refs.iter() {
+                match refs {
+                    ReferenceType::Variable(name) => {
+                        if let Some(ref config) = config {
+                            if let Some(vars) = &config.vars {
+                                if !vars.contains(name) {
+                                    return self.err(ParseError::UndefinedReferenceError {
+                                        name: name.to_string(),
+                                    });
+                                }
+                            } else {
+                                return self.err(ParseError::UndefinedReferenceError {
+                                    name: name.to_string(),
+                                });
+                            }
+                        } else {
+                            return self.err(ParseError::UndefinedReferenceError {
+                                name: name.to_string(),
+                            });
+                        }
+                    }
+                    ReferenceType::Prompt(name) => {
+                        if let Some(ref config) = config {
+                            if let Some(prompts) = &config.prompts {
+                                if !prompts.contains_key(name) {
+                                    return self.err(ParseError::UndefinedReferenceError {
+                                        name: name.to_string(),
+                                    });
+                                }
+                            } else {
+                                return self.err(ParseError::UndefinedReferenceError {
+                                    name: name.to_string(),
+                                });
+                            }
+                        } else {
+                            return self.err(ParseError::UndefinedReferenceError {
+                                name: name.to_string(),
+                            });
+                        }
+                    }
+                    ReferenceType::Secret(name) => {
+                        if let Some(ref config) = config {
+                            if let Some(secrets) = &config.secrets {
+                                if !secrets.contains(name) {
+                                    return self.err(ParseError::UndefinedReferenceError {
+                                        name: name.to_string(),
+                                    });
+                                }
+                            } else {
+                                return self.err(ParseError::UndefinedReferenceError {
+                                    name: name.to_string(),
+                                });
+                            }
+                        } else {
+                            return self.err(ParseError::UndefinedReferenceError {
+                                name: name.to_string(),
+                            });
+                        }
+                    }
+                    ReferenceType::Unknown(_name) => {}
+                }
+            }
+
             Ok(UnresolvedRequestFile {
                 request,
                 response,
@@ -188,9 +314,21 @@ impl RequestFileParser {
             None => return None,
         };
 
-        let size_minus_body = match res.parse(response.as_bytes()).unwrap() {
+        let parse_result = res.parse(response.as_bytes());
+
+        if let Err(error) = parse_result {
+            return Some(self.err(ParseError::InvalidRequestError {
+                message: format!("{error}"),
+            }));
+        }
+
+        let size_minus_body = match parse_result.unwrap() {
             httparse::Status::Complete(x) => x,
-            httparse::Status::Partial => 0,
+            httparse::Status::Partial => {
+                return Some(self.err(ParseError::InvalidRequestError {
+                    message: "Unable to parse a partial response".to_string(),
+                }))
+            }
         };
 
         let body = &response[size_minus_body..];
@@ -278,6 +416,87 @@ mod test {
     );
 
     parser_test!(
+        undefined_variable_reference_in_request,
+        concat!("---\n", "GET / HTTP/1.1\n", "test: {{:value}}\n", "---\n"),
+        Err(errors::ReqlangError::ParseError(
+            ParseError::UndefinedReferenceError {
+                name: "value".to_string()
+            }
+        ))
+    );
+
+    parser_test!(
+        undefined_prompt_reference_in_request,
+        concat!("---\n", "GET / HTTP/1.1\n", "test: {{?value}}\n", "---\n"),
+        Err(errors::ReqlangError::ParseError(
+            ParseError::UndefinedReferenceError {
+                name: "value".to_string()
+            }
+        ))
+    );
+
+    parser_test!(
+        undefined_secret_reference_in_request,
+        concat!("---\n", "GET / HTTP/1.1\n", "test: {{!value}}\n", "---\n"),
+        Err(errors::ReqlangError::ParseError(
+            ParseError::UndefinedReferenceError {
+                name: "value".to_string()
+            }
+        ))
+    );
+
+    parser_test!(
+        undefined_variable_reference_in_response,
+        concat!(
+            "---\n",
+            "GET / HTTP/1.1\n",
+            "---\n",
+            "HTTP/1.1 200 OK\n",
+            "test: {{:value}}\n\n",
+            "---\n"
+        ),
+        Err(errors::ReqlangError::ParseError(
+            ParseError::UndefinedReferenceError {
+                name: "value".to_string()
+            }
+        ))
+    );
+
+    parser_test!(
+        undefined_prompt_reference_in_response,
+        concat!(
+            "---\n",
+            "GET / HTTP/1.1\n",
+            "---\n",
+            "HTTP/1.1 200 OK\n",
+            "test: {{?value}}\n\n",
+            "---\n"
+        ),
+        Err(errors::ReqlangError::ParseError(
+            ParseError::UndefinedReferenceError {
+                name: "value".to_string()
+            }
+        ))
+    );
+
+    parser_test!(
+        undefined_secret_reference_in_response,
+        concat!(
+            "---\n",
+            "GET / HTTP/1.1\n",
+            "---\n",
+            "HTTP/1.1 200 OK\n",
+            "test: {{!value}}\n\n",
+            "---\n"
+        ),
+        Err(errors::ReqlangError::ParseError(
+            ParseError::UndefinedReferenceError {
+                name: "value".to_string()
+            }
+        ))
+    );
+
+    parser_test!(
         just_request_ends_with_single_newline,
         concat!("---\n", "GET http://example.com HTTP/1.1\n", "---\n"),
         Ok(UnresolvedRequestFile {
@@ -343,7 +562,8 @@ mod test {
             "base_url = \"https://example.com\"\n",
             "\n",
             "[prompts]\n",
-            "test_value = \"\"",
+            "test_value = \"\"\n",
+            "expected_response_body = \"\"\n",
             "\n",
             "---\n"
         ),
@@ -366,10 +586,10 @@ mod test {
                         )])
                     ),
                 ])),
-                prompts: Some(HashMap::from([(
-                    "test_value".to_string(),
-                    Some("".to_string())
-                )])),
+                prompts: Some(HashMap::from([
+                    ("test_value".to_string(), Some("".to_string())),
+                    ("expected_response_body".to_string(), Some("".to_string()))
+                ])),
                 secrets: Some(vec!["api_key".to_string()])
             }),
             request: Request {
