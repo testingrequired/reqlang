@@ -2,11 +2,7 @@ use serde::Deserialize;
 use std::collections::HashMap;
 use std::fmt::Display;
 
-#[derive(Clone, Debug, PartialEq, Default)]
-pub struct Document {
-    pub request: Request,
-}
-
+/// HTTP Request
 #[derive(Clone, Debug, PartialEq, Default)]
 pub struct Request {
     pub verb: String,
@@ -45,6 +41,19 @@ impl Display for Request {
     }
 }
 
+/// HTTP Response
+#[derive(Clone, Debug, PartialEq, Default)]
+pub struct Response {
+    pub http_version: String,
+    pub status_code: String,
+    pub status_text: String,
+    pub headers: HashMap<String, String>,
+    pub body: Option<String>,
+}
+
+/// Template reference in a request file
+///
+/// Syntax: `{{:variable}}`, `{{?prompt}}`, `{{!secret}}`
 #[derive(Clone, Debug, PartialEq)]
 pub enum ReferenceType {
     Variable(String),
@@ -68,15 +77,9 @@ impl Display for ReferenceType {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Default)]
-pub struct Response {
-    pub http_version: String,
-    pub status_code: String,
-    pub status_text: String,
-    pub headers: HashMap<String, String>,
-    pub body: Option<String>,
-}
-
+/// An unresolved request file represents the raw parsed request file without and resolving environmental, prompts or secrets.
+///
+/// This is before templating has been applied as well.
 #[derive(Clone, Debug, PartialEq, Default)]
 pub struct UnresolvedRequestFile {
     pub config: Option<UnresolvedRequestFileConfig>,
@@ -96,6 +99,7 @@ pub struct UnresolvedRequestFileConfig {
     pub secrets: Option<Vec<String>>,
 }
 
+/// A resolved request file with resolved environmental, prompts and secrets values.
 #[derive(Clone, Debug, PartialEq, Default)]
 pub struct ResolvedRequestFile {
     pub config: ResolvedRequestFileConfig,
