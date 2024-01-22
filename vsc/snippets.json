@@ -1,0 +1,99 @@
+{
+  "Shebang": {
+    "prefix": "#!",
+    "body": ["#!/usr/bin/env reqlang$0"],
+    "description": "Add shebang for reqlang"
+  },
+  "Init": {
+    "prefix": "init",
+    "body": [
+      "#!/usr/bin/env reqlang",
+      "---",
+      "${1:GET} ${2:/} HTTP/${3:1.1}",
+      "host: ${4:https://example.com}$5",
+      "",
+      "---",
+      "HTTP/$3 ${6:200 OK}$7",
+      "",
+      "---",
+      "vars = []",
+      "secrets = []",
+      "",
+      "[envs]",
+      "",
+      "[prompts]",
+      "---",
+      "$0"
+    ],
+    "description": "Initialize new request file"
+  },
+  "Init Post": {
+    "prefix": "init-post",
+    "body": [
+      "#!/usr/bin/env reqlang",
+      "---",
+      "POST ${1:/} HTTP/${2:1.1}",
+      "host: ${3:https://example.com}$4",
+      "",
+      "$5",
+      "",
+      "---",
+      "HTTP/$2 ${6:200 OK}$7",
+      "",
+      "---",
+      "vars = []",
+      "secrets = []",
+      "",
+      "[envs]",
+      "",
+      "[prompts]",
+      "---",
+      "$0"
+    ],
+    "description": "Initialize new request file with a POST request"
+  },
+  "Request": {
+    "prefix": "req",
+    "body": [
+      "${1:GET} ${2:/} HTTP/${3:1.1}",
+      "host: ${4:https://example.com}$5",
+      "",
+      "$0"
+    ],
+    "description": "Initialize new request"
+  },
+  "Response": {
+    "prefix": "res",
+    "body": ["HTTP/${1:1.1} ${2:200 OK}", "", "$0"],
+    "description": "Initialize new response"
+  },
+  "Reference": {
+    "prefix": "ref",
+    "body": ["{{${1|:?!|}${2:ref}}}", "$0"],
+    "description": "Create a template reference"
+  },
+  "Reference In A String": {
+    "prefix": "sref",
+    "body": ["\"{{${1|:?!|}${2:ref}}}\"", "$0"],
+    "description": "Create a template reference wrapped in a double quotes"
+  },
+  "Header": {
+    "prefix": "head",
+    "body": ["${1:key}: ${2:value}", "$0"],
+    "description": "Create a header key value pair"
+  },
+  "Configuration": {
+    "prefix": "config",
+    "body": [
+      "vars = [$1]",
+      "secrets = [$2]",
+      "",
+      "[envs]",
+      "$3",
+      "[prompts]",
+      "$4",
+      "$0"
+    ],
+    "description": "Initialize a request file configuration"
+  }
+}

@@ -16,3 +16,6 @@ build:
 
 install: build && move-bins
     echo 'Installed Bins (Debug)'
+
+build-vsc:
+    cd vsc && just build
