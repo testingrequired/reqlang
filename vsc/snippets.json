@@ -56,30 +56,29 @@
     "prefix": "req",
     "body": [
       "${1:GET} ${2:/} HTTP/${3:1.1}",
-      "host: ${4:https://example.com}$5",
-      "",
+      "host: ${4:https://example.com}",
       "$0"
     ],
     "description": "Initialize new request"
   },
   "Response": {
     "prefix": "res",
-    "body": ["HTTP/${1:1.1} ${2:200 OK}", "", "$0"],
+    "body": ["HTTP/${1:1.1} ${2:200 OK}$0"],
     "description": "Initialize new response"
   },
   "Reference": {
     "prefix": "ref",
-    "body": ["{{${1|:?!|}${2:ref}}}", "$0"],
+    "body": ["{{${1|:?!|}${2:ref}}}$0"],
     "description": "Create a template reference"
   },
   "Reference In A String": {
     "prefix": "sref",
-    "body": ["\"{{${1|:?!|}${2:ref}}}\"", "$0"],
+    "body": ["\"{{${1|:?!|}${2:ref}}}$3\"$0"],
     "description": "Create a template reference wrapped in a double quotes"
   },
   "Header": {
     "prefix": "head",
-    "body": ["${1:key}: ${2:value}", "$0"],
+    "body": ["${1:key}: ${2:value}$0"],
     "description": "Create a header key value pair"
   },
   "Configuration": {
