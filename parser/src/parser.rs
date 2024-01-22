@@ -52,57 +52,57 @@ impl RequestFileParser {
                         if let Some(ref config) = config {
                             if let Some(vars) = &config.vars {
                                 if !vars.contains(name) {
-                                    return self.err(ParseError::UndefinedReferenceError {
-                                        name: name.to_string(),
-                                    });
+                                    return self.err(ParseError::UndefinedReferenceError(
+                                        ReferenceType::Variable(name.to_string()),
+                                    ));
                                 }
                             } else {
-                                return self.err(ParseError::UndefinedReferenceError {
-                                    name: name.to_string(),
-                                });
+                                return self.err(ParseError::UndefinedReferenceError(
+                                    ReferenceType::Variable(name.to_string()),
+                                ));
                             }
                         } else {
-                            return self.err(ParseError::UndefinedReferenceError {
-                                name: name.to_string(),
-                            });
+                            return self.err(ParseError::UndefinedReferenceError(
+                                ReferenceType::Variable(name.to_string()),
+                            ));
                         }
                     }
                     ReferenceType::Prompt(name) => {
                         if let Some(ref config) = config {
                             if let Some(prompts) = &config.prompts {
                                 if !prompts.contains_key(name) {
-                                    return self.err(ParseError::UndefinedReferenceError {
-                                        name: name.to_string(),
-                                    });
+                                    return self.err(ParseError::UndefinedReferenceError(
+                                        ReferenceType::Prompt(name.to_string()),
+                                    ));
                                 }
                             } else {
-                                return self.err(ParseError::UndefinedReferenceError {
-                                    name: name.to_string(),
-                                });
+                                return self.err(ParseError::UndefinedReferenceError(
+                                    ReferenceType::Prompt(name.to_string()),
+                                ));
                             }
                         } else {
-                            return self.err(ParseError::UndefinedReferenceError {
-                                name: name.to_string(),
-                            });
+                            return self.err(ParseError::UndefinedReferenceError(
+                                ReferenceType::Prompt(name.to_string()),
+                            ));
                         }
                     }
                     ReferenceType::Secret(name) => {
                         if let Some(ref config) = config {
                             if let Some(secrets) = &config.secrets {
                                 if !secrets.contains(name) {
-                                    return self.err(ParseError::UndefinedReferenceError {
-                                        name: name.to_string(),
-                                    });
+                                    return self.err(ParseError::UndefinedReferenceError(
+                                        ReferenceType::Secret(name.to_string()),
+                                    ));
                                 }
                             } else {
-                                return self.err(ParseError::UndefinedReferenceError {
-                                    name: name.to_string(),
-                                });
+                                return self.err(ParseError::UndefinedReferenceError(
+                                    ReferenceType::Secret(name.to_string()),
+                                ));
                             }
                         } else {
-                            return self.err(ParseError::UndefinedReferenceError {
-                                name: name.to_string(),
-                            });
+                            return self.err(ParseError::UndefinedReferenceError(
+                                ReferenceType::Secret(name.to_string()),
+                            ));
                         }
                     }
                     ReferenceType::Unknown(_name) => {}
@@ -115,57 +115,57 @@ impl RequestFileParser {
                         if let Some(ref config) = config {
                             if let Some(vars) = &config.vars {
                                 if !vars.contains(name) {
-                                    return self.err(ParseError::UndefinedReferenceError {
-                                        name: name.to_string(),
-                                    });
+                                    return self.err(ParseError::UndefinedReferenceError(
+                                        ReferenceType::Variable(name.to_string()),
+                                    ));
                                 }
                             } else {
-                                return self.err(ParseError::UndefinedReferenceError {
-                                    name: name.to_string(),
-                                });
+                                return self.err(ParseError::UndefinedReferenceError(
+                                    ReferenceType::Variable(name.to_string()),
+                                ));
                             }
                         } else {
-                            return self.err(ParseError::UndefinedReferenceError {
-                                name: name.to_string(),
-                            });
+                            return self.err(ParseError::UndefinedReferenceError(
+                                ReferenceType::Variable(name.to_string()),
+                            ));
                         }
                     }
                     ReferenceType::Prompt(name) => {
                         if let Some(ref config) = config {
                             if let Some(prompts) = &config.prompts {
                                 if !prompts.contains_key(name) {
-                                    return self.err(ParseError::UndefinedReferenceError {
-                                        name: name.to_string(),
-                                    });
+                                    return self.err(ParseError::UndefinedReferenceError(
+                                        ReferenceType::Prompt(name.to_string()),
+                                    ));
                                 }
                             } else {
-                                return self.err(ParseError::UndefinedReferenceError {
-                                    name: name.to_string(),
-                                });
+                                return self.err(ParseError::UndefinedReferenceError(
+                                    ReferenceType::Prompt(name.to_string()),
+                                ));
                             }
                         } else {
-                            return self.err(ParseError::UndefinedReferenceError {
-                                name: name.to_string(),
-                            });
+                            return self.err(ParseError::UndefinedReferenceError(
+                                ReferenceType::Prompt(name.to_string()),
+                            ));
                         }
                     }
                     ReferenceType::Secret(name) => {
                         if let Some(ref config) = config {
                             if let Some(secrets) = &config.secrets {
                                 if !secrets.contains(name) {
-                                    return self.err(ParseError::UndefinedReferenceError {
-                                        name: name.to_string(),
-                                    });
+                                    return self.err(ParseError::UndefinedReferenceError(
+                                        ReferenceType::Secret(name.to_string()),
+                                    ));
                                 }
                             } else {
-                                return self.err(ParseError::UndefinedReferenceError {
-                                    name: name.to_string(),
-                                });
+                                return self.err(ParseError::UndefinedReferenceError(
+                                    ReferenceType::Secret(name.to_string()),
+                                ));
                             }
                         } else {
-                            return self.err(ParseError::UndefinedReferenceError {
-                                name: name.to_string(),
-                            });
+                            return self.err(ParseError::UndefinedReferenceError(
+                                ReferenceType::Secret(name.to_string()),
+                            ));
                         }
                     }
                     ReferenceType::Unknown(_name) => {}
@@ -419,9 +419,7 @@ mod test {
         undefined_variable_reference_in_request,
         concat!("---\n", "GET / HTTP/1.1\n", "test: {{:value}}\n", "---\n"),
         Err(errors::ReqlangError::ParseError(
-            ParseError::UndefinedReferenceError {
-                name: "value".to_string()
-            }
+            ParseError::UndefinedReferenceError(ReferenceType::Variable("value".to_string()))
         ))
     );
 
@@ -429,9 +427,7 @@ mod test {
         undefined_prompt_reference_in_request,
         concat!("---\n", "GET / HTTP/1.1\n", "test: {{?value}}\n", "---\n"),
         Err(errors::ReqlangError::ParseError(
-            ParseError::UndefinedReferenceError {
-                name: "value".to_string()
-            }
+            ParseError::UndefinedReferenceError(ReferenceType::Prompt("value".to_string()))
         ))
     );
 
@@ -439,9 +435,7 @@ mod test {
         undefined_secret_reference_in_request,
         concat!("---\n", "GET / HTTP/1.1\n", "test: {{!value}}\n", "---\n"),
         Err(errors::ReqlangError::ParseError(
-            ParseError::UndefinedReferenceError {
-                name: "value".to_string()
-            }
+            ParseError::UndefinedReferenceError(ReferenceType::Secret("value".to_string()))
         ))
     );
 
@@ -456,9 +450,7 @@ mod test {
             "---\n"
         ),
         Err(errors::ReqlangError::ParseError(
-            ParseError::UndefinedReferenceError {
-                name: "value".to_string()
-            }
+            ParseError::UndefinedReferenceError(ReferenceType::Variable("value".to_string()))
         ))
     );
 
@@ -473,9 +465,7 @@ mod test {
             "---\n"
         ),
         Err(errors::ReqlangError::ParseError(
-            ParseError::UndefinedReferenceError {
-                name: "value".to_string()
-            }
+            ParseError::UndefinedReferenceError(ReferenceType::Prompt("value".to_string()))
         ))
     );
 
@@ -490,9 +480,7 @@ mod test {
             "---\n"
         ),
         Err(errors::ReqlangError::ParseError(
-            ParseError::UndefinedReferenceError {
-                name: "value".to_string()
-            }
+            ParseError::UndefinedReferenceError(ReferenceType::Secret("value".to_string()))
         ))
     );
 

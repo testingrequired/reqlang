@@ -53,6 +53,21 @@ pub enum ReferenceType {
     Unknown(String),
 }
 
+impl Display for ReferenceType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{{{{{}}}}}",
+            match self {
+                ReferenceType::Variable(name) => format!(":{name}"),
+                ReferenceType::Prompt(name) => format!("?{name}"),
+                ReferenceType::Secret(name) => format!("!{name}"),
+                ReferenceType::Unknown(name) => format!("???{name}???"),
+            }
+        )
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Default)]
 pub struct Response {
     pub http_version: String,
