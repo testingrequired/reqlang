@@ -3,6 +3,7 @@ use regex::Regex;
 use std::{collections::HashMap, vec};
 use types::{ReferenceType, Request, Response, UnresolvedRequestFile, UnresolvedRequestFileConfig};
 
+/// Parse a string in to a request file
 pub struct RequestFileParser {}
 
 impl RequestFileParser {
@@ -12,6 +13,7 @@ impl RequestFileParser {
         Self {}
     }
 
+    /// Parse a string in to an request file with unresolved template values.
     pub fn parse_string(input: &str) -> Result<UnresolvedRequestFile, ReqlangError> {
         RequestFileParser::new().parse(input)
     }
@@ -188,6 +190,7 @@ impl RequestFileParser {
         Err(err.into())
     }
 
+    /// Split string in to a request, and optional response, config
     fn split(&self, input: &str) -> Result<RequestFileSplitUp, ReqlangError> {
         if input.is_empty() {
             return self.err(ParseError::EmptyFileError);

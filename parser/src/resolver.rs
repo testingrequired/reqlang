@@ -6,6 +6,7 @@ use types::{
     UnresolvedRequestFileConfig,
 };
 
+/// Resolve env vars, prompts and secrets in a request file
 pub struct RequestFileResolver {}
 
 impl RequestFileResolver {
