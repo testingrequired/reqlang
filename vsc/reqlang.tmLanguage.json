@@ -34,8 +34,12 @@
     "ident": {
       "patterns": [
         {
-          "name": "variable.other.reqlang",
+          "name": "variable.parameter.reqlang",
           "match": "\\{\\{([:?!]{1})([a-zA-Z][_a-zA-Z]+)\\}\\}"
+        },
+        {
+          "name": "invalid.illegal.reqlang",
+          "match": "\\{\\{([:?!]{1})([^a-zA-Z].*)\\}\\}"
         },
         {
           "name": "invalid.illegal.reqlang",
