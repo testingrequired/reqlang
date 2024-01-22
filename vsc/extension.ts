@@ -5,9 +5,21 @@ import { ReqlangTaskProvider } from "./reqlangTaskProvider";
 
 export function activate(context: ExtensionContext) {
   context.subscriptions.push(
-    commands.registerCommand("reqlang.openMdnDocs", () => {
+    commands.registerCommand("reqlang.openMdnDocsHttp", () => {
+      env.openExternal(
+        Uri.parse("https://developer.mozilla.org/en-US/docs/Web/HTTP")
+      );
+    }),
+    commands.registerCommand("reqlang.openMdnDocsHttpMessages", () => {
       env.openExternal(
         Uri.parse("https://developer.mozilla.org/en-US/docs/Web/HTTP/Messages")
+      );
+    }),
+    commands.registerCommand("reqlang.openMdnDocsHttpSpecs", () => {
+      env.openExternal(
+        Uri.parse(
+          "https://developer.mozilla.org/en-US/docs/Web/HTTP/Resources_and_specifications"
+        )
       );
     })
   );

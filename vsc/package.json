@@ -49,8 +49,16 @@
     "configuration": {},
     "commands": [
       {
-        "command": "reqlang.openMdnDocs",
+        "command": "reqlang.openMdnDocsHttp",
+        "title": "Reqlang: Open MDN Docs (HTTP)"
+      },
+      {
+        "command": "reqlang.openMdnDocsHttpMessages",
         "title": "Reqlang: Open MDN Docs (HTTP Messages)"
+      },
+      {
+        "command": "reqlang.openMdnDocsHttpSpecs",
+        "title": "Reqlang: Open MDN Docs (HTTP Specs)"
       }
     ],
     "taskDefinitions": [
