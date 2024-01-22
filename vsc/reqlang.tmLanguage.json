@@ -36,6 +36,14 @@
         {
           "name": "variable.other.reqlang",
           "match": "\\{\\{([:?!]{1})([a-zA-Z][_a-zA-Z]+)\\}\\}"
+        },
+        {
+          "name": "invalid.illegal.reqlang",
+          "match": "\\{\\{([^:?!]{1}).+\\}\\}"
+        },
+        {
+          "name": "invalid.illegal.reqlang",
+          "match": "\\{\\{([:?!]{1})\\s+.+\\}\\}"
         }
       ]
     },
