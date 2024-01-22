@@ -47,7 +47,12 @@
       }
     ],
     "configuration": {},
-    "commands": [],
+    "commands": [
+      {
+        "command": "reqlang.openMdnDocs",
+        "title": "Reqlang: Open MDN Docs (HTTP Messages)"
+      }
+    ],
     "taskDefinitions": [
       {
         "type": "reqlang",
