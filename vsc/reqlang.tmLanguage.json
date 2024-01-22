@@ -55,7 +55,11 @@
       "patterns": [
         {
           "name": "comment.line.reqlang",
-          "match": "^---.*"
+          "match": "^---$"
+        },
+        {
+          "name": "invalid.illegal.reqlang",
+          "match": "^---.+$"
         },
         {
           "name": "comment.line.reqlang",
