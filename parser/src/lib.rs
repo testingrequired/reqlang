@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use errors::ReqlangError;
 use parser::RequestFileParser;
 use resolver::RequestFileResolver;
+use span::Spanned;
 use types::ResolvedRequestFile;
 
 mod parser;
@@ -14,7 +15,7 @@ pub fn parse(
     env: &str,
     prompts: HashMap<String, String>,
     secrets: HashMap<String, String>,
-) -> Result<ResolvedRequestFile, ReqlangError> {
+) -> Result<ResolvedRequestFile, Vec<Spanned<ReqlangError>>> {
     let reqfile = RequestFileParser::parse_string(input);
 
     if let Err(err) = reqfile {

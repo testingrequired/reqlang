@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use errors::ReqlangError;
+use span::{Spanned, NO_SPAN};
 use types::{
     ResolvedRequestFile, ResolvedRequestFileConfig, UnresolvedRequestFile,
     UnresolvedRequestFileConfig,
@@ -19,7 +20,7 @@ impl RequestFileResolver {
         env: &str,
         prompts: &HashMap<String, String>,
         secrets: &HashMap<String, String>,
-    ) -> Result<ResolvedRequestFile, ReqlangError> {
+    ) -> Result<ResolvedRequestFile, Vec<Spanned<ReqlangError>>> {
         RequestFileResolver::new().resolve(reqfile, env, prompts, secrets)
     }
 
@@ -29,7 +30,7 @@ impl RequestFileResolver {
         env: &str,
         prompts: &HashMap<String, String>,
         secrets: &HashMap<String, String>,
-    ) -> Result<ResolvedRequestFile, ReqlangError> {
+    ) -> Result<ResolvedRequestFile, Vec<Spanned<ReqlangError>>> {
         Ok(ResolvedRequestFile {
             config: ResolvedRequestFileConfig {
                 env: env.to_string(),
@@ -37,11 +38,26 @@ impl RequestFileResolver {
                 prompts: prompts.clone(),
                 secrets: secrets.clone(),
             },
-            request: reqfile.request.clone(),
-            response: reqfile.response.clone(),
-            request_refs: reqfile.request_refs.clone(),
-            response_refs: reqfile.response_refs.clone(),
-            config_refs: reqfile.config_refs.clone(),
+            request: reqfile.request.0.clone(),
+            response: reqfile.response.as_ref().map(|x| x.0.clone()),
+            request_refs: reqfile
+                .request_refs
+                .clone()
+                .into_iter()
+                .map(|x| x.0)
+                .collect(),
+            response_refs: reqfile
+                .response_refs
+                .clone()
+                .into_iter()
+                .map(|x| x.0)
+                .collect(),
+            config_refs: reqfile
+                .config_refs
+                .clone()
+                .into_iter()
+                .map(|x| x.0)
+                .collect(),
         })
     }
 
@@ -53,8 +69,9 @@ impl RequestFileResolver {
         let vars = reqfile
             .config
             .clone()
-            .unwrap_or(UnresolvedRequestFileConfig::default())
+            .unwrap_or((UnresolvedRequestFileConfig::default(), NO_SPAN))
             .clone()
+            .0
             .envs
             .unwrap_or_default()
             .get(env)

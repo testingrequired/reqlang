@@ -1,5 +1,6 @@
 use errors::{ParseError, ReqlangError};
 use regex::Regex;
+use span::{Spanned, NO_SPAN};
 use std::{collections::HashMap, vec};
 use types::{ReferenceType, Request, Response, UnresolvedRequestFile, UnresolvedRequestFileConfig};
 
@@ -14,28 +15,32 @@ impl RequestFileParser {
     }
 
     /// Parse a string in to an request file with unresolved template values.
-    pub fn parse_string(input: &str) -> Result<UnresolvedRequestFile, ReqlangError> {
+    pub fn parse_string(input: &str) -> Result<UnresolvedRequestFile, Vec<Spanned<ReqlangError>>> {
         RequestFileParser::new().parse(input)
     }
 
     /// Parse a string in to an request file with unresolved template values.
-    pub fn parse(&self, input: &str) -> Result<UnresolvedRequestFile, ReqlangError> {
+    pub fn parse(&self, input: &str) -> Result<UnresolvedRequestFile, Vec<Spanned<ReqlangError>>> {
+        let mut parse_errors: Vec<Spanned<ReqlangError>> = vec![];
+
         self.split(input).and_then(|x| {
             let request_refs = self.extract_references(x.request.as_str());
             let response_refs =
                 self.extract_references(x.response.clone().unwrap_or_default().as_str());
 
             let request = match self.parse_request(x.request) {
-                Ok(request) => request,
+                Ok(request) => Some(request),
                 Err(err) => {
-                    return Err(err);
+                    parse_errors.extend(err);
+                    None
                 }
             };
 
             let response = match self.parse_response(x.response) {
                 Some(Ok(response)) => Some(response),
                 Some(Err(err)) => {
-                    return Err(err);
+                    parse_errors.extend(err);
+                    None
                 }
                 None => None,
             };
@@ -43,29 +48,41 @@ impl RequestFileParser {
             let config = match self.parse_config(x.config) {
                 Some(Ok(config)) => Some(config),
                 Some(Err(err)) => {
-                    return Err(err);
+                    parse_errors.extend(err);
+                    None
                 }
                 None => None,
             };
 
-            for refs in request_refs.iter() {
+            for (refs, _) in request_refs.iter() {
                 match refs {
                     ReferenceType::Variable(name) => {
                         if let Some(ref config) = config {
                             if let Some(vars) = &config.vars {
                                 if !vars.contains(name) {
-                                    return self.err(ParseError::UndefinedReferenceError(
-                                        ReferenceType::Variable(name.to_string()),
+                                    parse_errors.push((
+                                        ReqlangError::ParseError(
+                                            ParseError::UndefinedReferenceError(
+                                                ReferenceType::Variable(name.to_string()),
+                                            ),
+                                        ),
+                                        NO_SPAN,
                                     ));
                                 }
                             } else {
-                                return self.err(ParseError::UndefinedReferenceError(
-                                    ReferenceType::Variable(name.to_string()),
+                                parse_errors.push((
+                                    ReqlangError::ParseError(ParseError::UndefinedReferenceError(
+                                        ReferenceType::Variable(name.to_string()),
+                                    )),
+                                    NO_SPAN,
                                 ));
                             }
                         } else {
-                            return self.err(ParseError::UndefinedReferenceError(
-                                ReferenceType::Variable(name.to_string()),
+                            parse_errors.push((
+                                ReqlangError::ParseError(ParseError::UndefinedReferenceError(
+                                    ReferenceType::Variable(name.to_string()),
+                                )),
+                                NO_SPAN,
                             ));
                         }
                     }
@@ -73,18 +90,29 @@ impl RequestFileParser {
                         if let Some(ref config) = config {
                             if let Some(prompts) = &config.prompts {
                                 if !prompts.contains_key(name) {
-                                    return self.err(ParseError::UndefinedReferenceError(
-                                        ReferenceType::Prompt(name.to_string()),
+                                    parse_errors.push((
+                                        ReqlangError::ParseError(
+                                            ParseError::UndefinedReferenceError(
+                                                ReferenceType::Prompt(name.to_string()),
+                                            ),
+                                        ),
+                                        NO_SPAN,
                                     ));
                                 }
                             } else {
-                                return self.err(ParseError::UndefinedReferenceError(
-                                    ReferenceType::Prompt(name.to_string()),
+                                parse_errors.push((
+                                    ReqlangError::ParseError(ParseError::UndefinedReferenceError(
+                                        ReferenceType::Prompt(name.to_string()),
+                                    )),
+                                    NO_SPAN,
                                 ));
                             }
                         } else {
-                            return self.err(ParseError::UndefinedReferenceError(
-                                ReferenceType::Prompt(name.to_string()),
+                            parse_errors.push((
+                                ReqlangError::ParseError(ParseError::UndefinedReferenceError(
+                                    ReferenceType::Prompt(name.to_string()),
+                                )),
+                                NO_SPAN,
                             ));
                         }
                     }
@@ -92,18 +120,29 @@ impl RequestFileParser {
                         if let Some(ref config) = config {
                             if let Some(secrets) = &config.secrets {
                                 if !secrets.contains(name) {
-                                    return self.err(ParseError::UndefinedReferenceError(
-                                        ReferenceType::Secret(name.to_string()),
+                                    parse_errors.push((
+                                        ReqlangError::ParseError(
+                                            ParseError::UndefinedReferenceError(
+                                                ReferenceType::Secret(name.to_string()),
+                                            ),
+                                        ),
+                                        NO_SPAN,
                                     ));
                                 }
                             } else {
-                                return self.err(ParseError::UndefinedReferenceError(
-                                    ReferenceType::Secret(name.to_string()),
+                                parse_errors.push((
+                                    ReqlangError::ParseError(ParseError::UndefinedReferenceError(
+                                        ReferenceType::Secret(name.to_string()),
+                                    )),
+                                    NO_SPAN,
                                 ));
                             }
                         } else {
-                            return self.err(ParseError::UndefinedReferenceError(
-                                ReferenceType::Secret(name.to_string()),
+                            parse_errors.push((
+                                ReqlangError::ParseError(ParseError::UndefinedReferenceError(
+                                    ReferenceType::Secret(name.to_string()),
+                                )),
+                                NO_SPAN,
                             ));
                         }
                     }
@@ -111,24 +150,35 @@ impl RequestFileParser {
                 }
             }
 
-            for refs in response_refs.iter() {
+            for (refs, _) in response_refs.iter() {
                 match refs {
                     ReferenceType::Variable(name) => {
                         if let Some(ref config) = config {
                             if let Some(vars) = &config.vars {
                                 if !vars.contains(name) {
-                                    return self.err(ParseError::UndefinedReferenceError(
-                                        ReferenceType::Variable(name.to_string()),
+                                    parse_errors.push((
+                                        ReqlangError::ParseError(
+                                            ParseError::UndefinedReferenceError(
+                                                ReferenceType::Variable(name.to_string()),
+                                            ),
+                                        ),
+                                        NO_SPAN,
                                     ));
                                 }
                             } else {
-                                return self.err(ParseError::UndefinedReferenceError(
-                                    ReferenceType::Variable(name.to_string()),
+                                parse_errors.push((
+                                    ReqlangError::ParseError(ParseError::UndefinedReferenceError(
+                                        ReferenceType::Variable(name.to_string()),
+                                    )),
+                                    NO_SPAN,
                                 ));
                             }
                         } else {
-                            return self.err(ParseError::UndefinedReferenceError(
-                                ReferenceType::Variable(name.to_string()),
+                            parse_errors.push((
+                                ReqlangError::ParseError(ParseError::UndefinedReferenceError(
+                                    ReferenceType::Variable(name.to_string()),
+                                )),
+                                NO_SPAN,
                             ));
                         }
                     }
@@ -136,18 +186,29 @@ impl RequestFileParser {
                         if let Some(ref config) = config {
                             if let Some(prompts) = &config.prompts {
                                 if !prompts.contains_key(name) {
-                                    return self.err(ParseError::UndefinedReferenceError(
-                                        ReferenceType::Prompt(name.to_string()),
+                                    parse_errors.push((
+                                        ReqlangError::ParseError(
+                                            ParseError::UndefinedReferenceError(
+                                                ReferenceType::Prompt(name.to_string()),
+                                            ),
+                                        ),
+                                        NO_SPAN,
                                     ));
                                 }
                             } else {
-                                return self.err(ParseError::UndefinedReferenceError(
-                                    ReferenceType::Prompt(name.to_string()),
+                                parse_errors.push((
+                                    ReqlangError::ParseError(ParseError::UndefinedReferenceError(
+                                        ReferenceType::Prompt(name.to_string()),
+                                    )),
+                                    NO_SPAN,
                                 ));
                             }
                         } else {
-                            return self.err(ParseError::UndefinedReferenceError(
-                                ReferenceType::Prompt(name.to_string()),
+                            parse_errors.push((
+                                ReqlangError::ParseError(ParseError::UndefinedReferenceError(
+                                    ReferenceType::Prompt(name.to_string()),
+                                )),
+                                NO_SPAN,
                             ));
                         }
                     }
@@ -155,29 +216,44 @@ impl RequestFileParser {
                         if let Some(ref config) = config {
                             if let Some(secrets) = &config.secrets {
                                 if !secrets.contains(name) {
-                                    return self.err(ParseError::UndefinedReferenceError(
-                                        ReferenceType::Secret(name.to_string()),
+                                    parse_errors.push((
+                                        ReqlangError::ParseError(
+                                            ParseError::UndefinedReferenceError(
+                                                ReferenceType::Secret(name.to_string()),
+                                            ),
+                                        ),
+                                        NO_SPAN,
                                     ));
                                 }
                             } else {
-                                return self.err(ParseError::UndefinedReferenceError(
-                                    ReferenceType::Secret(name.to_string()),
+                                parse_errors.push((
+                                    ReqlangError::ParseError(ParseError::UndefinedReferenceError(
+                                        ReferenceType::Secret(name.to_string()),
+                                    )),
+                                    NO_SPAN,
                                 ));
                             }
                         } else {
-                            return self.err(ParseError::UndefinedReferenceError(
-                                ReferenceType::Secret(name.to_string()),
+                            parse_errors.push((
+                                ReqlangError::ParseError(ParseError::UndefinedReferenceError(
+                                    ReferenceType::Secret(name.to_string()),
+                                )),
+                                NO_SPAN,
                             ));
                         }
                     }
                     ReferenceType::Unknown(_name) => {}
                 }
+            }
+
+            if parse_errors.len() > 0 {
+                return Err(parse_errors);
             }
 
             Ok(UnresolvedRequestFile {
-                request,
-                response,
-                config,
+                request: (request.unwrap(), NO_SPAN),
+                response: response.map(|x| (x, NO_SPAN)),
+                config: config.map(|x| (x, NO_SPAN)),
                 request_refs,
                 response_refs,
                 config_refs: vec![],
@@ -186,24 +262,41 @@ impl RequestFileParser {
     }
 
     /// Map an `Into<ReqlangError>` in to a `Result<T, ReqlangError>`
-    fn err<T>(&self, err: impl Into<ReqlangError>) -> Result<T, ReqlangError> {
-        Err(err.into())
+    fn err<T>(&self, err: impl Into<ReqlangError>) -> Result<T, Vec<Spanned<ReqlangError>>> {
+        Err(vec![(err.into(), NO_SPAN)])
     }
 
     /// Split string in to a request, and optional response, config
-    fn split(&self, input: &str) -> Result<RequestFileSplitUp, ReqlangError> {
+    fn split(&self, input: &str) -> Result<RequestFileSplitUp, Vec<Spanned<ReqlangError>>> {
+        let mut parse_errors: Vec<Spanned<ReqlangError>> = vec![];
+
         if input.is_empty() {
-            return self.err(ParseError::EmptyFileError);
+            parse_errors.push((
+                ReqlangError::ParseError(ParseError::EmptyFileError),
+                NO_SPAN,
+            ));
+
+            return Err(parse_errors);
         }
 
         let documents: Vec<&str> = input.split(DELIMITER).collect();
 
         if documents.len() < 2 {
-            return self.err(ParseError::NoDividersError);
+            parse_errors.push((
+                ReqlangError::ParseError(ParseError::NoDividersError),
+                NO_SPAN,
+            ));
         }
 
         if documents.len() > 5 {
-            return self.err(ParseError::TooManyDividersError);
+            parse_errors.push((
+                ReqlangError::ParseError(ParseError::TooManyDividersError),
+                NO_SPAN,
+            ));
+        }
+
+        if !parse_errors.is_empty() {
+            return Err(parse_errors);
         }
 
         let mut request = documents.get(1).map(|x| x.to_string()).unwrap();
@@ -236,35 +329,38 @@ impl RequestFileParser {
     fn parse_config(
         &self,
         config: Option<String>,
-    ) -> Option<Result<UnresolvedRequestFileConfig, ReqlangError>> {
+    ) -> Option<Result<UnresolvedRequestFileConfig, Vec<Spanned<ReqlangError>>>> {
         config.map(|c| {
             toml::from_str(&c).map_err(|x| {
-                ReqlangError::ParseError(ParseError::InvalidConfigError {
-                    message: x.message().to_string(),
-                })
+                vec![(
+                    ReqlangError::ParseError(ParseError::InvalidConfigError {
+                        message: x.message().to_string(),
+                    }),
+                    x.span().unwrap_or(NO_SPAN),
+                )]
             })
         })
     }
 
     /// Extract template references from a string
-    fn extract_references(&self, input: &str) -> Vec<ReferenceType> {
+    fn extract_references(&self, input: &str) -> Vec<Spanned<ReferenceType>> {
         let re = Regex::new(RequestFileParser::TEMPLATE_REFERENCE_PATTERN).unwrap();
 
-        let mut captured_refs: Vec<ReferenceType> = vec![];
+        let mut captured_refs: Vec<Spanned<ReferenceType>> = vec![];
 
         for (_, [prefix, name]) in re.captures_iter(&input).map(|cap| cap.extract()) {
             captured_refs.push(match prefix {
-                ":" => ReferenceType::Variable(name.to_string()),
-                "?" => ReferenceType::Prompt(name.to_string()),
-                "!" => ReferenceType::Secret(name.to_string()),
-                _ => ReferenceType::Unknown(name.to_string()),
+                ":" => (ReferenceType::Variable(name.to_string()), NO_SPAN),
+                "?" => (ReferenceType::Prompt(name.to_string()), NO_SPAN),
+                "!" => (ReferenceType::Secret(name.to_string()), NO_SPAN),
+                _ => (ReferenceType::Unknown(name.to_string()), NO_SPAN),
             });
         }
 
         return captured_refs;
     }
 
-    fn parse_request(&self, request: String) -> Result<Request, ReqlangError> {
+    fn parse_request(&self, request: String) -> Result<Request, Vec<Spanned<ReqlangError>>> {
         let mut headers = [httparse::EMPTY_HEADER; 64];
         let mut req = httparse::Request::new(&mut headers);
 
@@ -308,7 +404,10 @@ impl RequestFileParser {
         })
     }
 
-    fn parse_response(&self, response: Option<String>) -> Option<Result<Response, ReqlangError>> {
+    fn parse_response(
+        &self,
+        response: Option<String>,
+    ) -> Option<Result<Response, Vec<Spanned<ReqlangError>>>> {
         let mut headers = [httparse::EMPTY_HEADER; 64];
         let mut res = httparse::Response::new(&mut headers);
 
@@ -363,6 +462,7 @@ mod test {
     use std::collections::HashMap;
 
     use errors::ParseError;
+    use span::NO_SPAN;
     use types::{
         ReferenceType, Request, Response, UnresolvedRequestFile, UnresolvedRequestFileConfig,
     };
@@ -378,12 +478,16 @@ mod test {
         };
     }
 
-    parser_test!(empty, "", Err(ParseError::EmptyFileError.into()));
+    parser_test!(
+        empty,
+        "",
+        Err(vec![(ParseError::EmptyFileError.into(), NO_SPAN)])
+    );
 
     parser_test!(
         no_doc_dividers,
         "GET http://example.com HTTP/1.1\n",
-        Err(ParseError::NoDividersError.into())
+        Err(vec![(ParseError::NoDividersError.into(), NO_SPAN)])
     );
 
     parser_test!(
@@ -396,7 +500,7 @@ mod test {
             "---\n",
             "---\n"
         ),
-        Err(ParseError::TooManyDividersError.into())
+        Err(vec![(ParseError::TooManyDividersError.into(), NO_SPAN)])
     );
 
     parser_test!(
@@ -404,13 +508,16 @@ mod test {
         concat!("---\n", "GET http://example.com HTTP/1.1", "---\n"),
         Ok(UnresolvedRequestFile {
             config: None,
-            request: Request {
-                verb: "GET".to_string(),
-                target: "http://example.com".to_string(),
-                http_version: "1.1".to_string(),
-                headers: HashMap::new(),
-                body: Some("".to_string())
-            },
+            request: (
+                Request {
+                    verb: "GET".to_string(),
+                    target: "http://example.com".to_string(),
+                    http_version: "1.1".to_string(),
+                    headers: HashMap::new(),
+                    body: Some("".to_string())
+                },
+                NO_SPAN
+            ),
             response: None,
             request_refs: vec![],
             response_refs: vec![],
@@ -421,25 +528,34 @@ mod test {
     parser_test!(
         undefined_variable_reference_in_request,
         concat!("---\n", "GET / HTTP/1.1\n", "test: {{:value}}\n", "---\n"),
-        Err(errors::ReqlangError::ParseError(
-            ParseError::UndefinedReferenceError(ReferenceType::Variable("value".to_string()))
-        ))
+        Err(vec![(
+            errors::ReqlangError::ParseError(ParseError::UndefinedReferenceError(
+                ReferenceType::Variable("value".to_string())
+            )),
+            NO_SPAN
+        )])
     );
 
     parser_test!(
         undefined_prompt_reference_in_request,
         concat!("---\n", "GET / HTTP/1.1\n", "test: {{?value}}\n", "---\n"),
-        Err(errors::ReqlangError::ParseError(
-            ParseError::UndefinedReferenceError(ReferenceType::Prompt("value".to_string()))
-        ))
+        Err(vec![(
+            errors::ReqlangError::ParseError(ParseError::UndefinedReferenceError(
+                ReferenceType::Prompt("value".to_string())
+            )),
+            NO_SPAN
+        )])
     );
 
     parser_test!(
         undefined_secret_reference_in_request,
         concat!("---\n", "GET / HTTP/1.1\n", "test: {{!value}}\n", "---\n"),
-        Err(errors::ReqlangError::ParseError(
-            ParseError::UndefinedReferenceError(ReferenceType::Secret("value".to_string()))
-        ))
+        Err(vec![(
+            errors::ReqlangError::ParseError(ParseError::UndefinedReferenceError(
+                ReferenceType::Secret("value".to_string())
+            )),
+            NO_SPAN
+        )])
     );
 
     parser_test!(
@@ -452,9 +568,12 @@ mod test {
             "test: {{:value}}\n\n",
             "---\n"
         ),
-        Err(errors::ReqlangError::ParseError(
-            ParseError::UndefinedReferenceError(ReferenceType::Variable("value".to_string()))
-        ))
+        Err(vec![(
+            errors::ReqlangError::ParseError(ParseError::UndefinedReferenceError(
+                ReferenceType::Variable("value".to_string())
+            )),
+            NO_SPAN
+        )])
     );
 
     parser_test!(
@@ -467,9 +586,12 @@ mod test {
             "test: {{?value}}\n\n",
             "---\n"
         ),
-        Err(errors::ReqlangError::ParseError(
-            ParseError::UndefinedReferenceError(ReferenceType::Prompt("value".to_string()))
-        ))
+        Err(vec![(
+            errors::ReqlangError::ParseError(ParseError::UndefinedReferenceError(
+                ReferenceType::Prompt("value".to_string())
+            )),
+            NO_SPAN
+        )])
     );
 
     parser_test!(
@@ -482,9 +604,12 @@ mod test {
             "test: {{!value}}\n\n",
             "---\n"
         ),
-        Err(errors::ReqlangError::ParseError(
-            ParseError::UndefinedReferenceError(ReferenceType::Secret("value".to_string()))
-        ))
+        Err(vec![(
+            errors::ReqlangError::ParseError(ParseError::UndefinedReferenceError(
+                ReferenceType::Secret("value".to_string())
+            )),
+            NO_SPAN
+        )])
     );
 
     parser_test!(
@@ -492,13 +617,16 @@ mod test {
         concat!("---\n", "GET http://example.com HTTP/1.1\n", "---\n"),
         Ok(UnresolvedRequestFile {
             config: None,
-            request: Request {
-                verb: "GET".to_string(),
-                target: "http://example.com".to_string(),
-                http_version: "1.1".to_string(),
-                headers: HashMap::new(),
-                body: Some("".to_string())
-            },
+            request: (
+                Request {
+                    verb: "GET".to_string(),
+                    target: "http://example.com".to_string(),
+                    http_version: "1.1".to_string(),
+                    headers: HashMap::new(),
+                    body: Some("".to_string())
+                },
+                NO_SPAN
+            ),
             response: None,
             request_refs: vec![],
             response_refs: vec![],
@@ -511,13 +639,16 @@ mod test {
         concat!("---\n", "GET http://example.com HTTP/1.1\n\n", "---\n"),
         Ok(UnresolvedRequestFile {
             config: None,
-            request: Request {
-                verb: "GET".to_string(),
-                target: "http://example.com".to_string(),
-                http_version: "1.1".to_string(),
-                headers: HashMap::new(),
-                body: Some("".to_string())
-            },
+            request: (
+                Request {
+                    verb: "GET".to_string(),
+                    target: "http://example.com".to_string(),
+                    http_version: "1.1".to_string(),
+                    headers: HashMap::new(),
+                    body: Some("".to_string())
+                },
+                NO_SPAN
+            ),
             response: None,
             request_refs: vec![],
             response_refs: vec![],
@@ -559,54 +690,66 @@ mod test {
             "---\n"
         ),
         Ok(UnresolvedRequestFile {
-            config: Some(UnresolvedRequestFileConfig {
-                vars: Some(vec!["base_url".to_string()]),
-                envs: Some(HashMap::from([
-                    (
-                        "dev".to_string(),
-                        HashMap::from([(
-                            "base_url".to_string(),
-                            "https://dev.example.com".to_string()
-                        )])
-                    ),
-                    (
-                        "prod".to_string(),
-                        HashMap::from([(
-                            "base_url".to_string(),
-                            "https://example.com".to_string()
-                        )])
-                    ),
-                ])),
-                prompts: Some(HashMap::from([
-                    ("test_value".to_string(), Some("".to_string())),
-                    ("expected_response_body".to_string(), Some("".to_string()))
-                ])),
-                secrets: Some(vec!["api_key".to_string()])
-            }),
-            request: Request {
-                verb: "POST".to_string(),
-                target: "/".to_string(),
-                http_version: "1.1".to_string(),
-                headers: HashMap::from([
-                    ("host".to_string(), "{{:base_url}}".to_string()),
-                    ("x-test".to_string(), "{{?test_value}}".to_string()),
-                    ("x-api-key".to_string(), "{{!api_key}}".to_string()),
-                ]),
-                body: Some("[1, 2, 3]\n\n".to_string())
-            },
-            response: Some(Response {
-                http_version: "1.1".to_string(),
-                status_code: "200".to_string(),
-                status_text: "OK".to_string(),
-                headers: HashMap::new(),
-                body: Some("{{?expected_response_body}}\n\n".to_string())
-            }),
+            config: Some((
+                UnresolvedRequestFileConfig {
+                    vars: Some(vec!["base_url".to_string()]),
+                    envs: Some(HashMap::from([
+                        (
+                            "dev".to_string(),
+                            HashMap::from([(
+                                "base_url".to_string(),
+                                "https://dev.example.com".to_string()
+                            )])
+                        ),
+                        (
+                            "prod".to_string(),
+                            HashMap::from([(
+                                "base_url".to_string(),
+                                "https://example.com".to_string()
+                            )])
+                        ),
+                    ])),
+                    prompts: Some(HashMap::from([
+                        ("test_value".to_string(), Some("".to_string())),
+                        ("expected_response_body".to_string(), Some("".to_string()))
+                    ])),
+                    secrets: Some(vec!["api_key".to_string()])
+                },
+                NO_SPAN
+            )),
+            request: (
+                Request {
+                    verb: "POST".to_string(),
+                    target: "/".to_string(),
+                    http_version: "1.1".to_string(),
+                    headers: HashMap::from([
+                        ("host".to_string(), "{{:base_url}}".to_string()),
+                        ("x-test".to_string(), "{{?test_value}}".to_string()),
+                        ("x-api-key".to_string(), "{{!api_key}}".to_string()),
+                    ]),
+                    body: Some("[1, 2, 3]\n\n".to_string())
+                },
+                NO_SPAN
+            ),
+            response: Some((
+                Response {
+                    http_version: "1.1".to_string(),
+                    status_code: "200".to_string(),
+                    status_text: "OK".to_string(),
+                    headers: HashMap::new(),
+                    body: Some("{{?expected_response_body}}\n\n".to_string())
+                },
+                NO_SPAN
+            )),
             request_refs: vec![
-                ReferenceType::Variable("base_url".to_string()),
-                ReferenceType::Prompt("test_value".to_string()),
-                ReferenceType::Secret("api_key".to_string())
+                (ReferenceType::Variable("base_url".to_string()), NO_SPAN),
+                (ReferenceType::Prompt("test_value".to_string()), NO_SPAN),
+                (ReferenceType::Secret("api_key".to_string()), NO_SPAN)
             ],
-            response_refs: vec![ReferenceType::Prompt("expected_response_body".to_string())],
+            response_refs: vec![(
+                ReferenceType::Prompt("expected_response_body".to_string()),
+                NO_SPAN
+            )],
             config_refs: vec![],
         })
     );
