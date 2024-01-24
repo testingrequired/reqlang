@@ -1,14 +1,11 @@
 [package]
-name = "parser"
+name = "reqlang-lsp"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-types = { path = "../types"}
-span = { path = "../span" }
-errors = { path = "../errors"}
-httparse = "1.8.0"
-toml = "0.8.8"
-regex = "1.10.3"
+tower-lsp = { version = "0.19.0" }
+anyhow = "1.0.52"
+tokio = { version = "1.17.0", features = ["io-std", "rt"] }

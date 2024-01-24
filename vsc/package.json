@@ -49,6 +49,18 @@
     "configuration": {},
     "commands": [
       {
+        "command": "reqlang.startLanguageServer",
+        "title": "Reqlang: Start Language Server"
+      },
+      {
+        "command": "reqlang.stopLanguageServer",
+        "title": "Reqlang: Stop Language Server"
+      },
+      {
+        "command": "reqlang.restartLanguageServer",
+        "title": "Reqlang: Restart Language Server"
+      },
+      {
         "command": "reqlang.openMdnDocsHttp",
         "title": "Reqlang: Open MDN Docs (HTTP)"
       },
