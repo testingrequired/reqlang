@@ -32,32 +32,20 @@ impl RequestFileResolver {
         secrets: &HashMap<String, String>,
     ) -> Result<ResolvedRequestFile, Vec<Spanned<ReqlangError>>> {
         Ok(ResolvedRequestFile {
-            config: ResolvedRequestFileConfig {
-                env: env.to_string(),
-                vars: self.resolve_vars_from_envs(reqfile, env),
-                prompts: prompts.clone(),
-                secrets: secrets.clone(),
-            },
-            request: reqfile.request.0.clone(),
-            response: reqfile.response.as_ref().map(|x| x.0.clone()),
-            request_refs: reqfile
-                .request_refs
-                .clone()
-                .into_iter()
-                .map(|x| x.0)
-                .collect(),
-            response_refs: reqfile
-                .response_refs
-                .clone()
-                .into_iter()
-                .map(|x| x.0)
-                .collect(),
-            config_refs: reqfile
-                .config_refs
-                .clone()
-                .into_iter()
-                .map(|x| x.0)
-                .collect(),
+            config: (
+                ResolvedRequestFileConfig {
+                    env: env.to_string(),
+                    vars: self.resolve_vars_from_envs(reqfile, env),
+                    prompts: prompts.clone(),
+                    secrets: secrets.clone(),
+                },
+                reqfile.config.as_ref().map_or(NO_SPAN, |x| x.1.clone()),
+            ),
+            request: reqfile.request.clone(),
+            response: reqfile.response.clone(),
+            request_refs: reqfile.request_refs.clone(),
+            response_refs: reqfile.response_refs.clone(),
+            config_refs: reqfile.config_refs.clone(),
         })
     }
 
@@ -86,6 +74,7 @@ impl RequestFileResolver {
 mod test {
     use std::collections::HashMap;
 
+    use span::NO_SPAN;
     use types::{ReferenceType, Request, ResolvedRequestFile, ResolvedRequestFileConfig, Response};
 
     use crate::{parser::RequestFileParser, resolver::RequestFileResolver};
@@ -139,42 +128,57 @@ mod test {
         assert_eq!(
             resolved_reqfile,
             Ok(ResolvedRequestFile {
-                config: ResolvedRequestFileConfig {
-                    env: "dev".to_string(),
-                    vars: HashMap::from([(
-                        "base_url".to_string(),
-                        "https://dev.example.com".to_string()
-                    )]),
-                    prompts: HashMap::from([(
-                        "test_value".to_string(),
-                        "test_value_value".to_string()
-                    )]),
-                    secrets: HashMap::from([("api_key".to_string(), "api_key_value".to_string())])
-                },
-                request: Request {
-                    verb: "POST".to_string(),
-                    target: "/".to_string(),
-                    http_version: "1.1".to_string(),
-                    headers: HashMap::from([
-                        ("host".to_string(), "{{:base_url}}".to_string()),
-                        ("x-test".to_string(), "{{?test_value}}".to_string()),
-                        ("x-api-key".to_string(), "{{!api_key}}".to_string()),
-                    ]),
-                    body: Some("[1, 2, 3]\n\n".to_string())
-                },
-                response: Some(Response {
-                    http_version: "1.1".to_string(),
-                    status_code: "200".to_string(),
-                    status_text: "OK".to_string(),
-                    headers: HashMap::new(),
-                    body: Some("{{?expected_response_body}}\n".to_string())
-                }),
+                config: (
+                    ResolvedRequestFileConfig {
+                        env: "dev".to_string(),
+                        vars: HashMap::from([(
+                            "base_url".to_string(),
+                            "https://dev.example.com".to_string()
+                        )]),
+                        prompts: HashMap::from([(
+                            "test_value".to_string(),
+                            "test_value_value".to_string()
+                        )]),
+                        secrets: HashMap::from([(
+                            "api_key".to_string(),
+                            "api_key_value".to_string()
+                        )])
+                    },
+                    NO_SPAN
+                ),
+                request: (
+                    Request {
+                        verb: "POST".to_string(),
+                        target: "/".to_string(),
+                        http_version: "1.1".to_string(),
+                        headers: HashMap::from([
+                            ("host".to_string(), "{{:base_url}}".to_string()),
+                            ("x-test".to_string(), "{{?test_value}}".to_string()),
+                            ("x-api-key".to_string(), "{{!api_key}}".to_string()),
+                        ]),
+                        body: Some("[1, 2, 3]\n\n".to_string())
+                    },
+                    NO_SPAN
+                ),
+                response: Some((
+                    Response {
+                        http_version: "1.1".to_string(),
+                        status_code: "200".to_string(),
+                        status_text: "OK".to_string(),
+                        headers: HashMap::new(),
+                        body: Some("{{?expected_response_body}}\n".to_string())
+                    },
+                    NO_SPAN
+                )),
                 request_refs: vec![
-                    ReferenceType::Variable("base_url".to_string()),
-                    ReferenceType::Prompt("test_value".to_string()),
-                    ReferenceType::Secret("api_key".to_string())
+                    (ReferenceType::Variable("base_url".to_string()), NO_SPAN),
+                    (ReferenceType::Prompt("test_value".to_string()), NO_SPAN),
+                    (ReferenceType::Secret("api_key".to_string()), NO_SPAN)
                 ],
-                response_refs: vec![ReferenceType::Prompt("expected_response_body".to_string())],
+                response_refs: vec![(
+                    ReferenceType::Prompt("expected_response_body".to_string()),
+                    NO_SPAN
+                )],
                 config_refs: vec![],
             })
         );

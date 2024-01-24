@@ -67,27 +67,28 @@ fn main() {
         }
     };
 
+    let request = reqfile.request.0;
+
     match args.format {
         Format::Http => {
-            println!("{}", reqfile.request);
+            println!("{}", request);
         }
         Format::Curl => {
-            let verb = if reqfile.request.verb == "GET" {
+            let verb = if request.verb == "GET" {
                 "".to_string()
             } else {
-                format!("-X {}", reqfile.request.verb)
+                format!("-X {}", request.verb)
             };
 
-            let target = reqfile.request.target;
-            let headers: String = reqfile
-                .request
+            let target = request.target;
+            let headers: String = request
                 .headers
                 .iter()
                 .map(|x| format!(r#"-H "{}: {}""#, x.0, x.1))
                 .collect::<Vec<String>>()
                 .join(" ");
 
-            let data = match reqfile.request.body {
+            let data = match request.body {
                 Some(body) => match body.is_empty() {
                     true => "".to_string(),
                     false => format!("-d '{body}'"),
@@ -97,12 +98,11 @@ fn main() {
 
             println!(
                 "curl {} {} --http{} {} {}",
-                verb, target, reqfile.request.http_version, headers, data
+                verb, target, request.http_version, headers, data
             );
         }
         Format::Powershell => {
-            let headers: Vec<String> = reqfile
-                .request
+            let headers: Vec<String> = request
                 .headers
                 .iter()
                 .map(|x| format!(r#"'{}' = '{}'"#, x.0, x.1))
@@ -116,21 +116,21 @@ fn main() {
                 "-Headers $headers"
             };
 
-            let body_arg = if reqfile.request.body.is_some() {
+            let body_arg = if request.body.is_some() {
                 "-Body $body"
             } else {
                 ""
             };
 
-            let body_value = reqfile.request.body.unwrap_or_default();
+            let body_value = request.body.unwrap_or_default();
 
             println!(
                 "$headers = @{{ {} }}\n$body = '{}'\nInvoke-RestMethod -HttpVersion {} -Uri {} -Method {} {} {}",
                 header_values,
                 body_value,
-                reqfile.request.http_version,
-                reqfile.request.target,
-                reqfile.request.verb,
+                request.http_version,
+                request.target,
+                request.verb,
                 header_arg,
                 body_arg
             );
