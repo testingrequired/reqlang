@@ -61,6 +61,10 @@
         "title": "Reqlang: Restart Language Server"
       },
       {
+        "command": "reqlang.install",
+        "title": "Reqlang: Build & Install Binaries"
+      },
+      {
         "command": "reqlang.openMdnDocsHttp",
         "title": "Reqlang: Open MDN Docs (HTTP)"
       },

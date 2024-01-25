@@ -1,6 +1,14 @@
 "use strict";
 
-import { ExtensionContext, tasks, commands, env, Uri, workspace } from "vscode";
+import {
+  ExtensionContext,
+  tasks,
+  commands,
+  env,
+  Uri,
+  workspace,
+  window,
+} from "vscode";
 import { ReqlangTaskProvider } from "./reqlangTaskProvider";
 import {
   LanguageClient,
@@ -51,6 +59,15 @@ export function activate(context: ExtensionContext) {
     await startLanguageServerHandler();
   };
 
+  const installHandler = async () => {
+    await stopLanguageServerHandler();
+
+    const terminal = window.createTerminal(`reqlang`);
+    terminal.show();
+    terminal.sendText(`just install`, false);
+    terminal.sendText("; exit");
+  };
+
   context.subscriptions.push(
     commands.registerCommand(
       "reqlang.startLanguageServer",
@@ -64,6 +81,7 @@ export function activate(context: ExtensionContext) {
       "reqlang.restartLanguageServer",
       restartLanguageServerHandler
     ),
+    commands.registerCommand("reqlang.install", installHandler),
     commands.registerCommand("reqlang.openMdnDocsHttp", () => {
       env.openExternal(
         Uri.parse("https://developer.mozilla.org/en-US/docs/Web/HTTP")
