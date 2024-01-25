@@ -23,12 +23,12 @@ impl RequestFileParser {
     pub fn parse(&self, input: &str) -> Result<UnresolvedRequestFile, Vec<Spanned<ReqlangError>>> {
         let mut parse_errors: Vec<Spanned<ReqlangError>> = vec![];
 
-        self.split(input).and_then(|x| {
-            let request_refs = self.extract_references(x.request.as_str());
+        self.split(input).and_then(|reqfile| {
+            let request_refs = self.extract_references(&reqfile.request);
             let response_refs =
-                self.extract_references(x.response.clone().unwrap_or_default().as_str());
+                self.extract_references(&reqfile.response.clone().unwrap_or_default());
 
-            let request = match self.parse_request(x.request) {
+            let request = match self.parse_request(reqfile.request) {
                 Ok(request) => Some(request),
                 Err(err) => {
                     parse_errors.extend(err);
@@ -36,7 +36,7 @@ impl RequestFileParser {
                 }
             };
 
-            let response = match self.parse_response(x.response) {
+            let response = match self.parse_response(reqfile.response) {
                 Some(Ok(response)) => Some(response),
                 Some(Err(err)) => {
                     parse_errors.extend(err);
@@ -45,7 +45,7 @@ impl RequestFileParser {
                 None => None,
             };
 
-            let config = match self.parse_config(x.config) {
+            let config = match self.parse_config(reqfile.config) {
                 Some(Ok(config)) => Some(config),
                 Some(Err(err)) => {
                     parse_errors.extend(err);
@@ -310,14 +310,19 @@ impl RequestFileParser {
             request = format!("{request}\n");
         }
 
+        let request = (request, NO_SPAN);
+
         let response = documents
             .get(2)
             .map(|x| x.trim_start().to_string())
-            .filter(|x| !x.is_empty());
+            .filter(|x| !x.is_empty())
+            .map(|x| (x, NO_SPAN));
+
         let config = documents
             .get(3)
             .map(|x| x.trim().to_string())
-            .filter(|x| !x.is_empty());
+            .filter(|x| !x.is_empty())
+            .map(|x| (x, NO_SPAN));
 
         Ok(RequestFileSplitUp {
             request,
@@ -328,10 +333,10 @@ impl RequestFileParser {
 
     fn parse_config(
         &self,
-        config: Option<String>,
+        config: Option<Spanned<String>>,
     ) -> Option<Result<UnresolvedRequestFileConfig, Vec<Spanned<ReqlangError>>>> {
-        config.map(|c| {
-            toml::from_str(&c).map_err(|x| {
+        config.map(|(config, _)| {
+            toml::from_str(&config).map_err(|x| {
                 vec![(
                     ReqlangError::ParseError(ParseError::InvalidConfigError {
                         message: x.message().to_string(),
@@ -343,24 +348,27 @@ impl RequestFileParser {
     }
 
     /// Extract template references from a string
-    fn extract_references(&self, input: &str) -> Vec<Spanned<ReferenceType>> {
+    fn extract_references(&self, (input, span): &Spanned<String>) -> Vec<Spanned<ReferenceType>> {
         let re = Regex::new(RequestFileParser::TEMPLATE_REFERENCE_PATTERN).unwrap();
 
         let mut captured_refs: Vec<Spanned<ReferenceType>> = vec![];
 
         for (_, [prefix, name]) in re.captures_iter(&input).map(|cap| cap.extract()) {
             captured_refs.push(match prefix {
-                ":" => (ReferenceType::Variable(name.to_string()), NO_SPAN),
-                "?" => (ReferenceType::Prompt(name.to_string()), NO_SPAN),
-                "!" => (ReferenceType::Secret(name.to_string()), NO_SPAN),
-                _ => (ReferenceType::Unknown(name.to_string()), NO_SPAN),
+                ":" => (ReferenceType::Variable(name.to_string()), span.to_owned()),
+                "?" => (ReferenceType::Prompt(name.to_string()), span.to_owned()),
+                "!" => (ReferenceType::Secret(name.to_string()), span.to_owned()),
+                _ => (ReferenceType::Unknown(name.to_string()), span.to_owned()),
             });
         }
 
         return captured_refs;
     }
 
-    fn parse_request(&self, request: String) -> Result<Request, Vec<Spanned<ReqlangError>>> {
+    fn parse_request(
+        &self,
+        (request, _): Spanned<String>,
+    ) -> Result<Request, Vec<Spanned<ReqlangError>>> {
         let mut headers = [httparse::EMPTY_HEADER; 64];
         let mut req = httparse::Request::new(&mut headers);
 
@@ -406,12 +414,12 @@ impl RequestFileParser {
 
     fn parse_response(
         &self,
-        response: Option<String>,
+        response: Option<Spanned<String>>,
     ) -> Option<Result<Response, Vec<Spanned<ReqlangError>>>> {
         let mut headers = [httparse::EMPTY_HEADER; 64];
         let mut res = httparse::Response::new(&mut headers);
 
-        let response = match response {
+        let (response, _) = match response {
             Some(x) => x,
             None => return None,
         };
@@ -759,7 +767,7 @@ mod test {
 const DELIMITER: &str = "---\n";
 
 struct RequestFileSplitUp {
-    request: String,
-    response: Option<String>,
-    config: Option<String>,
+    request: Spanned<String>,
+    response: Option<Spanned<String>>,
+    config: Option<Spanned<String>>,
 }
