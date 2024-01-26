@@ -698,6 +698,30 @@ mod test {
             "---\n"
         ),
         Ok(UnresolvedRequestFile {
+            request: (
+                Request {
+                    verb: "POST".to_string(),
+                    target: "/".to_string(),
+                    http_version: "1.1".to_string(),
+                    headers: HashMap::from([
+                        ("host".to_string(), "{{:base_url}}".to_string()),
+                        ("x-test".to_string(), "{{?test_value}}".to_string()),
+                        ("x-api-key".to_string(), "{{!api_key}}".to_string()),
+                    ]),
+                    body: Some("[1, 2, 3]\n\n".to_string())
+                },
+                NO_SPAN
+            ),
+            response: Some((
+                Response {
+                    http_version: "1.1".to_string(),
+                    status_code: "200".to_string(),
+                    status_text: "OK".to_string(),
+                    headers: HashMap::new(),
+                    body: Some("{{?expected_response_body}}\n\n".to_string())
+                },
+                NO_SPAN
+            )),
             config: Some((
                 UnresolvedRequestFileConfig {
                     vars: Some(vec!["base_url".to_string()]),
@@ -722,30 +746,6 @@ mod test {
                         ("expected_response_body".to_string(), Some("".to_string()))
                     ])),
                     secrets: Some(vec!["api_key".to_string()])
-                },
-                NO_SPAN
-            )),
-            request: (
-                Request {
-                    verb: "POST".to_string(),
-                    target: "/".to_string(),
-                    http_version: "1.1".to_string(),
-                    headers: HashMap::from([
-                        ("host".to_string(), "{{:base_url}}".to_string()),
-                        ("x-test".to_string(), "{{?test_value}}".to_string()),
-                        ("x-api-key".to_string(), "{{!api_key}}".to_string()),
-                    ]),
-                    body: Some("[1, 2, 3]\n\n".to_string())
-                },
-                NO_SPAN
-            ),
-            response: Some((
-                Response {
-                    http_version: "1.1".to_string(),
-                    status_code: "200".to_string(),
-                    status_text: "OK".to_string(),
-                    headers: HashMap::new(),
-                    body: Some("{{?expected_response_body}}\n\n".to_string())
                 },
                 NO_SPAN
             )),
