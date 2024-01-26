@@ -31,7 +31,6 @@ pub fn parse(
 mod parserlib {
     use std::collections::HashMap;
 
-    use span::NO_SPAN;
     use types::{ReferenceType, Request, ResolvedRequestFile, ResolvedRequestFileConfig, Response};
 
     use crate::parse;
@@ -51,6 +50,7 @@ mod parserlib {
             "HTTP/1.1 200 OK\n",
             "\n",
             "{{?expected_response_body}}\n",
+            "\n",
             "---\n",
             "vars = [\"base_url\"]\n",
             "secrets = [\"api_key\"]",
@@ -77,8 +77,31 @@ mod parserlib {
         );
 
         assert_eq!(
-            resolved_reqfile,
             Ok(ResolvedRequestFile {
+                request: (
+                    Request {
+                        verb: "POST".to_string(),
+                        target: "/".to_string(),
+                        http_version: "1.1".to_string(),
+                        headers: HashMap::from([
+                            ("host".to_string(), "{{:base_url}}".to_string()),
+                            ("x-test".to_string(), "{{?test_value}}".to_string()),
+                            ("x-api-key".to_string(), "{{!api_key}}".to_string()),
+                        ]),
+                        body: Some("[1, 2, 3]\n\n".to_string())
+                    },
+                    4..100
+                ),
+                response: Some((
+                    Response {
+                        http_version: "1.1".to_string(),
+                        status_code: "200".to_string(),
+                        status_text: "OK".to_string(),
+                        headers: HashMap::new(),
+                        body: Some("{{?expected_response_body}}\n\n".to_string())
+                    },
+                    104..150
+                )),
                 config: (
                     ResolvedRequestFileConfig {
                         env: "dev".to_string(),
@@ -95,43 +118,20 @@ mod parserlib {
                             "api_key_value".to_string()
                         )])
                     },
-                    NO_SPAN
+                    154..353
                 ),
-                request: (
-                    Request {
-                        verb: "POST".to_string(),
-                        target: "/".to_string(),
-                        http_version: "1.1".to_string(),
-                        headers: HashMap::from([
-                            ("host".to_string(), "{{:base_url}}".to_string()),
-                            ("x-test".to_string(), "{{?test_value}}".to_string()),
-                            ("x-api-key".to_string(), "{{!api_key}}".to_string()),
-                        ]),
-                        body: Some("[1, 2, 3]\n\n".to_string())
-                    },
-                    NO_SPAN
-                ),
-                response: Some((
-                    Response {
-                        http_version: "1.1".to_string(),
-                        status_code: "200".to_string(),
-                        status_text: "OK".to_string(),
-                        headers: HashMap::new(),
-                        body: Some("{{?expected_response_body}}\n".to_string())
-                    },
-                    NO_SPAN
-                )),
                 request_refs: vec![
-                    (ReferenceType::Variable("base_url".to_string()), NO_SPAN),
-                    (ReferenceType::Prompt("test_value".to_string()), NO_SPAN),
-                    (ReferenceType::Secret("api_key".to_string()), NO_SPAN)
+                    (ReferenceType::Variable("base_url".to_string()), 4..100),
+                    (ReferenceType::Prompt("test_value".to_string()), 4..100),
+                    (ReferenceType::Secret("api_key".to_string()), 4..100)
                 ],
                 response_refs: vec![(
                     ReferenceType::Prompt("expected_response_body".to_string()),
-                    NO_SPAN
+                    104..150
                 )],
                 config_refs: vec![],
-            })
+            }),
+            resolved_reqfile
         );
     }
 }

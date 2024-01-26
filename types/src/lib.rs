@@ -103,9 +103,9 @@ pub struct UnresolvedRequestFileConfig {
 /// A resolved request file with resolved environmental, prompts and secrets values.
 #[derive(Clone, Debug, PartialEq, Default)]
 pub struct ResolvedRequestFile {
-    pub config: Spanned<ResolvedRequestFileConfig>,
     pub request: Spanned<Request>,
     pub response: Option<Spanned<Response>>,
+    pub config: Spanned<ResolvedRequestFileConfig>,
 
     pub config_refs: Vec<Spanned<ReferenceType>>,
     pub request_refs: Vec<Spanned<ReferenceType>>,
