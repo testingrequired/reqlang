@@ -22,3 +22,6 @@ install: build && move-bins
 
 build-vsc:
     cd vsc && just build
+
+clean-git-branches:
+    git branch -d $(git branch --merged=main | grep -v main) && git fetch --prune
