@@ -15,7 +15,7 @@ fn main() {
 
     let contents = fs::read_to_string(args.path).expect("Should have been able to read the file");
 
-    let reqfile = parser::parse(&contents, "dev", HashMap::new(), HashMap::new());
+    let reqfile = parser::resolve(&contents, "dev", HashMap::new(), HashMap::new());
 
     let reqfile = match reqfile {
         Ok(reqfile) => reqfile,

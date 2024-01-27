@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use codespan_reporting::diagnostic::{Diagnostic, Label};
 use errors::{ParseError, ReqlangError};
 use serde::{Deserialize, Serialize};
@@ -10,7 +8,7 @@ pub struct Diagnoser {}
 
 impl Diagnoser {
     pub fn get_diagnostics(source: &str) -> Vec<Diagnosis> {
-        match parser::parse(source, "dev", HashMap::new(), HashMap::new()) {
+        match parser::parse(source) {
             Ok(_) => vec![],
             Err(errs) => {
                 return errs
