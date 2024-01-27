@@ -1,10 +1,10 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use span::Spanned;
 use std::collections::HashMap;
 use std::fmt::Display;
 
 /// HTTP Request
-#[derive(Clone, Debug, PartialEq, Default)]
+#[derive(Clone, Debug, PartialEq, Default, Serialize, Deserialize)]
 pub struct Request {
     pub verb: String,
     pub target: String,
@@ -43,7 +43,7 @@ impl Display for Request {
 }
 
 /// HTTP Response
-#[derive(Clone, Debug, PartialEq, Default)]
+#[derive(Clone, Debug, PartialEq, Default, Serialize, Deserialize)]
 pub struct Response {
     pub http_version: String,
     pub status_code: String,
@@ -55,7 +55,7 @@ pub struct Response {
 /// Template reference in a request file
 ///
 /// Syntax: `{{:variable}}`, `{{?prompt}}`, `{{!secret}}`
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum ReferenceType {
     Variable(String),
     Prompt(String),
@@ -81,7 +81,7 @@ impl Display for ReferenceType {
 /// An unresolved request file represents the raw parsed request file without and resolving environmental, prompts or secrets.
 ///
 /// This is before templating has been applied as well.
-#[derive(Clone, Debug, PartialEq, Default)]
+#[derive(Clone, Debug, PartialEq, Default, Serialize, Deserialize)]
 pub struct UnresolvedRequestFile {
     pub config: Option<Spanned<UnresolvedRequestFileConfig>>,
     pub request: Spanned<Request>,
@@ -92,7 +92,7 @@ pub struct UnresolvedRequestFile {
     pub response_refs: Vec<Spanned<ReferenceType>>,
 }
 
-#[derive(Clone, Debug, PartialEq, Default, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Default, Serialize, Deserialize)]
 pub struct UnresolvedRequestFileConfig {
     pub vars: Option<Vec<String>>,
     pub envs: Option<HashMap<String, HashMap<String, String>>>,

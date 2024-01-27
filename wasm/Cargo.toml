@@ -10,6 +10,7 @@ author = "Kylee Tilley <kyleetilley@gmail.com>"
 wasm-bindgen = "0.2.84"
 serde = { version = "1.0.160", features = ["derive"] }
 serde_json = "1.0.96"
+serde-wasm-bindgen = "0.4"
 console_error_panic_hook = "0.1.7"
 parser = { path = "../parser" }
 types = { path = "../types" }
