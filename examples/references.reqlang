@@ -1,6 +1,6 @@
 #!/usr/bin/env reqlang
 ---
-GET http://example.com HTTP/1.1
+GET / HTTP/1.1
 host: {{:base_url}}
 example-header: {{?example_header_key}}
 x-api-key: {{!api_key}}
@@ -13,6 +13,8 @@ vars = ["base_url"]
 secrets = ["api_key"]
 
 [envs]
+[envs.dev]
+base_url = "http://dev.example.com"
 
 [prompts]
 example_header_key = ""

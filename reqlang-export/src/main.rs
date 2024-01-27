@@ -1,4 +1,5 @@
 use clap::builder::TypedValueParser;
+use diagnostics::Diagnoser;
 use std::{collections::HashMap, fmt::Display, fs, process::exit};
 
 use clap::Parser;
@@ -11,12 +12,16 @@ struct Args {
     path: String,
     /// Format to export
     #[arg(
+        short,
         long,
         default_value_t = Format::Http,
         value_parser = clap::builder::PossibleValuesParser::new(["http", "curl", "javascript", "powershell"])
             .map(|s| s.parse::<Format>().unwrap()),
     )]
     format: Format,
+    /// Resolve with an environment
+    #[arg(short, long)]
+    env: String,
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
@@ -57,7 +62,15 @@ fn main() {
 
     let contents = fs::read_to_string(args.path).expect("Should have been able to read the file");
 
-    let reqfile = parser::resolve(&contents, "dev", HashMap::new(), HashMap::new());
+    let diagnostics =
+        Diagnoser::get_diagnostics_with_env(&contents, &args.env, HashMap::new(), HashMap::new());
+
+    if !diagnostics.is_empty() {
+        eprintln!("{diagnostics:#?}");
+        return;
+    }
+
+    let reqfile = parser::resolve(&contents, &args.env, HashMap::new(), HashMap::new());
 
     let reqfile = match reqfile {
         Ok(reqfile) => reqfile,

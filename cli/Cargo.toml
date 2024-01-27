@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 clap = { version = "4.4.16", features = ["derive"] }
 parser = { path = "../parser" }
+diagnostics = { path = "../diagnostics" }
 
 [[bin]]
 name = "reqlang"
