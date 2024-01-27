@@ -27,6 +27,7 @@ build-vsc:
 build-wasm:
     cd wasm && just build && just pack
     cd wasm-example && rm package-lock.json && npm i
+    cd wasm-example && npm run test
 
 clean-git-branches:
     git branch -d $(git branch --merged=main | grep -v main) && git fetch --prune
