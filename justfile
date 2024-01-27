@@ -15,6 +15,7 @@ move-bins:
 
 build:
     cargo build
+    just build-vsc
 
 install: build && move-bins
     echo 'Installed Bins (Debug)'
