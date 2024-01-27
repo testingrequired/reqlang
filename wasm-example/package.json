@@ -9,6 +9,6 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@testingrequired/reqlang-wasm": "file:../wasm/pkg/testingrequired-reqlang-wasm-0.1.0.tgz"
+    "@testingrequired/reqlang-wasm": "file:../wasm/pkg-node/pkg/testingrequired-reqlang-wasm-0.1.0.tgz"
   }
 }
