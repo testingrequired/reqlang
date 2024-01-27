@@ -8,6 +8,8 @@ import {
   Uri,
   workspace,
   window,
+  StatusBarItem,
+  StatusBarAlignment,
 } from "vscode";
 import { ReqlangTaskProvider } from "./reqlangTaskProvider";
 import {
@@ -17,6 +19,7 @@ import {
 } from "vscode-languageclient/node";
 
 let lc: LanguageClient;
+let status: StatusBarItem;
 
 export function activate(context: ExtensionContext) {
   const serverOptions: ServerOptions = {
@@ -40,6 +43,11 @@ export function activate(context: ExtensionContext) {
     serverOptions,
     clientOptions
   );
+
+  status = window.createStatusBarItem(StatusBarAlignment.Left, 0);
+  status.command = "reqlang.setResolverEnv";
+  status.text = "REQLANG";
+  status.show();
 
   const startLanguageServerHandler = () => {
     return lc.start();
@@ -68,6 +76,34 @@ export function activate(context: ExtensionContext) {
     terminal.sendText("; exit");
   };
 
+  const setResolverEnv = async () => {
+    const env = await window.showInputBox({
+      title: "Set the env for request file resolver to use",
+      prompt: "Leave empty to clear the env",
+    });
+
+    if (env.length === 0) {
+      return clearResolverEnv();
+    }
+
+    context.workspaceState.update("env", env);
+
+    updateStatusText();
+  };
+
+  const clearResolverEnv = async () => {
+    context.workspaceState.update("env", undefined);
+
+    updateStatusText();
+  };
+
+  function updateStatusText() {
+    const env = context.workspaceState.get("env");
+    const text = typeof env === "undefined" ? "REQLANG" : `REQLANG(${env})`;
+
+    status.text = text;
+  }
+
   context.subscriptions.push(
     commands.registerCommand(
       "reqlang.startLanguageServer",
@@ -81,6 +117,8 @@ export function activate(context: ExtensionContext) {
       "reqlang.restartLanguageServer",
       restartLanguageServerHandler
     ),
+    commands.registerCommand("reqlang.setResolverEnv", setResolverEnv),
+    commands.registerCommand("reqlang.clearResolverEnv", clearResolverEnv),
     commands.registerCommand("reqlang.install", installHandler),
     commands.registerCommand("reqlang.openMdnDocsHttp", () => {
       env.openExternal(

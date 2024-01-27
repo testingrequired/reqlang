@@ -61,6 +61,14 @@
         "title": "Reqlang: Restart Language Server"
       },
       {
+        "command": "reqlang.setResolverEnv",
+        "title": "Reqlang: Set Resolver Env"
+      },
+      {
+        "command": "reqlang.clearResolverEnv",
+        "title": "Reqlang: Clear Resolver Env"
+      },
+      {
         "command": "reqlang.install",
         "title": "Reqlang: Build & Install Binaries"
       },
