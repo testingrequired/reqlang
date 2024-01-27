@@ -24,7 +24,7 @@ build-vsc:
     cd vsc && just build
 
 build-wasm:
-    cd wasm && just build && just pack
+    cd wasm && just build
     cd wasm-example && rm -rf node_modules && npm i
     cd wasm-example && npm run test
 
