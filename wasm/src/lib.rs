@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use wasm_bindgen::prelude::*;
 
-/// Parse a string in to a request file with unresoling template values......
+/// Parse a string in to a request file with unresoling template values
 ///
 /// # Arguments
 ///
