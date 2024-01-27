@@ -26,7 +26,7 @@ build-vsc:
 
 build-wasm:
     cd wasm && just build && just pack
-    cd wasm-example && rm package-lock.json && npm i
+    cd wasm-example && rm -rf node_modules && rm package-lock.json && npm i
     cd wasm-example && npm run test
 
 clean-git-branches:

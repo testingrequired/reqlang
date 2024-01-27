@@ -6,7 +6,9 @@ pub fn parse(source: &str) -> JsValue {
     console_error_panic_hook::set_once();
 
     let results = parser::parse(source);
-    let r = results.unwrap();
 
-    serde_wasm_bindgen::to_value(&r).unwrap()
+    match results {
+        Ok(results) => serde_wasm_bindgen::to_value(&results).unwrap(),
+        Err(err) => serde_wasm_bindgen::to_value(&err).unwrap(),
+    }
 }

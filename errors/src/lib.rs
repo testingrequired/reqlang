@@ -1,7 +1,8 @@
+use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use types::ReferenceType;
 
-#[derive(Debug, Error, PartialEq)]
+#[derive(Debug, Error, PartialEq, Serialize, Deserialize)]
 pub enum ReqlangError {
     #[error("ParseError: {0}")]
     ParseError(ParseError),
@@ -9,7 +10,7 @@ pub enum ReqlangError {
     ResolverError(ResolverError),
 }
 
-#[derive(Debug, Error, PartialEq)]
+#[derive(Debug, Error, PartialEq, Serialize, Deserialize)]
 pub enum ParseError {
     #[error("Request file is an empty file")]
     EmptyFileError,
@@ -27,7 +28,7 @@ pub enum ParseError {
     UnusedValue(ReferenceType),
 }
 
-#[derive(Debug, Error, PartialEq)]
+#[derive(Debug, Error, PartialEq, Serialize, Deserialize)]
 pub enum ResolverError {
     #[error("Invalid env: {0}")]
     InvalidEnvError(String),
