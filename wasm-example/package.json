@@ -1,13 +1,14 @@
 {
-  "name": "wasm-npm",
+  "name": "@testingrequired/reqlang-wasm-example",
+  "private": true,
   "version": "1.0.0",
   "description": "",
   "module": "index.mjs",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "",
-  "license": "ISC",
+  "author": "Kylee Tilley <kyleetilley@gmail.com>",
+  "license": "MIT",
   "dependencies": {
     "@testingrequired/reqlang-wasm": "file:../wasm/pkg-node/pkg/testingrequired-reqlang-wasm-0.1.0.tgz"
   }

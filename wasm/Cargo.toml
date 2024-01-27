@@ -2,6 +2,7 @@
 name = "reqlang-wasm"
 version = "0.1.0"
 edition = "2021"
+author = "Kylee Tilley <kyleetilley@gmail.com>"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
