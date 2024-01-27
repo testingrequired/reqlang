@@ -18,6 +18,8 @@ vars = ["base_url"]
 secrets = ["api_key"]
 
 [envs]
+[envs.dev]
+base_url = "http://example.com"
 
 [prompts]
 id = ""
@@ -26,4 +28,4 @@ id = ""
 
 `;
 
-console.log(JSON.stringify(reqlang.parse(reqfile), null, 2));
+console.log(JSON.stringify(reqlang.resolve(reqfile, "dev", {}, {}), null, 2));

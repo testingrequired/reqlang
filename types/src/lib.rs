@@ -101,7 +101,7 @@ pub struct UnresolvedRequestFileConfig {
 }
 
 /// A resolved request file with resolved environmental, prompts and secrets values.
-#[derive(Clone, Debug, PartialEq, Default)]
+#[derive(Clone, Debug, PartialEq, Default, Serialize, Deserialize)]
 pub struct ResolvedRequestFile {
     pub request: Spanned<Request>,
     pub response: Option<Spanned<Response>>,
@@ -112,7 +112,7 @@ pub struct ResolvedRequestFile {
     pub response_refs: Vec<Spanned<ReferenceType>>,
 }
 
-#[derive(Clone, Debug, PartialEq, Default)]
+#[derive(Clone, Debug, PartialEq, Default, Serialize, Deserialize)]
 pub struct ResolvedRequestFileConfig {
     pub env: String,
     pub vars: HashMap<String, String>,

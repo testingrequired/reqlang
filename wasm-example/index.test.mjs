@@ -19,6 +19,8 @@ vars = ["base_url"]
 secrets = ["api_key"]
 
 [envs]
+[envs.dev]
+base_url = "http://example.com"
 
 [prompts]
 id = ""
@@ -27,16 +29,16 @@ id = ""
 
 `;
 
-test("parse should return json", () => {
-  expect(reqlang.parse(reqfile)).to.deep.equals({
+test("resolve should return json", () => {
+  expect(reqlang.resolve(reqfile, "dev", {}, {})).to.deep.equals({
     request: [
       {
         verb: "GET",
         target: "/posts/{{?id}}",
         http_version: "1.1",
         headers: new Map([
-          ["x-api-key", "{{!api_key}}"],
           ["host", "{{:base_url}}"],
+          ["x-api-key", "{{!api_key}}"],
         ]),
         body: "",
       },
@@ -67,13 +69,75 @@ test("parse should return json", () => {
     ],
     config: [
       {
-        envs: new Map(),
+        env: "dev",
+        prompts: new Map(),
+        secrets: new Map(),
+        vars: new Map([["base_url", "http://example.com"]]),
+      },
+      { start: 148, end: 261 },
+    ],
+    request_refs: [
+      [
+        {
+          Prompt: "id",
+        },
+        { start: 28, end: 101 },
+      ],
+      [{ Variable: "base_url" }, { start: 28, end: 101 }],
+      [{ Secret: "api_key" }, { start: 28, end: 101 }],
+    ],
+    response_refs: [[{ Prompt: "id" }, { start: 105, end: 144 }]],
+    config_refs: [],
+  });
+});
+
+test("parse should return json", () => {
+  expect(reqlang.parse(reqfile)).to.deep.equals({
+    request: [
+      {
+        verb: "GET",
+        target: "/posts/{{?id}}",
+        http_version: "1.1",
+        headers: new Map([
+          ["host", "{{:base_url}}"],
+          ["x-api-key", "{{!api_key}}"],
+        ]),
+        body: "",
+      },
+      {
+        start: 28,
+        end: 101,
+      },
+    ],
+    response: [
+      {
+        http_version: "1.1",
+        status_code: "200",
+        status_text: "OK",
+        headers: new Map(),
+        body:
+          JSON.stringify(
+            {
+              id: "{{?id}}",
+            },
+            null,
+            2
+          ) + "\n",
+      },
+      {
+        start: 105,
+        end: 144,
+      },
+    ],
+    config: [
+      {
+        envs: new Map([["dev", new Map([["base_url", "http://example.com"]])]]),
         prompts: new Map([["id", ""]]),
         vars: undefined,
         secrets: ["api_key"],
         vars: ["base_url"],
       },
-      { start: 148, end: 218 },
+      { start: 148, end: 261 },
     ],
     request_refs: [
       [
