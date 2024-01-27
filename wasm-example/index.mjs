@@ -28,4 +28,15 @@ id = ""
 
 `;
 
-console.log(JSON.stringify(reqlang.resolve(reqfile, "dev", {}, {}), null, 2));
+console.log(
+  JSON.stringify(
+    reqlang.resolve(
+      reqfile,
+      "dev",
+      { id: "id value" },
+      { api_key: "api key value" }
+    ),
+    null,
+    2
+  )
+);
