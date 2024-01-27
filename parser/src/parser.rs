@@ -27,6 +27,10 @@ impl RequestFileParser {
             let request_refs = self.extract_references(&reqfile.request);
             let response_refs =
                 self.extract_references(&reqfile.response.clone().unwrap_or_default());
+            let mut refs: Vec<(ReferenceType, std::ops::Range<usize>)> = vec![];
+
+            refs.extend(request_refs);
+            refs.extend(response_refs);
 
             let request = match self.parse_request(&reqfile.request) {
                 Ok(request) => Some(request),
@@ -54,106 +58,10 @@ impl RequestFileParser {
                 None => None,
             };
 
-            for (refs, span) in request_refs.iter() {
-                match refs {
+            for (ref_type, span) in refs.iter() {
+                match ref_type {
                     ReferenceType::Variable(name) => {
                         if let Some((config, _)) = &config {
-                            if let Some(vars) = &config.vars {
-                                if !vars.contains(name) {
-                                    parse_errors.push((
-                                        ReqlangError::ParseError(
-                                            ParseError::UndefinedReferenceError(
-                                                ReferenceType::Variable(name.to_string()),
-                                            ),
-                                        ),
-                                        span.clone(),
-                                    ));
-                                }
-                            } else {
-                                parse_errors.push((
-                                    ReqlangError::ParseError(ParseError::UndefinedReferenceError(
-                                        ReferenceType::Variable(name.to_string()),
-                                    )),
-                                    span.clone(),
-                                ));
-                            }
-                        } else {
-                            parse_errors.push((
-                                ReqlangError::ParseError(ParseError::UndefinedReferenceError(
-                                    ReferenceType::Variable(name.to_string()),
-                                )),
-                                span.clone(),
-                            ));
-                        }
-                    }
-                    ReferenceType::Prompt(name) => {
-                        if let Some((config, _)) = &config {
-                            if let Some(prompts) = &config.prompts {
-                                if !prompts.contains_key(name) {
-                                    parse_errors.push((
-                                        ReqlangError::ParseError(
-                                            ParseError::UndefinedReferenceError(
-                                                ReferenceType::Prompt(name.to_string()),
-                                            ),
-                                        ),
-                                        span.clone(),
-                                    ));
-                                }
-                            } else {
-                                parse_errors.push((
-                                    ReqlangError::ParseError(ParseError::UndefinedReferenceError(
-                                        ReferenceType::Prompt(name.to_string()),
-                                    )),
-                                    span.clone(),
-                                ));
-                            }
-                        } else {
-                            parse_errors.push((
-                                ReqlangError::ParseError(ParseError::UndefinedReferenceError(
-                                    ReferenceType::Prompt(name.to_string()),
-                                )),
-                                span.clone(),
-                            ));
-                        }
-                    }
-                    ReferenceType::Secret(name) => {
-                        if let Some((config, _)) = &config {
-                            if let Some(secrets) = &config.secrets {
-                                if !secrets.contains(name) {
-                                    parse_errors.push((
-                                        ReqlangError::ParseError(
-                                            ParseError::UndefinedReferenceError(
-                                                ReferenceType::Secret(name.to_string()),
-                                            ),
-                                        ),
-                                        span.clone(),
-                                    ));
-                                }
-                            } else {
-                                parse_errors.push((
-                                    ReqlangError::ParseError(ParseError::UndefinedReferenceError(
-                                        ReferenceType::Secret(name.to_string()),
-                                    )),
-                                    span.clone(),
-                                ));
-                            }
-                        } else {
-                            parse_errors.push((
-                                ReqlangError::ParseError(ParseError::UndefinedReferenceError(
-                                    ReferenceType::Secret(name.to_string()),
-                                )),
-                                span.clone(),
-                            ));
-                        }
-                    }
-                    ReferenceType::Unknown(_name) => {}
-                }
-            }
-
-            for (refs, span) in response_refs.iter() {
-                match refs {
-                    ReferenceType::Variable(name) => {
-                        if let Some((ref config, _)) = &config {
                             if let Some(vars) = &config.vars {
                                 if !vars.contains(name) {
                                     parse_errors.push((
@@ -247,22 +155,7 @@ impl RequestFileParser {
             }
 
             if let Some((ref config, ref span)) = config {
-                let request_ref_names: Vec<String> = request_refs
-                    .clone()
-                    .into_iter()
-                    .map(|(x, _)| {
-                        let ref_name = match x {
-                            ReferenceType::Variable(name) => name,
-                            ReferenceType::Prompt(name) => name,
-                            ReferenceType::Secret(name) => name,
-                            ReferenceType::Unknown(name) => name,
-                        };
-
-                        ref_name
-                    })
-                    .collect();
-
-                let response_ref_names: Vec<String> = response_refs
+                let ref_names: Vec<String> = refs
                     .clone()
                     .into_iter()
                     .map(|(x, _)| {
@@ -279,7 +172,7 @@ impl RequestFileParser {
 
                 if let Some(vars) = &config.vars {
                     for var in vars {
-                        if !request_ref_names.contains(&var) && !response_ref_names.contains(&var) {
+                        if !ref_names.contains(&var) {
                             parse_errors.push((
                                 ReqlangError::ParseError(ParseError::UnusedValue(
                                     ReferenceType::Variable(var.clone()),
@@ -294,7 +187,7 @@ impl RequestFileParser {
                     let keys = prompts.keys();
 
                     for key in keys {
-                        if !request_ref_names.contains(&key) && !response_ref_names.contains(&key) {
+                        if !ref_names.contains(&key) {
                             parse_errors.push((
                                 ReqlangError::ParseError(ParseError::UnusedValue(
                                     ReferenceType::Prompt(key.clone()),
@@ -307,9 +200,7 @@ impl RequestFileParser {
 
                 if let Some(secrets) = &config.secrets {
                     for secret in secrets {
-                        if !request_ref_names.contains(&secret)
-                            && !response_ref_names.contains(&secret)
-                        {
+                        if !ref_names.contains(&secret) {
                             parse_errors.push((
                                 ReqlangError::ParseError(ParseError::UnusedValue(
                                     ReferenceType::Secret(secret.clone()),
@@ -329,9 +220,7 @@ impl RequestFileParser {
                 request: request.unwrap(),
                 response,
                 config,
-                request_refs,
-                response_refs,
-                config_refs: vec![],
+                refs,
             })
         })
     }
@@ -648,9 +537,7 @@ mod test {
                 4..35
             ),
             response: None,
-            request_refs: vec![],
-            response_refs: vec![],
-            config_refs: vec![],
+            refs: vec![],
         })
     );
 
@@ -757,9 +644,7 @@ mod test {
                 4..36
             ),
             response: None,
-            request_refs: vec![],
-            response_refs: vec![],
-            config_refs: vec![],
+            refs: vec![]
         })
     );
 
@@ -779,9 +664,7 @@ mod test {
                 4..37
             ),
             response: None,
-            request_refs: vec![],
-            response_refs: vec![],
-            config_refs: vec![],
+            refs: vec![],
         })
     );
 
@@ -925,16 +808,15 @@ mod test {
                 },
                 154..353
             )),
-            request_refs: vec![
+            refs: vec![
                 (ReferenceType::Variable("base_url".to_string()), 4..100),
                 (ReferenceType::Prompt("test_value".to_string()), 4..100),
-                (ReferenceType::Secret("api_key".to_string()), 4..100)
+                (ReferenceType::Secret("api_key".to_string()), 4..100),
+                (
+                    ReferenceType::Prompt("expected_response_body".to_string()),
+                    104..150
+                )
             ],
-            response_refs: vec![(
-                ReferenceType::Prompt("expected_response_body".to_string()),
-                104..150
-            )],
-            config_refs: vec![],
         })
     );
 }

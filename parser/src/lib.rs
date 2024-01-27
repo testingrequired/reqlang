@@ -132,16 +132,15 @@ mod parserlib {
                     },
                     154..353
                 )),
-                request_refs: vec![
+                refs: vec![
                     (ReferenceType::Variable("base_url".to_string()), 4..100),
                     (ReferenceType::Prompt("test_value".to_string()), 4..100),
-                    (ReferenceType::Secret("api_key".to_string()), 4..100)
+                    (ReferenceType::Secret("api_key".to_string()), 4..100),
+                    (
+                        ReferenceType::Prompt("expected_response_body".to_string()),
+                        104..150
+                    )
                 ],
-                response_refs: vec![(
-                    ReferenceType::Prompt("expected_response_body".to_string()),
-                    104..150
-                )],
-                config_refs: vec![],
             }),
             reqfile
         );
@@ -241,16 +240,15 @@ mod parserlib {
                     },
                     154..353
                 ),
-                request_refs: vec![
+                refs: vec![
                     (ReferenceType::Variable("base_url".to_string()), 4..100),
                     (ReferenceType::Prompt("test_value".to_string()), 4..100),
-                    (ReferenceType::Secret("api_key".to_string()), 4..100)
+                    (ReferenceType::Secret("api_key".to_string()), 4..100),
+                    (
+                        ReferenceType::Prompt("expected_response_body".to_string()),
+                        104..150
+                    )
                 ],
-                response_refs: vec![(
-                    ReferenceType::Prompt("expected_response_body".to_string()),
-                    104..150
-                )],
-                config_refs: vec![],
             }),
             resolved_reqfile
         );

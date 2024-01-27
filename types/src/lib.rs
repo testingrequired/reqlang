@@ -87,9 +87,7 @@ pub struct UnresolvedRequestFile {
     pub request: Spanned<Request>,
     pub response: Option<Spanned<Response>>,
 
-    pub config_refs: Vec<Spanned<ReferenceType>>,
-    pub request_refs: Vec<Spanned<ReferenceType>>,
-    pub response_refs: Vec<Spanned<ReferenceType>>,
+    pub refs: Vec<Spanned<ReferenceType>>,
 }
 
 #[derive(Clone, Debug, PartialEq, Default, Serialize, Deserialize)]
@@ -107,9 +105,7 @@ pub struct ResolvedRequestFile {
     pub response: Option<Spanned<Response>>,
     pub config: Spanned<ResolvedRequestFileConfig>,
 
-    pub config_refs: Vec<Spanned<ReferenceType>>,
-    pub request_refs: Vec<Spanned<ReferenceType>>,
-    pub response_refs: Vec<Spanned<ReferenceType>>,
+    pub refs: Vec<Spanned<ReferenceType>>,
 }
 
 #[derive(Clone, Debug, PartialEq, Default, Serialize, Deserialize)]

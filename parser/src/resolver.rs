@@ -92,9 +92,7 @@ impl RequestFileResolver {
             ),
             request: reqfile.request.clone(),
             response: reqfile.response.clone(),
-            request_refs: reqfile.request_refs.clone(),
-            response_refs: reqfile.response_refs.clone(),
-            config_refs: reqfile.config_refs.clone(),
+            refs: reqfile.refs.clone(),
         })
     }
 
@@ -291,16 +289,15 @@ mod test {
                 },
                 154..353
             ),
-            request_refs: vec![
+            refs: vec![
                 (ReferenceType::Variable("base_url".to_string()), 4..100),
                 (ReferenceType::Prompt("test_value".to_string()), 4..100),
-                (ReferenceType::Secret("api_key".to_string()), 4..100)
+                (ReferenceType::Secret("api_key".to_string()), 4..100),
+                (
+                    ReferenceType::Prompt("expected_response_body".to_string()),
+                    104..150
+                )
             ],
-            response_refs: vec![(
-                ReferenceType::Prompt("expected_response_body".to_string()),
-                104..150
-            )],
-            config_refs: vec![],
         })
     );
 
@@ -389,16 +386,15 @@ mod test {
                 },
                 154..353
             ),
-            request_refs: vec![
+            refs: vec![
                 (ReferenceType::Variable("base_url".to_string()), 4..100),
                 (ReferenceType::Prompt("test_value".to_string()), 4..100),
-                (ReferenceType::Secret("api_key".to_string()), 4..100)
+                (ReferenceType::Secret("api_key".to_string()), 4..100),
+                (
+                    ReferenceType::Prompt("expected_response_body".to_string()),
+                    104..150
+                )
             ],
-            response_refs: vec![(
-                ReferenceType::Prompt("expected_response_body".to_string()),
-                104..150
-            )],
-            config_refs: vec![],
         })
     );
 

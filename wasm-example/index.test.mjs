@@ -87,7 +87,7 @@ test("resolve should return json", () => {
       },
       { start: 148, end: 261 },
     ],
-    request_refs: [
+    refs: [
       [
         {
           Prompt: "id",
@@ -96,9 +96,8 @@ test("resolve should return json", () => {
       ],
       [{ Variable: "base_url" }, { start: 28, end: 101 }],
       [{ Secret: "api_key" }, { start: 28, end: 101 }],
+      [{ Prompt: "id" }, { start: 105, end: 144 }],
     ],
-    response_refs: [[{ Prompt: "id" }, { start: 105, end: 144 }]],
-    config_refs: [],
   });
 });
 
@@ -150,7 +149,7 @@ test("parse should return json", () => {
       },
       { start: 148, end: 261 },
     ],
-    request_refs: [
+    refs: [
       [
         {
           Prompt: "id",
@@ -159,8 +158,7 @@ test("parse should return json", () => {
       ],
       [{ Variable: "base_url" }, { start: 28, end: 101 }],
       [{ Secret: "api_key" }, { start: 28, end: 101 }],
+      [{ Prompt: "id" }, { start: 105, end: 144 }],
     ],
-    response_refs: [[{ Prompt: "id" }, { start: 105, end: 144 }]],
-    config_refs: [],
   });
 });
