@@ -184,7 +184,13 @@ mod parserlib {
         let resolved_reqfile = resolve(
             &reqfile,
             "dev",
-            HashMap::from([("test_value".to_string(), "test_value_value".to_string())]),
+            HashMap::from([
+                ("test_value".to_string(), "test_value_value".to_string()),
+                (
+                    "expected_response_body".to_string(),
+                    "expected_response_body_value".to_string(),
+                ),
+            ]),
             HashMap::from([("api_key".to_string(), "api_key_value".to_string())]),
         );
 
@@ -221,10 +227,13 @@ mod parserlib {
                             "base_url".to_string(),
                             "https://dev.example.com".to_string()
                         )]),
-                        prompts: HashMap::from([(
-                            "test_value".to_string(),
-                            "test_value_value".to_string()
-                        )]),
+                        prompts: HashMap::from([
+                            ("test_value".to_string(), "test_value_value".to_string()),
+                            (
+                                "expected_response_body".to_string(),
+                                "expected_response_body_value".to_string()
+                            )
+                        ]),
                         secrets: HashMap::from([(
                             "api_key".to_string(),
                             "api_key_value".to_string()

@@ -32,6 +32,10 @@ pub enum ParseError {
 pub enum ResolverError {
     #[error("Invalid env: {0}")]
     InvalidEnvError(String),
+    #[error("Prompt required but not passed: {0}")]
+    PromptValueNotPassed(String),
+    #[error("Secret required but not passed: {0}")]
+    SecretValueNotPassed(String),
 }
 
 macro_rules! impl_from_error {

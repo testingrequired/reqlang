@@ -42,6 +42,42 @@ impl RequestFileResolver {
                     )]);
                 }
             }
+
+            let mut missing_inputs = vec![];
+
+            if let Some(config_prompts) = &config.prompts {
+                let keys = config_prompts.keys();
+
+                for key in keys {
+                    if !prompts.contains_key(key) {
+                        missing_inputs.push((
+                            ReqlangError::ResolverError(
+                                errors::ResolverError::PromptValueNotPassed(key.to_string()),
+                            ),
+                            NO_SPAN,
+                        ));
+                    }
+                }
+            }
+
+            if let Some(config_secrets) = &config.secrets {
+                for config_secret in config_secrets {
+                    if !secrets.contains_key(config_secret) {
+                        missing_inputs.push((
+                            ReqlangError::ResolverError(
+                                errors::ResolverError::SecretValueNotPassed(
+                                    config_secret.to_string(),
+                                ),
+                            ),
+                            NO_SPAN,
+                        ));
+                    }
+                }
+            }
+
+            if !missing_inputs.is_empty() {
+                return Err(missing_inputs);
+            }
         }
 
         Ok(ResolvedRequestFile {
@@ -88,6 +124,7 @@ mod test {
     use std::collections::HashMap;
 
     use errors::ReqlangError;
+    use span::NO_SPAN;
     use types::{ReferenceType, Request, ResolvedRequestFile, ResolvedRequestFileConfig, Response};
 
     use crate::{parser::RequestFileParser, resolver::RequestFileResolver};
@@ -113,6 +150,61 @@ mod test {
             }
         };
     }
+
+    resolver_test!(
+        prompt_value_not_passed,
+        concat!(
+            "---\n",
+            "POST / HTTP/1.1\n",
+            "host: {{?base_url}}\n",
+            "\n",
+            "---\n",
+            "---\n",
+            "[prompts]\n",
+            "base_url = \"\"\n",
+            "\n",
+            "[envs]\n",
+            "[envs.dev]\n",
+            "\n",
+            "---\n"
+        ),
+        "dev",
+        HashMap::new(),
+        HashMap::new(),
+        Err(vec![(
+            ReqlangError::ResolverError(errors::ResolverError::PromptValueNotPassed(
+                "base_url".to_string()
+            )),
+            NO_SPAN
+        )])
+    );
+
+    resolver_test!(
+        secret_value_not_passed,
+        concat!(
+            "---\n",
+            "POST / HTTP/1.1\n",
+            "host: {{!base_url}}\n",
+            "\n",
+            "---\n",
+            "---\n",
+            "secrets = [\"base_url\"]\n",
+            "\n",
+            "[envs]\n",
+            "[envs.dev]\n",
+            "\n",
+            "---\n"
+        ),
+        "dev",
+        HashMap::new(),
+        HashMap::new(),
+        Err(vec![(
+            ReqlangError::ResolverError(errors::ResolverError::SecretValueNotPassed(
+                "base_url".to_string()
+            )),
+            NO_SPAN
+        )])
+    );
 
     resolver_test!(
         full_request_file_dev,
@@ -148,7 +240,13 @@ mod test {
             "---\n"
         ),
         "dev",
-        HashMap::from([("test_value".to_string(), "test_value_value".to_string())]),
+        HashMap::from([
+            ("test_value".to_string(), "test_value_value".to_string()),
+            (
+                "expected_response_body".to_string(),
+                "expected_response_body_value".to_string()
+            )
+        ]),
         HashMap::from([("api_key".to_string(), "api_key_value".to_string())]),
         Ok(ResolvedRequestFile {
             request: (
@@ -182,10 +280,13 @@ mod test {
                         "base_url".to_string(),
                         "https://dev.example.com".to_string()
                     )]),
-                    prompts: HashMap::from([(
-                        "test_value".to_string(),
-                        "test_value_value".to_string()
-                    )]),
+                    prompts: HashMap::from([
+                        ("test_value".to_string(), "test_value_value".to_string()),
+                        (
+                            "expected_response_body".to_string(),
+                            "expected_response_body_value".to_string()
+                        )
+                    ]),
                     secrets: HashMap::from([("api_key".to_string(), "api_key_value".to_string())])
                 },
                 154..353
@@ -237,7 +338,13 @@ mod test {
             "---\n"
         ),
         "prod",
-        HashMap::from([("test_value".to_string(), "test_value_value".to_string())]),
+        HashMap::from([
+            ("test_value".to_string(), "test_value_value".to_string()),
+            (
+                "expected_response_body".to_string(),
+                "expected_response_body_value".to_string()
+            )
+        ]),
         HashMap::from([("api_key".to_string(), "api_key_value".to_string())]),
         Ok(ResolvedRequestFile {
             request: (
@@ -271,10 +378,13 @@ mod test {
                         "base_url".to_string(),
                         "https://example.com".to_string()
                     )]),
-                    prompts: HashMap::from([(
-                        "test_value".to_string(),
-                        "test_value_value".to_string()
-                    )]),
+                    prompts: HashMap::from([
+                        ("test_value".to_string(), "test_value_value".to_string()),
+                        (
+                            "expected_response_body".to_string(),
+                            "expected_response_body_value".to_string()
+                        )
+                    ]),
                     secrets: HashMap::from([("api_key".to_string(), "api_key_value".to_string())])
                 },
                 154..353
