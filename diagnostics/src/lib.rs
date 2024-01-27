@@ -1,5 +1,5 @@
 use codespan_reporting::diagnostic::{Diagnostic, Label};
-use errors::{ParseError, ReqlangError};
+use errors::{ParseError, ReqlangError, ResolverError};
 use serde::{Deserialize, Serialize};
 use span::Span;
 
@@ -106,12 +106,13 @@ macro_rules! impl_as_dianostic {
     )+};
 }
 
-impl_as_dianostic!(ParseError);
+impl_as_dianostic!(ParseError, ResolverError);
 
 impl AsDiagnostic for ReqlangError {
     fn as_diagnostic(&self, span: &Span) -> Diagnostic<()> {
         match self {
             ReqlangError::ParseError(e) => e.as_diagnostic(span),
+            ReqlangError::ResolverError(e) => e.as_diagnostic(span),
         }
     }
 }

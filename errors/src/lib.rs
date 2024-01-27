@@ -5,6 +5,8 @@ use types::ReferenceType;
 pub enum ReqlangError {
     #[error("ParseError: {0}")]
     ParseError(ParseError),
+    #[error("ResolverError: {0}")]
+    ResolverError(ResolverError),
 }
 
 #[derive(Debug, Error, PartialEq)]
@@ -25,6 +27,12 @@ pub enum ParseError {
     UnusedValue(ReferenceType),
 }
 
+#[derive(Debug, Error, PartialEq)]
+pub enum ResolverError {
+    #[error("Invalid env: {0}")]
+    InvalidEnvError(String),
+}
+
 macro_rules! impl_from_error {
     ($($error:tt),+) => {$(
         impl From<$error> for ReqlangError {
@@ -35,4 +43,4 @@ macro_rules! impl_from_error {
     )+};
 }
 
-impl_from_error!(ParseError);
+impl_from_error!(ParseError, ResolverError);
