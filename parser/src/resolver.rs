@@ -78,9 +78,31 @@ mod test {
 
     use crate::{parser::RequestFileParser, resolver::RequestFileResolver};
 
-    #[test]
-    fn full_request_file() {
-        let reqfile = concat!(
+    macro_rules! resolver_test {
+        ($test_name:ident, $reqfile:expr, $env:expr, $prompts:expr, $secrets:expr, $result:expr) => {
+            #[test]
+            fn $test_name() {
+                let unresolved_reqfile = RequestFileParser::parse_string(&$reqfile);
+
+                assert_eq!(unresolved_reqfile.is_ok(), true);
+
+                let unresolved_reqfile = unresolved_reqfile.unwrap();
+
+                let resolved_reqfile = RequestFileResolver::resolve_request_file(
+                    &unresolved_reqfile,
+                    $env,
+                    &$prompts,
+                    &$secrets,
+                );
+
+                assert_eq!(resolved_reqfile, $result);
+            }
+        };
+    }
+
+    resolver_test!(
+        full_request_file,
+        concat!(
             "---\n",
             "POST / HTTP/1.1\n",
             "host: {{:base_url}}\n",
@@ -110,77 +132,60 @@ mod test {
             "expected_response_body = \"\"\n",
             "\n",
             "---\n"
-        );
-
-        let unresolved_reqfile = RequestFileParser::parse_string(&reqfile);
-
-        assert_eq!(unresolved_reqfile.is_ok(), true);
-
-        let unresolved_reqfile = unresolved_reqfile.unwrap();
-
-        let resolved_reqfile = RequestFileResolver::resolve_request_file(
-            &unresolved_reqfile,
-            "dev",
-            &HashMap::from([("test_value".to_string(), "test_value_value".to_string())]),
-            &HashMap::from([("api_key".to_string(), "api_key_value".to_string())]),
-        );
-
-        assert_eq!(
-            resolved_reqfile,
-            Ok(ResolvedRequestFile {
-                request: (
-                    Request {
-                        verb: "POST".to_string(),
-                        target: "/".to_string(),
-                        http_version: "1.1".to_string(),
-                        headers: HashMap::from([
-                            ("host".to_string(), "{{:base_url}}".to_string()),
-                            ("x-test".to_string(), "{{?test_value}}".to_string()),
-                            ("x-api-key".to_string(), "{{!api_key}}".to_string()),
-                        ]),
-                        body: Some("[1, 2, 3]\n\n".to_string())
-                    },
-                    4..100
-                ),
-                response: Some((
-                    Response {
-                        http_version: "1.1".to_string(),
-                        status_code: "200".to_string(),
-                        status_text: "OK".to_string(),
-                        headers: HashMap::new(),
-                        body: Some("{{?expected_response_body}}\n\n".to_string())
-                    },
-                    104..150
-                )),
-                config: (
-                    ResolvedRequestFileConfig {
-                        env: "dev".to_string(),
-                        vars: HashMap::from([(
-                            "base_url".to_string(),
-                            "https://dev.example.com".to_string()
-                        )]),
-                        prompts: HashMap::from([(
-                            "test_value".to_string(),
-                            "test_value_value".to_string()
-                        )]),
-                        secrets: HashMap::from([(
-                            "api_key".to_string(),
-                            "api_key_value".to_string()
-                        )])
-                    },
-                    154..353
-                ),
-                request_refs: vec![
-                    (ReferenceType::Variable("base_url".to_string()), 4..100),
-                    (ReferenceType::Prompt("test_value".to_string()), 4..100),
-                    (ReferenceType::Secret("api_key".to_string()), 4..100)
-                ],
-                response_refs: vec![(
-                    ReferenceType::Prompt("expected_response_body".to_string()),
-                    104..150
-                )],
-                config_refs: vec![],
-            })
-        );
-    }
+        ),
+        "dev",
+        HashMap::from([("test_value".to_string(), "test_value_value".to_string())]),
+        HashMap::from([("api_key".to_string(), "api_key_value".to_string())]),
+        Ok(ResolvedRequestFile {
+            request: (
+                Request {
+                    verb: "POST".to_string(),
+                    target: "/".to_string(),
+                    http_version: "1.1".to_string(),
+                    headers: HashMap::from([
+                        ("host".to_string(), "{{:base_url}}".to_string()),
+                        ("x-test".to_string(), "{{?test_value}}".to_string()),
+                        ("x-api-key".to_string(), "{{!api_key}}".to_string()),
+                    ]),
+                    body: Some("[1, 2, 3]\n\n".to_string())
+                },
+                4..100
+            ),
+            response: Some((
+                Response {
+                    http_version: "1.1".to_string(),
+                    status_code: "200".to_string(),
+                    status_text: "OK".to_string(),
+                    headers: HashMap::new(),
+                    body: Some("{{?expected_response_body}}\n\n".to_string())
+                },
+                104..150
+            )),
+            config: (
+                ResolvedRequestFileConfig {
+                    env: "dev".to_string(),
+                    vars: HashMap::from([(
+                        "base_url".to_string(),
+                        "https://dev.example.com".to_string()
+                    )]),
+                    prompts: HashMap::from([(
+                        "test_value".to_string(),
+                        "test_value_value".to_string()
+                    )]),
+                    secrets: HashMap::from([("api_key".to_string(), "api_key_value".to_string())])
+                },
+                154..353
+            ),
+            request_refs: vec![
+                (ReferenceType::Variable("base_url".to_string()), 4..100),
+                (ReferenceType::Prompt("test_value".to_string()), 4..100),
+                (ReferenceType::Secret("api_key".to_string()), 4..100)
+            ],
+            response_refs: vec![(
+                ReferenceType::Prompt("expected_response_body".to_string()),
+                104..150
+            )],
+            config_refs: vec![],
+        })
+    );
 }
