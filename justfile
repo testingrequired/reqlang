@@ -14,14 +14,19 @@ move-bins:
     cp target/debug/reqlang-lsp.exe ~/.cargo/bin/reqlang-lsp.exe
 
 build:
-    cargo build
+    cargo build && just build-wasm
     just build-vsc
+
 
 install: build && move-bins
     echo 'Installed Bins (Debug)'
 
 build-vsc:
     cd vsc && just build
+
+build-wasm:
+    cd wasm && just build && just pack
+    cd wasm-examples && rm package-lock.json && npm i
 
 clean-git-branches:
     git branch -d $(git branch --merged=main | grep -v main) && git fetch --prune

@@ -1,0 +1,8 @@
+default:
+  @just --list
+
+build:
+  rm -rf pkg && wasm-pack build --out-dir=pkg/ --release --scope testingrequired --target nodejs
+
+pack:
+  wasm-pack pack

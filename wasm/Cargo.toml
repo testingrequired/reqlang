@@ -1,0 +1,18 @@
+[package]
+name = "reqlang-wasm"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+wasm-bindgen = "0.2.84"
+serde = { version = "1.0.160", features = ["derive"] }
+serde_json = "1.0.96"
+console_error_panic_hook = "0.1.7"
+parser = { path = "../parser" }
+types = { path = "../types" }
+diagnostics = { path = "../diagnostics" }
+
+[lib]
+crate-type = ["cdylib"]
