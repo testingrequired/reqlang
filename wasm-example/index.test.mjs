@@ -2,14 +2,29 @@ import { expect, test } from "vitest";
 import * as reqlang from "@testingrequired/reqlang-wasm";
 
 const reqfile = `
+#!/usr/bin/env reqlang
 ---
-GET / HTTP/1.1
+GET /posts/{{?id}} HTTP/1.1
 host: {{:base_url}}
+x-api-key: {{!api_key}}
 
 ---
+HTTP/1.1 200 OK
+
+{
+  "id": "{{?id}}"
+}
 ---
 vars = ["base_url"]
+secrets = ["api_key"]
+
+[envs]
+
+[prompts]
+id = ""
+
 ---
+
 `;
 
 test("parse should return json", () => {
@@ -17,29 +32,60 @@ test("parse should return json", () => {
     request: [
       {
         verb: "GET",
-        target: "/",
+        target: "/posts/{{?id}}",
         http_version: "1.1",
-        headers: new Map([["host", "{{:base_url}}"]]),
+        headers: new Map([
+          ["x-api-key", "{{!api_key}}"],
+          ["host", "{{:base_url}}"],
+        ]),
         body: "",
       },
       {
-        start: 5,
-        end: 41,
+        start: 28,
+        end: 101,
       },
     ],
-    response: undefined,
+    response: [
+      {
+        http_version: "1.1",
+        status_code: "200",
+        status_text: "OK",
+        headers: new Map(),
+        body:
+          JSON.stringify(
+            {
+              id: "{{?id}}",
+            },
+            null,
+            2
+          ) + "\n",
+      },
+      {
+        start: 105,
+        end: 144,
+      },
+    ],
     config: [
       {
-        envs: undefined,
-        prompts: undefined,
+        envs: new Map(),
+        prompts: new Map([["id", ""]]),
         vars: undefined,
-        secrets: undefined,
+        secrets: ["api_key"],
         vars: ["base_url"],
       },
-      { start: 49, end: 69 },
+      { start: 148, end: 218 },
     ],
-    request_refs: [[{ Variable: "base_url" }, { start: 5, end: 41 }]],
-    response_refs: [],
+    request_refs: [
+      [
+        {
+          Prompt: "id",
+        },
+        { start: 28, end: 101 },
+      ],
+      [{ Variable: "base_url" }, { start: 28, end: 101 }],
+      [{ Secret: "api_key" }, { start: 28, end: 101 }],
+    ],
+    response_refs: [[{ Prompt: "id" }, { start: 105, end: 144 }]],
     config_refs: [],
   });
 });
