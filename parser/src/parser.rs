@@ -246,6 +246,81 @@ impl RequestFileParser {
                 }
             }
 
+            if let Some((ref config, ref span)) = config {
+                let request_ref_names: Vec<String> = request_refs
+                    .clone()
+                    .into_iter()
+                    .map(|(x, _)| {
+                        let ref_name = match x {
+                            ReferenceType::Variable(name) => name,
+                            ReferenceType::Prompt(name) => name,
+                            ReferenceType::Secret(name) => name,
+                            ReferenceType::Unknown(name) => name,
+                        };
+
+                        ref_name
+                    })
+                    .collect();
+
+                let response_ref_names: Vec<String> = response_refs
+                    .clone()
+                    .into_iter()
+                    .map(|(x, _)| {
+                        let ref_name = match x {
+                            ReferenceType::Variable(name) => name,
+                            ReferenceType::Prompt(name) => name,
+                            ReferenceType::Secret(name) => name,
+                            ReferenceType::Unknown(name) => name,
+                        };
+
+                        ref_name
+                    })
+                    .collect();
+
+                if let Some(vars) = &config.vars {
+                    for var in vars {
+                        if !request_ref_names.contains(&var) && !response_ref_names.contains(&var) {
+                            parse_errors.push((
+                                ReqlangError::ParseError(ParseError::UnusedValue(
+                                    ReferenceType::Variable(var.clone()),
+                                )),
+                                span.clone(),
+                            ))
+                        }
+                    }
+                }
+
+                if let Some(prompts) = &config.prompts {
+                    let keys = prompts.keys();
+
+                    for key in keys {
+                        if !request_ref_names.contains(&key) && !response_ref_names.contains(&key) {
+                            parse_errors.push((
+                                ReqlangError::ParseError(ParseError::UnusedValue(
+                                    ReferenceType::Prompt(key.clone()),
+                                )),
+                                span.clone(),
+                            ))
+                        }
+                    }
+                }
+
+                if let Some(secrets) = &config.secrets {
+                    for secret in secrets {
+                        if !request_ref_names.contains(&secret)
+                            && !response_ref_names.contains(&secret)
+                        {
+                            parse_errors.push((
+                                ReqlangError::ParseError(ParseError::UnusedValue(
+                                    ReferenceType::Secret(secret.clone()),
+                                )),
+                                span.clone(),
+                            ))
+                        }
+                    }
+                }
+            }
+
             if parse_errors.len() > 0 {
                 return Err(parse_errors);
             }
@@ -708,6 +783,61 @@ mod test {
             response_refs: vec![],
             config_refs: vec![],
         })
+    );
+
+    parser_test!(
+        unused_variable,
+        concat!(
+            "---\n",
+            "GET http://example.com HTTP/1.1\n\n",
+            "---\n",
+            "---\n",
+            "vars = [\"base_url\"]\n",
+            "---\n"
+        ),
+        Err(vec![(
+            errors::ReqlangError::ParseError(ParseError::UnusedValue(ReferenceType::Variable(
+                "base_url".to_string()
+            ))),
+            45..65
+        )])
+    );
+
+    parser_test!(
+        unused_prompt,
+        concat!(
+            "---\n",
+            "GET http://example.com HTTP/1.1\n\n",
+            "---\n",
+            "---\n",
+            "[prompts]\n",
+            "base_url = \"\"\n",
+            "---\n"
+        ),
+        Err(vec![(
+            errors::ReqlangError::ParseError(ParseError::UnusedValue(ReferenceType::Prompt(
+                "base_url".to_string()
+            ))),
+            45..69
+        )])
+    );
+
+    parser_test!(
+        unused_secret,
+        concat!(
+            "---\n",
+            "GET http://example.com HTTP/1.1\n\n",
+            "---\n",
+            "---\n",
+            "secrets = [\"base_url\"]\n",
+            "---\n"
+        ),
+        Err(vec![(
+            errors::ReqlangError::ParseError(ParseError::UnusedValue(ReferenceType::Secret(
+                "base_url".to_string()
+            ))),
+            45..68
+        )])
     );
 
     parser_test!(
