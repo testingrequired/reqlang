@@ -30,7 +30,18 @@ id = ""
 `;
 
 test("resolve should return json", () => {
-  expect(reqlang.resolve(reqfile, "dev", {}, {})).to.deep.equals({
+  expect(
+    reqlang.resolve(
+      reqfile,
+      "dev",
+      {
+        id: "test id value",
+      },
+      {
+        api_key: "api key value",
+      }
+    )
+  ).to.deep.equals({
     request: [
       {
         verb: "GET",
@@ -70,8 +81,8 @@ test("resolve should return json", () => {
     config: [
       {
         env: "dev",
-        prompts: new Map(),
-        secrets: new Map(),
+        prompts: new Map([["id", "test id value"]]),
+        secrets: new Map([["api_key", "api key value"]]),
         vars: new Map([["base_url", "http://example.com"]]),
       },
       { start: 148, end: 261 },
