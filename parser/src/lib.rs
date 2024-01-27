@@ -18,8 +18,8 @@ pub fn parse(input: &str) -> Result<UnresolvedRequestFile, Vec<Spanned<ReqlangEr
 pub fn resolve(
     input: &str,
     env: &str,
-    prompts: HashMap<String, String>,
-    secrets: HashMap<String, String>,
+    prompts: &HashMap<String, String>,
+    secrets: &HashMap<String, String>,
 ) -> Result<ResolvedRequestFile, Vec<Spanned<ReqlangError>>> {
     let reqfile = RequestFileParser::parse_string(input);
 
@@ -184,14 +184,14 @@ mod parserlib {
         let resolved_reqfile = resolve(
             &reqfile,
             "dev",
-            HashMap::from([
+            &HashMap::from([
                 ("test_value".to_string(), "test_value_value".to_string()),
                 (
                     "expected_response_body".to_string(),
                     "expected_response_body_value".to_string(),
                 ),
             ]),
-            HashMap::from([("api_key".to_string(), "api_key_value".to_string())]),
+            &HashMap::from([("api_key".to_string(), "api_key_value".to_string())]),
         );
 
         assert_eq!(

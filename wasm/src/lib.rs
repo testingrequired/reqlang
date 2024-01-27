@@ -36,7 +36,7 @@ pub fn resolve(source: &str, env: &str, prompts: JsValue, secrets: JsValue) -> J
     let prompts: HashMap<String, String> = serde_wasm_bindgen::from_value(prompts).unwrap();
     let secrets: HashMap<String, String> = serde_wasm_bindgen::from_value(secrets).unwrap();
 
-    let results = parser::resolve(source, env, prompts, secrets);
+    let results = parser::resolve(source, env, &prompts, &secrets);
 
     match results {
         Ok(results) => serde_wasm_bindgen::to_value(&results).unwrap(),

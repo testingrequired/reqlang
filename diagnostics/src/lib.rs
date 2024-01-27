@@ -29,8 +29,8 @@ impl Diagnoser {
     pub fn get_diagnostics_with_env(
         source: &str,
         env: &str,
-        prompts: HashMap<String, String>,
-        secrets: HashMap<String, String>,
+        prompts: &HashMap<String, String>,
+        secrets: &HashMap<String, String>,
     ) -> Vec<Diagnosis> {
         match parser::resolve(source, env, prompts, secrets) {
             Ok(_) => vec![],
