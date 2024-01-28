@@ -116,6 +116,13 @@ pub struct ResolvedRequestFileConfig {
     pub secrets: HashMap<String, String>,
 }
 
+/// A templated request file.
+#[derive(Clone, Debug, PartialEq, Default, Serialize, Deserialize)]
+pub struct TemplatedRequestFile {
+    pub request: Request,
+    pub response: Option<Response>,
+}
+
 #[cfg(test)]
 mod tests {
     mod request_display {
