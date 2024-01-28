@@ -19,6 +19,8 @@ build:
 
 install: build && move-bins
     echo 'Installed Bins (Debug)'
+    cd vsc && just uninstall
+    cd vsc && just install
 
 build-vsc:
     cd vsc && just build
