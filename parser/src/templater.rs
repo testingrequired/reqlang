@@ -1,6 +1,8 @@
 use errors::ReqlangError;
 use span::Spanned;
-use types::{ResolvedRequestFile, TemplatedRequestFile};
+use types::{ReferenceType, ResolvedRequestFile, TemplatedRequestFile};
+
+use crate::parser::RequestFileParser;
 
 pub struct RequestFileTemplater {}
 
@@ -22,10 +24,43 @@ impl RequestFileTemplater {
     /// Template a request file with the resolved values
     pub fn template(
         &self,
-        _input: &str,
-        _reqfile: &ResolvedRequestFile,
+        input: &str,
+        reqfile: &ResolvedRequestFile,
     ) -> Result<TemplatedRequestFile, Vec<Spanned<ReqlangError>>> {
-        Ok(TemplatedRequestFile::default())
+        let template_refs_to_replace: Vec<(String, ReferenceType)> = reqfile
+            .refs
+            .clone()
+            .into_iter()
+            .map(|(template_reference, _)| (format!("{template_reference}"), template_reference))
+            .collect();
+
+        let mut input = input.to_string();
+
+        for (template_ref, ref_type) in template_refs_to_replace {
+            let value = match ref_type {
+                ReferenceType::Variable(name) => reqfile.config.0.vars.get(&name),
+                ReferenceType::Prompt(name) => reqfile.config.0.prompts.get(&name),
+                ReferenceType::Secret(name) => reqfile.config.0.secrets.get(&name),
+                ReferenceType::Unknown(_) => unreachable!(),
+            };
+
+            input = input.replace(
+                &template_ref,
+                value.unwrap_or(&String::from("COULD NOT FIND TEMPLATE VALUE")),
+            );
+        }
+
+        let split = RequestFileParser::split(&input).unwrap();
+
+        let request =
+            RequestFileParser::parse_request(&(split.request.0, reqfile.request.1.clone()))
+                .unwrap();
+        let response = RequestFileParser::parse_response(&split.response).map(|x| x.unwrap().0);
+
+        Ok(TemplatedRequestFile {
+            request: request.0,
+            response,
+        })
     }
 }
 

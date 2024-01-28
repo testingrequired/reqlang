@@ -1,15 +1,15 @@
 use errors::{ParseError, ReqlangError};
 use regex::Regex;
-use span::{Span, Spanned, NO_SPAN};
+use span::{Spanned, NO_SPAN};
 use std::{collections::HashMap, vec};
 use types::{ReferenceType, Request, Response, UnresolvedRequestFile, UnresolvedRequestFileConfig};
+
+use crate::TEMPLATE_REFERENCE_PATTERN;
 
 /// Parse a string in to a request file
 pub struct RequestFileParser {}
 
 impl RequestFileParser {
-    const TEMPLATE_REFERENCE_PATTERN: &'static str = r"\{\{([:?!]{1})([a-zA-Z][_a-zA-Z]+)\}\}";
-
     pub fn new() -> Self {
         Self {}
     }
@@ -23,16 +23,15 @@ impl RequestFileParser {
     pub fn parse(&self, input: &str) -> Result<UnresolvedRequestFile, Vec<Spanned<ReqlangError>>> {
         let mut parse_errors: Vec<Spanned<ReqlangError>> = vec![];
 
-        self.split(input).and_then(|reqfile| {
-            let request_refs = self.extract_references(&reqfile.request);
+        RequestFileParser::split(input).and_then(|reqfile| {
+            let request_refs = RequestFileParser::parse_references(&reqfile.request);
             let response_refs =
-                self.extract_references(&reqfile.response.clone().unwrap_or_default());
+                RequestFileParser::parse_references(&reqfile.response.clone().unwrap_or_default());
             let mut refs: Vec<(ReferenceType, std::ops::Range<usize>)> = vec![];
-
             refs.extend(request_refs);
             refs.extend(response_refs);
 
-            let request = match self.parse_request(&reqfile.request) {
+            let request = match RequestFileParser::parse_request(&reqfile.request) {
                 Ok(request) => Some(request),
                 Err(err) => {
                     parse_errors.extend(err);
@@ -40,7 +39,7 @@ impl RequestFileParser {
                 }
             };
 
-            let response = match self.parse_response(&reqfile.response) {
+            let response = match RequestFileParser::parse_response(&reqfile.response) {
                 Some(Ok(response)) => Some(response),
                 Some(Err(err)) => {
                     parse_errors.extend(err);
@@ -225,17 +224,8 @@ impl RequestFileParser {
         })
     }
 
-    /// Map an `Into<ReqlangError>` in to a `Result<T, ReqlangError>`
-    fn err<T>(
-        &self,
-        err: impl Into<ReqlangError>,
-        span: Option<Span>,
-    ) -> Result<T, Vec<Spanned<ReqlangError>>> {
-        Err(vec![(err.into(), span.unwrap_or(NO_SPAN))])
-    }
-
     /// Split string in to a request, and optional response, config
-    fn split(&self, input: &str) -> Result<RequestFileSplitUp, Vec<Spanned<ReqlangError>>> {
+    pub fn split(input: &str) -> Result<RequestFileSplitUp, Vec<Spanned<ReqlangError>>> {
         let mut parse_errors: Vec<Spanned<ReqlangError>> = vec![];
 
         if input.is_empty() {
@@ -340,8 +330,8 @@ impl RequestFileParser {
     }
 
     /// Extract template references from a string
-    fn extract_references(&self, (input, span): &Spanned<String>) -> Vec<Spanned<ReferenceType>> {
-        let re = Regex::new(RequestFileParser::TEMPLATE_REFERENCE_PATTERN).unwrap();
+    pub fn parse_references((input, span): &Spanned<String>) -> Vec<Spanned<ReferenceType>> {
+        let re = Regex::new(TEMPLATE_REFERENCE_PATTERN).unwrap();
 
         let mut captured_refs: Vec<Spanned<ReferenceType>> = vec![];
 
@@ -357,35 +347,45 @@ impl RequestFileParser {
         return captured_refs;
     }
 
-    fn parse_request(
-        &self,
+    pub fn parse_request(
         (request, span): &Spanned<String>,
     ) -> Result<Spanned<Request>, Vec<Spanned<ReqlangError>>> {
+        let mut parse_errors: Vec<Spanned<ReqlangError>> = vec![];
+
         let mut headers = [httparse::EMPTY_HEADER; 64];
         let mut req = httparse::Request::new(&mut headers);
 
         let parse_result = req.parse(request.as_bytes());
 
         if let Err(error) = parse_result {
-            return self.err(
+            parse_errors.push((
                 ParseError::InvalidRequestError {
                     message: format!("{error}"),
-                },
-                Some(span.clone()),
-            );
+                }
+                .into(),
+                span.clone(),
+            ));
         }
 
-        let size_minus_body = match parse_result.unwrap() {
-            httparse::Status::Complete(x) => x,
-            httparse::Status::Partial => {
-                return self.err(
-                    ParseError::InvalidRequestError {
-                        message: "Unable to parse a partial request".to_string(),
-                    },
-                    Some(span.clone()),
-                )
-            }
-        };
+        if !parse_errors.is_empty() {
+            return Err(parse_errors);
+        }
+
+        if let httparse::Status::Partial = parse_result.unwrap() {
+            parse_errors.push((
+                ParseError::InvalidRequestError {
+                    message: "Unable to parse a partial request".to_string(),
+                }
+                .into(),
+                span.clone(),
+            ));
+        }
+
+        if !parse_errors.is_empty() {
+            return Err(parse_errors);
+        }
+
+        let size_minus_body = parse_result.unwrap().unwrap();
 
         let body = &request[size_minus_body..];
 
@@ -413,10 +413,11 @@ impl RequestFileParser {
         ))
     }
 
-    fn parse_response(
-        &self,
+    pub fn parse_response(
         response: &Option<Spanned<String>>,
     ) -> Option<Result<Spanned<Response>, Vec<Spanned<ReqlangError>>>> {
+        let mut parse_errors: Vec<Spanned<ReqlangError>> = vec![];
+
         let mut headers = [httparse::EMPTY_HEADER; 64];
         let mut res = httparse::Response::new(&mut headers);
 
@@ -428,25 +429,26 @@ impl RequestFileParser {
         let parse_result = res.parse(response.as_bytes());
 
         if let Err(error) = parse_result {
-            return Some(self.err(
+            parse_errors.push((
                 ParseError::InvalidRequestError {
                     message: format!("{error}"),
-                },
-                Some(span.clone()),
+                }
+                .into(),
+                span.clone(),
             ));
         }
 
-        let size_minus_body = match parse_result.unwrap() {
-            httparse::Status::Complete(x) => x,
-            httparse::Status::Partial => {
-                return Some(self.err(
-                    ParseError::InvalidRequestError {
-                        message: "Unable to parse a partial response".to_string(),
-                    },
-                    Some(span.clone()),
-                ))
-            }
-        };
+        if let httparse::Status::Partial = parse_result.unwrap() {
+            parse_errors.push((
+                ParseError::InvalidRequestError {
+                    message: "Unable to parse a partial response".to_string(),
+                }
+                .into(),
+                span.clone(),
+            ));
+        }
+
+        let size_minus_body = parse_result.unwrap().unwrap();
 
         let body = &response[size_minus_body..];
 
@@ -824,8 +826,8 @@ mod test {
 /// Delimiter used to split request files
 const DELIMITER: &str = "---\n";
 
-struct RequestFileSplitUp {
-    request: Spanned<String>,
-    response: Option<Spanned<String>>,
-    config: Option<Spanned<String>>,
+pub struct RequestFileSplitUp {
+    pub request: Spanned<String>,
+    pub response: Option<Spanned<String>>,
+    pub config: Option<Spanned<String>>,
 }

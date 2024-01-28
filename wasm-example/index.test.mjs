@@ -29,6 +29,46 @@ id = ""
 
 `;
 
+test("template should return json", () => {
+  expect(
+    reqlang.template(
+      reqfile,
+      "dev",
+      {
+        id: "test_id_value",
+      },
+      {
+        api_key: "api key value",
+      }
+    )
+  ).to.deep.equals({
+    request: {
+      verb: "GET",
+      target: "/posts/test_id_value",
+      http_version: "1.1",
+      headers: new Map([
+        ["host", "http://example.com"],
+        ["x-api-key", "api key value"],
+      ]),
+      body: "",
+    },
+    response: {
+      http_version: "1.1",
+      status_code: "200",
+      status_text: "OK",
+      headers: new Map(),
+      body:
+        JSON.stringify(
+          {
+            id: "test_id_value",
+          },
+          null,
+          2
+        ) + "\n",
+    },
+  });
+});
+
 test("resolve should return json", () => {
   expect(
     reqlang.resolve(

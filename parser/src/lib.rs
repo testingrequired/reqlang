@@ -11,6 +11,8 @@ mod parser;
 mod resolver;
 mod templater;
 
+pub const TEMPLATE_REFERENCE_PATTERN: &'static str = r"\{\{([:?!]{1})([a-zA-Z][_a-zA-Z]+)\}\}";
+
 /// Parse a string in to a request file
 pub fn parse(input: &str) -> Result<UnresolvedRequestFile, Vec<Spanned<ReqlangError>>> {
     RequestFileParser::parse_string(input)

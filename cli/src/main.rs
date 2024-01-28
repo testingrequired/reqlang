@@ -57,7 +57,7 @@ fn main() {
                 return;
             }
 
-            let reqfile = parser::resolve(&contents, &env, &prompts, &secrets);
+            let reqfile = parser::template(&contents, &env, &prompts, &secrets);
 
             let reqfile = match reqfile {
                 Ok(reqfile) => reqfile,

@@ -94,7 +94,7 @@ fn main() {
         return;
     }
 
-    let reqfile = parser::resolve(&contents, &args.env, &prompts, &secrets);
+    let reqfile = parser::template(&contents, &args.env, &prompts, &secrets);
 
     let reqfile = match reqfile {
         Ok(reqfile) => reqfile,
@@ -104,7 +104,7 @@ fn main() {
         }
     };
 
-    let request = reqfile.request.0;
+    let request = reqfile.request;
 
     match args.format {
         Format::Http => {
