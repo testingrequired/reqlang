@@ -13,6 +13,18 @@ pub struct Request {
     pub body: Option<String>,
 }
 
+impl Request {
+    pub fn get(target: &str, http_version: &str, headers: HashMap<String, String>) -> Self {
+        Request {
+            verb: "GET".to_string(),
+            target: target.to_string(),
+            http_version: http_version.to_string(),
+            headers,
+            body: None,
+        }
+    }
+}
+
 impl Display for Request {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let headers = self
