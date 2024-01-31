@@ -11,6 +11,7 @@ parser = { path = "../parser" }
 diagnostics = { path = "../diagnostics" }
 errors = { path = "../errors" }
 export = { path = "../export" }
+span = { path = "../span" }
 
 [[bin]]
 name = "reqlang"

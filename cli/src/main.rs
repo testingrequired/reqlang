@@ -3,7 +3,9 @@ use clap::builder::TypedValueParser;
 use clap::Parser;
 
 use diagnostics::Diagnoser;
+use errors::ReqlangError;
 use export::{export, Format};
+use span::Spanned;
 
 
 use std::error::Error;
@@ -52,6 +54,17 @@ where
     Ok((s[..pos].parse()?, s[pos + 1..].parse()?))
 }
 
+fn map_errs(errs: &Vec<Spanned<ReqlangError>>) -> String {
+
+    let err = errs
+        .into_iter()
+        .map(|x| format!("{} ({:?})", x.0, x.1))
+        .collect::<Vec<_>>()
+        .join("\n- ");
+
+    format!("Errors:\n\n- {err}")
+}
+
 fn main() {
     let args = Args::parse();
 
@@ -74,13 +87,9 @@ fn main() {
 
             let reqfile = match reqfile {
                 Ok(reqfile) => reqfile,
-                Err(err) => {
-                    let err = err
-                        .into_iter()
-                        .map(|x| format!("{} ({:?})", x.0, x.1))
-                        .collect::<Vec<_>>()
-                        .join("\n- ");
-                    eprintln!("Errors:\n\n- {err}");
+                Err(errs) => {
+                    let err = map_errs(&errs);
+                    eprintln!("{err}");
                     exit(1);
                 }
             };
@@ -101,13 +110,9 @@ fn main() {
 
             let reqfile = match reqfile {
                 Ok(reqfile) => reqfile,
-                Err(err) => {
-                    let err = err
-                        .into_iter()
-                        .map(|x| format!("{} ({:?})", x.0, x.1))
-                        .collect::<Vec<_>>()
-                        .join("\n- ");
-                    eprintln!("Errors:\n\n- {err}");
+                Err(errs) => {
+                    let err = map_errs(&errs);
+                    eprintln!("{err}");
                     exit(1);
                 }
             };
