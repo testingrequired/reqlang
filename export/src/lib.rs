@@ -44,7 +44,7 @@ pub fn export(request: &Request, format: Format) -> String {
             let verb = if request.verb == "GET" {
                 "".to_string()
             } else {
-                format!("-X {}", request.verb)
+                format!("-X {} ", request.verb)
             };
 
             let target = &request.target;
@@ -64,7 +64,7 @@ pub fn export(request: &Request, format: Format) -> String {
             };
 
             format!(
-                "curl {} {} --http{} {} {}",
+                "curl {}{} --http{}{}{}",
                 verb, target, request.http_version, headers, data
             )
         }
@@ -173,6 +173,6 @@ mod test {
         format_to_http_post_request,
         Request::post("/", "1.1", HashMap::new(), Some("[1, 2, 3]\n")),
         crate::Format::Http,
-        "POST / HTTP/1.1\n\n[1, 2, 3]\n"
+        "POST / HTTP/1.1\n\n[1, 2, 3]\n\n"
     );
 }

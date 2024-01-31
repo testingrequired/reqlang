@@ -48,29 +48,35 @@ impl Request {
 
 impl Display for Request {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let headers = self
-            .headers
-            .clone()
-            .into_iter()
-            .map(|x| format!("{}: {}", x.0, x.1))
-            .collect::<Vec<String>>()
-            .join("\n");
-
-        let headers = if headers.is_empty() {
-            "".to_string()
+        let headers = if self.headers.is_empty() {
+            None
         } else {
-            format!("{}\n\n", &headers)[..].to_string()
+            Some(
+                self.headers
+                    .clone()
+                    .into_iter()
+                    .map(|x| format!("{}: {}", x.0, x.1))
+                    .collect::<Vec<String>>()
+                    .join("\n"),
+            )
         };
 
-        let body = match &self.body {
-            Some(x) => format!("{x}\n\n"),
-            None => "".to_string(),
+        let body = self
+            .body
+            .clone()
+            .and_then(|x| if x.is_empty() { None } else { Some(x) });
+
+        let the_rest = match (&headers, &body) {
+            (Some(headers), Some(body)) => format!("{headers}\n\n{body}\n"),
+            (Some(headers), None) => format!("{headers}\n"),
+            (None, Some(body)) => format!("\n{body}\n"),
+            (None, None) => format!(""),
         };
 
         write!(
             f,
-            "{} {} HTTP/{}\n{}\n\n{}",
-            self.verb, self.target, self.http_version, headers, body
+            "{} {} HTTP/{}\n{}",
+            self.verb, self.target, self.http_version, the_rest
         )
     }
 }
