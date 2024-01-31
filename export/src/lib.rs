@@ -130,7 +130,14 @@ mod test {
         format_to_curl_get_request,
         Request::get("/", "1.1", HashMap::new()),
         crate::Format::Curl,
-        "curl  / --http1.1  "
+        "curl / --http1.1"
+    );
+
+    export_test!(
+        format_to_curl_post_request,
+        Request::post("/", "1.1", HashMap::new(), Some("")),
+        crate::Format::Curl,
+        "curl -X POST / --http1.1"
     );
 
     export_test!(
@@ -140,7 +147,18 @@ mod test {
         concat!(
             "$headers = @{  }\n",
             "$body = ''\n",
-            "Invoke-RestMethod -HttpVersion 1.1 -Uri / -Method GET  "
+            "Invoke-RestMethod -HttpVersion 1.1 -Uri / -Method GET"
+        )
+    );
+
+    export_test!(
+        format_to_powershell_post_request,
+        Request::post("/", "1.1", HashMap::new(), Some("[1, 2, 3]\n")),
+        crate::Format::Powershell,
+        concat!(
+            "$headers = @{  }\n",
+            "$body = '[1, 2, 3]\n'\n",
+            "Invoke-RestMethod -HttpVersion 1.1 -Uri / -Method POST -Body $body"
         )
     );
 
@@ -149,5 +167,12 @@ mod test {
         Request::get("/", "1.1", HashMap::new()),
         crate::Format::Http,
         "GET / HTTP/1.1\n"
+    );
+
+    export_test!(
+        format_to_http_post_request,
+        Request::post("/", "1.1", HashMap::new(), Some("[1, 2, 3]\n")),
+        crate::Format::Http,
+        "POST / HTTP/1.1\n\n[1, 2, 3]\n"
     );
 }

@@ -20,8 +20,29 @@ impl Request {
             target: target.to_string(),
             http_version: http_version.to_string(),
             headers,
-            body: None,
+            body: Some("".to_string()),
         }
+    }
+
+    pub fn post(
+        target: &str,
+        http_version: &str,
+        headers: HashMap<String, String>,
+        body: Option<&str>,
+    ) -> Self {
+        Request {
+            verb: "POST".to_string(),
+            target: target.to_string(),
+            http_version: http_version.to_string(),
+            headers,
+            body: body.map(|x| x.to_string()),
+        }
+    }
+
+    pub fn with_header(&mut self, key: &str, value: &str) -> &mut Self {
+        self.headers.insert(key.to_string(), value.to_string());
+
+        self
     }
 }
 
@@ -48,7 +69,7 @@ impl Display for Request {
 
         write!(
             f,
-            "{} {} HTTP/{}\n{}{}",
+            "{} {} HTTP/{}\n{}\n\n{}",
             self.verb, self.target, self.http_version, headers, body
         )
     }
