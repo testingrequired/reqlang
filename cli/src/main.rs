@@ -1,8 +1,10 @@
 use std::{collections::HashMap, fs, process::exit};
-
+use clap::builder::TypedValueParser;
 use clap::Parser;
 
 use diagnostics::Diagnoser;
+use export::{export, Format};
+
 
 use std::error::Error;
 
@@ -12,6 +14,7 @@ use std::error::Error;
 struct Args {
     /// Path to request file
     path: String,
+
     /// Resolve with an environment
     #[arg(short, long)]
     env: Option<String>,
@@ -23,6 +26,16 @@ struct Args {
     /// Pass secret values to resolve with
     #[arg(short = 'S', value_parser = parse_key_val::<String, String>)]
     secrets: Vec<(String, String)>,
+
+    /// Format to export
+    #[arg(
+        short,
+        long,
+        default_value_t = Format::Http,
+        value_parser = clap::builder::PossibleValuesParser::new(["http", "curl", "javascript", "powershell"])
+            .map(|s| s.parse::<Format>().unwrap()),
+    )]
+    format: Format,
 }
 
 /// Parse a single key-value pair
@@ -72,7 +85,9 @@ fn main() {
                 }
             };
 
-            println!("{:#?}", reqfile);
+            let exported_request = export(&reqfile.request, args.format);
+
+            println!("{}", exported_request);
         }
         None => {
             let diagnostics = Diagnoser::get_diagnostics(&contents);

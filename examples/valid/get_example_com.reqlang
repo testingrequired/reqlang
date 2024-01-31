@@ -3,12 +3,9 @@
 GET / HTTP/1.1
 host: {{:base_url}}
 
-{{!secret}}
 ---
 ---
 vars = ["base_url"]
-
-secrets = ["secret"]
 
 [envs]
 [envs.dev]
