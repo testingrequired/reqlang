@@ -153,13 +153,12 @@ mod test {
         prompt_value_not_passed,
         concat!(
             "---\n",
-            "POST / HTTP/1.1\n",
-            "host: {{?base_url}}\n",
+            "POST /?query={{?query_value}} HTTP/1.1\n",
             "\n",
             "---\n",
             "---\n",
             "[prompts]\n",
-            "base_url = \"\"\n",
+            "query_value = \"\"\n",
             "\n",
             "[envs]\n",
             "[envs.dev]\n",
@@ -171,7 +170,7 @@ mod test {
         HashMap::new(),
         Err(vec![(
             ReqlangError::ResolverError(errors::ResolverError::PromptValueNotPassed(
-                "base_url".to_string()
+                "query_value".to_string()
             )),
             NO_SPAN
         )])
@@ -181,12 +180,11 @@ mod test {
         secret_value_not_passed,
         concat!(
             "---\n",
-            "POST / HTTP/1.1\n",
-            "host: {{!base_url}}\n",
+            "POST /?query={{!query_value}} HTTP/1.1\n",
             "\n",
             "---\n",
             "---\n",
-            "secrets = [\"base_url\"]\n",
+            "secrets = [\"query_value\"]\n",
             "\n",
             "[envs]\n",
             "[envs.dev]\n",
@@ -198,7 +196,7 @@ mod test {
         HashMap::new(),
         Err(vec![(
             ReqlangError::ResolverError(errors::ResolverError::SecretValueNotPassed(
-                "base_url".to_string()
+                "query_value".to_string()
             )),
             NO_SPAN
         )])
@@ -208,8 +206,7 @@ mod test {
         full_request_file_dev,
         concat!(
             "---\n",
-            "POST / HTTP/1.1\n",
-            "host: {{:base_url}}\n",
+            "POST /?query={{:query_value}} HTTP/1.1\n",
             "x-test: {{?test_value}}\n",
             "x-api-key: {{!api_key}}\n",
             "\n",
@@ -221,15 +218,15 @@ mod test {
             "{{?expected_response_body}}\n",
             "\n",
             "---\n",
-            "vars = [\"base_url\"]\n",
+            "vars = [\"query_value\"]\n",
             "secrets = [\"api_key\"]",
             "\n",
             "[envs]\n",
             "[envs.dev]\n",
-            "base_url = \"https://dev.example.com\"\n",
+            "query_value = \"dev_value\"\n",
             "\n",
             "[envs.prod]\n",
-            "base_url = \"https://example.com\"\n",
+            "query_value = \"prod_value\"\n",
             "\n",
             "[prompts]\n",
             "test_value = \"\"\n",
@@ -250,16 +247,15 @@ mod test {
             request: (
                 Request {
                     verb: "POST".to_string(),
-                    target: "/".to_string(),
+                    target: "/?query={{:query_value}}".to_string(),
                     http_version: "1.1".to_string(),
                     headers: HashMap::from([
-                        ("host".to_string(), "{{:base_url}}".to_string()),
                         ("x-test".to_string(), "{{?test_value}}".to_string()),
                         ("x-api-key".to_string(), "{{!api_key}}".to_string()),
                     ]),
                     body: Some("[1, 2, 3]\n\n".to_string())
                 },
-                4..100
+                4..103
             ),
             response: Some((
                 Response {
@@ -269,15 +265,12 @@ mod test {
                     headers: HashMap::new(),
                     body: Some("{{?expected_response_body}}\n\n".to_string())
                 },
-                104..150
+                107..153
             )),
             config: (
                 ResolvedRequestFileConfig {
                     env: "dev".to_string(),
-                    vars: HashMap::from([(
-                        "base_url".to_string(),
-                        "https://dev.example.com".to_string()
-                    )]),
+                    vars: HashMap::from([("query_value".to_string(), "dev_value".to_string())]),
                     prompts: HashMap::from([
                         ("test_value".to_string(), "test_value_value".to_string()),
                         (
@@ -287,15 +280,15 @@ mod test {
                     ]),
                     secrets: HashMap::from([("api_key".to_string(), "api_key_value".to_string())])
                 },
-                154..353
+                157..342
             ),
             refs: vec![
-                (ReferenceType::Variable("base_url".to_string()), 4..100),
-                (ReferenceType::Prompt("test_value".to_string()), 4..100),
-                (ReferenceType::Secret("api_key".to_string()), 4..100),
+                (ReferenceType::Variable("query_value".to_string()), 4..103),
+                (ReferenceType::Prompt("test_value".to_string()), 4..103),
+                (ReferenceType::Secret("api_key".to_string()), 4..103),
                 (
                     ReferenceType::Prompt("expected_response_body".to_string()),
-                    104..150
+                    107..153
                 )
             ],
         })
@@ -305,8 +298,7 @@ mod test {
         full_request_file_prod,
         concat!(
             "---\n",
-            "POST / HTTP/1.1\n",
-            "host: {{:base_url}}\n",
+            "POST /?query={{:query_value}} HTTP/1.1\n",
             "x-test: {{?test_value}}\n",
             "x-api-key: {{!api_key}}\n",
             "\n",
@@ -318,15 +310,15 @@ mod test {
             "{{?expected_response_body}}\n",
             "\n",
             "---\n",
-            "vars = [\"base_url\"]\n",
+            "vars = [\"query_value\"]\n",
             "secrets = [\"api_key\"]",
             "\n",
             "[envs]\n",
             "[envs.dev]\n",
-            "base_url = \"https://dev.example.com\"\n",
+            "query_value = \"dev_value\"\n",
             "\n",
             "[envs.prod]\n",
-            "base_url = \"https://example.com\"\n",
+            "query_value = \"prod_value\"\n",
             "\n",
             "[prompts]\n",
             "test_value = \"\"\n",
@@ -347,16 +339,15 @@ mod test {
             request: (
                 Request {
                     verb: "POST".to_string(),
-                    target: "/".to_string(),
+                    target: "/?query={{:query_value}}".to_string(),
                     http_version: "1.1".to_string(),
                     headers: HashMap::from([
-                        ("host".to_string(), "{{:base_url}}".to_string()),
                         ("x-test".to_string(), "{{?test_value}}".to_string()),
                         ("x-api-key".to_string(), "{{!api_key}}".to_string()),
                     ]),
                     body: Some("[1, 2, 3]\n\n".to_string())
                 },
-                4..100
+                4..103
             ),
             response: Some((
                 Response {
@@ -366,15 +357,12 @@ mod test {
                     headers: HashMap::new(),
                     body: Some("{{?expected_response_body}}\n\n".to_string())
                 },
-                104..150
+                107..153
             )),
             config: (
                 ResolvedRequestFileConfig {
                     env: "prod".to_string(),
-                    vars: HashMap::from([(
-                        "base_url".to_string(),
-                        "https://example.com".to_string()
-                    )]),
+                    vars: HashMap::from([("query_value".to_string(), "prod_value".to_string())]),
                     prompts: HashMap::from([
                         ("test_value".to_string(), "test_value_value".to_string()),
                         (
@@ -384,15 +372,15 @@ mod test {
                     ]),
                     secrets: HashMap::from([("api_key".to_string(), "api_key_value".to_string())])
                 },
-                154..353
+                157..342
             ),
             refs: vec![
-                (ReferenceType::Variable("base_url".to_string()), 4..100),
-                (ReferenceType::Prompt("test_value".to_string()), 4..100),
-                (ReferenceType::Secret("api_key".to_string()), 4..100),
+                (ReferenceType::Variable("query_value".to_string()), 4..103),
+                (ReferenceType::Prompt("test_value".to_string()), 4..103),
+                (ReferenceType::Secret("api_key".to_string()), 4..103),
                 (
                     ReferenceType::Prompt("expected_response_body".to_string()),
-                    104..150
+                    107..153
                 )
             ],
         })
@@ -402,8 +390,7 @@ mod test {
         full_request_file_invalid_env,
         concat!(
             "---\n",
-            "POST / HTTP/1.1\n",
-            "host: {{:base_url}}\n",
+            "POST /?query={{:query_value}} HTTP/1.1\n",
             "x-test: {{?test_value}}\n",
             "x-api-key: {{!api_key}}\n",
             "\n",
@@ -415,15 +402,15 @@ mod test {
             "{{?expected_response_body}}\n",
             "\n",
             "---\n",
-            "vars = [\"base_url\"]\n",
+            "vars = [\"query_value\"]\n",
             "secrets = [\"api_key\"]",
             "\n",
             "[envs]\n",
             "[envs.dev]\n",
-            "base_url = \"https://dev.example.com\"\n",
+            "query_value = \"dev_value\"\n",
             "\n",
             "[envs.prod]\n",
-            "base_url = \"https://example.com\"\n",
+            "query_value = \"prod_value\"\n",
             "\n",
             "[prompts]\n",
             "test_value = \"\"\n",
@@ -438,7 +425,7 @@ mod test {
             ReqlangError::ResolverError(errors::ResolverError::InvalidEnvError(
                 "invalid_env".to_string()
             )),
-            154..353
+            157..342
         )])
     );
 }
