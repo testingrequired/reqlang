@@ -529,13 +529,7 @@ mod test {
         Ok(UnresolvedRequestFile {
             config: None,
             request: (
-                Request {
-                    verb: "GET".to_string(),
-                    target: "http://example.com".to_string(),
-                    http_version: "1.1".to_string(),
-                    headers: HashMap::new(),
-                    body: Some("".to_string())
-                },
+                Request::get("http://example.com", "1.1", HashMap::new()),
                 4..35
             ),
             response: None,

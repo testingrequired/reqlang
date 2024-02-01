@@ -20,36 +20,65 @@ impl Request {
             target: target.to_string(),
             http_version: http_version.to_string(),
             headers,
-            body: None,
+            body: Some("".to_string()),
         }
+    }
+
+    pub fn post(
+        target: &str,
+        http_version: &str,
+        headers: HashMap<String, String>,
+        body: Option<&str>,
+    ) -> Self {
+        Request {
+            verb: "POST".to_string(),
+            target: target.to_string(),
+            http_version: http_version.to_string(),
+            headers,
+            body: body.map(|x| x.to_string()),
+        }
+    }
+
+    pub fn with_header(&mut self, key: &str, value: &str) -> &mut Self {
+        self.headers.insert(key.to_string(), value.to_string());
+
+        self
     }
 }
 
 impl Display for Request {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let headers = self
-            .headers
-            .clone()
-            .into_iter()
-            .map(|x| format!("{}: {}", x.0, x.1))
-            .collect::<Vec<String>>()
-            .join("\n");
-
-        let headers = if headers.is_empty() {
-            "".to_string()
+        let headers = if self.headers.is_empty() {
+            None
         } else {
-            format!("{}\n\n", &headers)[..].to_string()
+            Some(format!(
+                "{}\n",
+                self.headers
+                    .clone()
+                    .into_iter()
+                    .map(|x| format!("{}: {}", x.0, x.1))
+                    .collect::<Vec<String>>()
+                    .join("\n")
+                    .trim_end()
+            ))
         };
 
-        let body = match &self.body {
-            Some(x) => format!("{x}\n\n"),
-            None => "".to_string(),
+        let body = self
+            .body
+            .clone()
+            .and_then(|x| if x.is_empty() { None } else { Some(x) });
+
+        let the_rest = match (&headers, &body) {
+            (Some(headers), Some(body)) => format!("{headers}\n{body}"),
+            (Some(headers), None) => format!("{headers}"),
+            (None, Some(body)) => format!("\n{body}"),
+            (None, None) => format!(""),
         };
 
         write!(
             f,
-            "{} {} HTTP/{}\n{}{}",
-            self.verb, self.target, self.http_version, headers, body
+            "{} {} HTTP/{}\n{}",
+            self.verb, self.target, self.http_version, the_rest
         )
     }
 }
@@ -144,37 +173,34 @@ mod tests {
 
         #[test]
         fn post_request() {
-            let req = Request {
-                verb: "POST".to_string(),
-                target: "/".to_string(),
-                http_version: "1.1".to_string(),
-                headers: HashMap::from([("host".to_string(), "https://example.com".to_string())]),
-                body: Some("[1, 2, 3]".to_string()),
-            };
+            let req = Request::post(
+                "/",
+                "1.1",
+                HashMap::from([("host".to_string(), "https://example.com".to_string())]),
+                Some("[1, 2, 3]\n"),
+            );
 
             assert_eq!(
-                format!("{req}"),
                 concat!(
                     "POST / HTTP/1.1\n",
                     "host: https://example.com\n\n",
-                    "[1, 2, 3]\n\n"
-                )
+                    "[1, 2, 3]\n"
+                ),
+                format!("{req}"),
             );
         }
 
         #[test]
         fn get_request() {
-            let req = Request {
-                verb: "GET".to_string(),
-                target: "/".to_string(),
-                http_version: "1.1".to_string(),
-                headers: HashMap::from([("host".to_string(), "https://example.com".to_string())]),
-                body: None,
-            };
+            let req = Request::get(
+                "/",
+                "1.1",
+                HashMap::from([("host".to_string(), "https://example.com".to_string())]),
+            );
 
             assert_eq!(
+                concat!("GET / HTTP/1.1\n", "host: https://example.com\n"),
                 format!("{req}"),
-                concat!("GET / HTTP/1.1\n", "host: https://example.com\n\n")
             );
         }
 
@@ -188,7 +214,7 @@ mod tests {
                 body: None,
             };
 
-            assert_eq!(format!("{req}"), concat!("GET / HTTP/1.1\n"));
+            assert_eq!(concat!("GET / HTTP/1.1\n"), format!("{req}"));
         }
     }
 }
