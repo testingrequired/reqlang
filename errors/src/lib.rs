@@ -25,7 +25,7 @@ pub enum ParseError {
     #[error("Undefined template reference: {0}")]
     UndefinedReferenceError(ReferenceType),
     #[error("Value was declared but not used. Try adding the template reference {0} to the request or response.")]
-    UnusedValue(ReferenceType),
+    UnusedValueError(ReferenceType),
 }
 
 #[derive(Debug, Error, PartialEq, Serialize, Deserialize)]

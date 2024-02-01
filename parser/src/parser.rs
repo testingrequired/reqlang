@@ -173,7 +173,7 @@ impl RequestFileParser {
                     for var in vars {
                         if !ref_names.contains(&var) {
                             parse_errors.push((
-                                ReqlangError::ParseError(ParseError::UnusedValue(
+                                ReqlangError::ParseError(ParseError::UnusedValueError(
                                     ReferenceType::Variable(var.clone()),
                                 )),
                                 span.clone(),
@@ -188,7 +188,7 @@ impl RequestFileParser {
                     for key in keys {
                         if !ref_names.contains(&key) {
                             parse_errors.push((
-                                ReqlangError::ParseError(ParseError::UnusedValue(
+                                ReqlangError::ParseError(ParseError::UnusedValueError(
                                     ReferenceType::Prompt(key.clone()),
                                 )),
                                 span.clone(),
@@ -201,7 +201,7 @@ impl RequestFileParser {
                     for secret in secrets {
                         if !ref_names.contains(&secret) {
                             parse_errors.push((
-                                ReqlangError::ParseError(ParseError::UnusedValue(
+                                ReqlangError::ParseError(ParseError::UnusedValueError(
                                     ReferenceType::Secret(secret.clone()),
                                 )),
                                 span.clone(),
@@ -675,9 +675,9 @@ mod test {
             "---\n"
         ),
         Err(vec![(
-            errors::ReqlangError::ParseError(ParseError::UnusedValue(ReferenceType::Variable(
-                "base_url".to_string()
-            ))),
+            errors::ReqlangError::ParseError(ParseError::UnusedValueError(
+                ReferenceType::Variable("base_url".to_string())
+            )),
             45..65
         )])
     );
@@ -694,7 +694,7 @@ mod test {
             "---\n"
         ),
         Err(vec![(
-            errors::ReqlangError::ParseError(ParseError::UnusedValue(ReferenceType::Prompt(
+            errors::ReqlangError::ParseError(ParseError::UnusedValueError(ReferenceType::Prompt(
                 "base_url".to_string()
             ))),
             45..69
@@ -712,7 +712,7 @@ mod test {
             "---\n"
         ),
         Err(vec![(
-            errors::ReqlangError::ParseError(ParseError::UnusedValue(ReferenceType::Secret(
+            errors::ReqlangError::ParseError(ParseError::UnusedValueError(ReferenceType::Secret(
                 "base_url".to_string()
             ))),
             45..68
