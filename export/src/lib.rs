@@ -1,8 +1,9 @@
 use std::{fmt::Display, str::FromStr};
 
+use serde::{Deserialize, Serialize};
 use types::Request;
 
-#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
 pub enum Format {
     Http,
     Curl,
@@ -42,24 +43,40 @@ pub fn export(request: &Request, format: Format) -> String {
             };
 
             let target = &request.target;
-            let headers: String = request
-                .headers
-                .iter()
-                .map(|x| format!(r#"-H "{}: {}""#, x.0, x.1))
-                .collect::<Vec<String>>()
-                .join(" ");
 
-            let data = match &request.body {
-                Some(body) => match body.is_empty() {
-                    true => "".to_string(),
-                    false => format!("-d '{body}'"),
-                },
-                None => "".to_string(),
+            let h = if request.headers.is_empty() {
+                None
+            } else {
+                Some(format!(
+                    "{}",
+                    &request
+                        .headers
+                        .clone()
+                        .into_iter()
+                        .map(|x| format!(r#"-H "{}: {}""#, x.0, x.1))
+                        .collect::<Vec<String>>()
+                        .join(" ")
+                ))
+            };
+
+            let b = request.body.clone().and_then(|x| {
+                if x.is_empty() {
+                    None
+                } else {
+                    Some(format!("-d '{x}'"))
+                }
+            });
+
+            let the_rest = match (&h, &b) {
+                (Some(headers), Some(body)) => format!(" {headers} {body}"),
+                (Some(headers), None) => format!(" {headers}"),
+                (None, Some(body)) => format!(" {body}"),
+                (None, None) => format!(""),
             };
 
             format!(
-                "curl {}{} --http{}{}{}",
-                verb, target, request.http_version, headers, data
+                "curl {}{} --http{}{}",
+                verb, target, request.http_version, the_rest
             )
         }
     }
@@ -91,10 +108,45 @@ mod test {
     );
 
     export_test!(
+        format_to_curl_get_request_with_single_header,
+        Request::get(
+            "/",
+            "1.1",
+            HashMap::from([("test".to_string(), "value".to_string())])
+        ),
+        crate::Format::Curl,
+        "curl / --http1.1 -H \"test: value\""
+    );
+
+    export_test!(
         format_to_curl_post_request,
         Request::post("/", "1.1", HashMap::new(), Some("")),
         crate::Format::Curl,
         "curl -X POST / --http1.1"
+    );
+
+    export_test!(
+        format_to_curl_post_request_with_single_header,
+        Request::post(
+            "/",
+            "1.1",
+            HashMap::from([("test".to_string(), "value".to_string())]),
+            None
+        ),
+        crate::Format::Curl,
+        "curl -X POST / --http1.1 -H \"test: value\""
+    );
+
+    export_test!(
+        format_to_curl_post_request_with_single_header_and_body,
+        Request::post(
+            "/",
+            "1.1",
+            HashMap::from([("test".to_string(), "value".to_string())]),
+            Some("testing")
+        ),
+        crate::Format::Curl,
+        "curl -X POST / --http1.1 -H \"test: value\" -d 'testing'"
     );
 
     export_test!(

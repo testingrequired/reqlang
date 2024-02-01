@@ -14,6 +14,7 @@ serde-wasm-bindgen = "0.4"
 console_error_panic_hook = "0.1.7"
 parser = { path = "../parser" }
 types = { path = "../types" }
+export = { path = "../export" }
 diagnostics = { path = "../diagnostics" }
 
 [lib]

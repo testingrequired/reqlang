@@ -29,6 +29,67 @@ id = ""
 
 `;
 
+const reqfile_single_header = `
+#!/usr/bin/env reqlang
+---
+GET /posts/{{?id}} HTTP/1.1
+x-api-key: {{!api_key}}
+
+---
+HTTP/1.1 200 OK
+
+{
+  "id": "{{?id}}"
+}
+---
+secrets = ["api_key"]
+
+[envs]
+[envs.dev]
+
+[prompts]
+id = ""
+
+---
+
+`;
+
+test("export should return formatted as Http", () => {
+  expect(
+    reqlang.export_to_format(
+      reqfile,
+      "dev",
+      {
+        id: "test_id_value",
+      },
+      {
+        api_key: "api key value",
+      },
+      "Http"
+    )
+  ).to.deep.eq(
+    `GET /posts/test_id_value HTTP/1.1\nhost: http://example.com\nx-api-key: api key value\n`
+  );
+});
+
+test("export should return formatted as Curl", () => {
+  expect(
+    reqlang.export_to_format(
+      reqfile_single_header,
+      "dev",
+      {
+        id: "test_id_value",
+      },
+      {
+        api_key: "api key value",
+      },
+      "Curl"
+    )
+  ).to.deep.eq(
+    `curl /posts/test_id_value --http1.1 -H "x-api-key: api key value"`
+  );
+});
+
 test("template should return json", () => {
   expect(
     reqlang.template(

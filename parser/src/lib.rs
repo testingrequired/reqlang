@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use errors::ReqlangError;
+use export::Format;
 use parser::RequestFileParser;
 use resolver::RequestFileResolver;
 use span::Spanned;
@@ -62,6 +63,35 @@ pub fn template(
     let reqfile = RequestFileTemplater::template_reqfile(input, &reqfile);
 
     reqfile
+}
+
+/// Export a request file in to another format
+pub fn export(
+    input: &str,
+    env: &str,
+    prompts: &HashMap<String, String>,
+    secrets: &HashMap<String, String>,
+    format: Format,
+) -> Result<String, Vec<Spanned<ReqlangError>>> {
+    let reqfile = RequestFileParser::parse_string(input);
+
+    if let Err(err) = reqfile {
+        return Err(err);
+    }
+
+    let reqfile = reqfile.unwrap();
+
+    let reqfile = RequestFileResolver::resolve_request_file(&reqfile, env, &prompts, &secrets);
+
+    if let Err(err) = reqfile {
+        return Err(err);
+    }
+
+    let reqfile = reqfile.unwrap();
+
+    let reqfile = RequestFileTemplater::template_reqfile(input, &reqfile).unwrap();
+
+    Ok(export::export(&reqfile.request, format))
 }
 
 #[cfg(test)]
