@@ -5,7 +5,7 @@ const reqfile = `
 #!/usr/bin/env reqlang
 ---
 GET /posts/{{?id}} HTTP/1.1
-host: {{:base_url}}
+foo: bar
 x-api-key: {{!api_key}}
 
 ---
@@ -15,12 +15,10 @@ HTTP/1.1 200 OK
   "id": "{{?id}}"
 }
 ---
-vars = ["base_url"]
 secrets = ["api_key"]
 
 [envs]
 [envs.dev]
-base_url = "http://example.com"
 
 [prompts]
 id = ""
@@ -68,7 +66,7 @@ test("export should return formatted as Http", () => {
       "Http"
     )
   ).to.deep.eq(
-    `GET /posts/test_id_value HTTP/1.1\nhost: http://example.com\nx-api-key: api key value\n`
+    `GET /posts/test_id_value HTTP/1.1\nfoo: bar\nx-api-key: api key value\n`
   );
 });
 
@@ -108,7 +106,7 @@ test("template should return json", () => {
       target: "/posts/test_id_value",
       http_version: "1.1",
       headers: new Map([
-        ["host", "http://example.com"],
+        ["foo", "bar"],
         ["x-api-key", "api key value"],
       ]),
       body: "",
@@ -149,14 +147,14 @@ test("resolve should return json", () => {
         target: "/posts/{{?id}}",
         http_version: "1.1",
         headers: new Map([
-          ["host", "{{:base_url}}"],
           ["x-api-key", "{{!api_key}}"],
+          ["foo", "bar"],
         ]),
         body: "",
       },
       {
         start: 28,
-        end: 101,
+        end: 90,
       },
     ],
     response: [
@@ -175,8 +173,8 @@ test("resolve should return json", () => {
           ) + "\n",
       },
       {
-        start: 105,
-        end: 144,
+        start: 94,
+        end: 133,
       },
     ],
     config: [
@@ -184,20 +182,19 @@ test("resolve should return json", () => {
         env: "dev",
         prompts: new Map([["id", "test id value"]]),
         secrets: new Map([["api_key", "api key value"]]),
-        vars: new Map([["base_url", "http://example.com"]]),
+        vars: new Map(),
       },
-      { start: 148, end: 261 },
+      { start: 137, end: 198 },
     ],
     refs: [
       [
         {
           Prompt: "id",
         },
-        { start: 28, end: 101 },
+        { start: 28, end: 90 },
       ],
-      [{ Variable: "base_url" }, { start: 28, end: 101 }],
-      [{ Secret: "api_key" }, { start: 28, end: 101 }],
-      [{ Prompt: "id" }, { start: 105, end: 144 }],
+      [{ Secret: "api_key" }, { start: 28, end: 90 }],
+      [{ Prompt: "id" }, { start: 94, end: 133 }],
     ],
   });
 });
@@ -210,14 +207,14 @@ test("parse should return json", () => {
         target: "/posts/{{?id}}",
         http_version: "1.1",
         headers: new Map([
-          ["host", "{{:base_url}}"],
+          ["foo", "bar"],
           ["x-api-key", "{{!api_key}}"],
         ]),
         body: "",
       },
       {
         start: 28,
-        end: 101,
+        end: 90,
       },
     ],
     response: [
@@ -236,30 +233,28 @@ test("parse should return json", () => {
           ) + "\n",
       },
       {
-        start: 105,
-        end: 144,
+        start: 94,
+        end: 133,
       },
     ],
     config: [
       {
-        envs: new Map([["dev", new Map([["base_url", "http://example.com"]])]]),
+        envs: new Map([["dev", new Map()]]),
         prompts: new Map([["id", ""]]),
-        vars: undefined,
         secrets: ["api_key"],
-        vars: ["base_url"],
+        vars: undefined,
       },
-      { start: 148, end: 261 },
+      { start: 137, end: 198 },
     ],
     refs: [
       [
         {
           Prompt: "id",
         },
-        { start: 28, end: 101 },
+        { start: 28, end: 90 },
       ],
-      [{ Variable: "base_url" }, { start: 28, end: 101 }],
-      [{ Secret: "api_key" }, { start: 28, end: 101 }],
-      [{ Prompt: "id" }, { start: 105, end: 144 }],
+      [{ Secret: "api_key" }, { start: 28, end: 90 }],
+      [{ Prompt: "id" }, { start: 94, end: 133 }],
     ],
   });
 });

@@ -6,6 +6,28 @@ use types::{ReferenceType, Request, Response, UnresolvedRequestFile, UnresolvedR
 
 use crate::TEMPLATE_REFERENCE_PATTERN;
 
+static FORBIDDEN_REQUEST_HEADER_NAMES: &'static [&str] = &[
+    "host",
+    "accept-charset",
+    "accept-encoding",
+    "access-control-request-headers",
+    "access-control-request-method",
+    "connection",
+    "content-length",
+    "cookie",
+    "date",
+    "dnt",
+    "expect",
+    "keep-alive",
+    "origin",
+    "permission-policy",
+    "te",
+    "trailer",
+    "transfer-encoding",
+    "upgrade",
+    "via",
+];
+
 /// Parse a string in to a request file
 pub struct RequestFileParser {}
 
@@ -32,7 +54,19 @@ impl RequestFileParser {
             refs.extend(response_refs);
 
             let request = match RequestFileParser::parse_request(&reqfile.request) {
-                Ok(request) => Some(request),
+                Ok((request, span)) => {
+                    for key in request.headers.keys().into_iter() {
+                        if FORBIDDEN_REQUEST_HEADER_NAMES.contains(&key.to_lowercase().as_str()) {
+                            parse_errors.push((
+                                ParseError::ForbiddenRequestHeaderNameError(key.to_lowercase())
+                                    .into(),
+                                span.clone(),
+                            ))
+                        }
+                    }
+
+                    Some((request, span))
+                }
                 Err(err) => {
                     parse_errors.extend(err);
                     None
@@ -173,7 +207,7 @@ impl RequestFileParser {
                     for var in vars {
                         if !ref_names.contains(&var) {
                             parse_errors.push((
-                                ReqlangError::ParseError(ParseError::UnusedValue(
+                                ReqlangError::ParseError(ParseError::UnusedValueError(
                                     ReferenceType::Variable(var.clone()),
                                 )),
                                 span.clone(),
@@ -188,7 +222,7 @@ impl RequestFileParser {
                     for key in keys {
                         if !ref_names.contains(&key) {
                             parse_errors.push((
-                                ReqlangError::ParseError(ParseError::UnusedValue(
+                                ReqlangError::ParseError(ParseError::UnusedValueError(
                                     ReferenceType::Prompt(key.clone()),
                                 )),
                                 span.clone(),
@@ -201,7 +235,7 @@ impl RequestFileParser {
                     for secret in secrets {
                         if !ref_names.contains(&secret) {
                             parse_errors.push((
-                                ReqlangError::ParseError(ParseError::UnusedValue(
+                                ReqlangError::ParseError(ParseError::UnusedValueError(
                                     ReferenceType::Secret(secret.clone()),
                                 )),
                                 span.clone(),
@@ -675,9 +709,9 @@ mod test {
             "---\n"
         ),
         Err(vec![(
-            errors::ReqlangError::ParseError(ParseError::UnusedValue(ReferenceType::Variable(
-                "base_url".to_string()
-            ))),
+            errors::ReqlangError::ParseError(ParseError::UnusedValueError(
+                ReferenceType::Variable("base_url".to_string())
+            )),
             45..65
         )])
     );
@@ -694,7 +728,7 @@ mod test {
             "---\n"
         ),
         Err(vec![(
-            errors::ReqlangError::ParseError(ParseError::UnusedValue(ReferenceType::Prompt(
+            errors::ReqlangError::ParseError(ParseError::UnusedValueError(ReferenceType::Prompt(
                 "base_url".to_string()
             ))),
             45..69
@@ -712,7 +746,7 @@ mod test {
             "---\n"
         ),
         Err(vec![(
-            errors::ReqlangError::ParseError(ParseError::UnusedValue(ReferenceType::Secret(
+            errors::ReqlangError::ParseError(ParseError::UnusedValueError(ReferenceType::Secret(
                 "base_url".to_string()
             ))),
             45..68
@@ -720,11 +754,388 @@ mod test {
     );
 
     parser_test!(
+        forbidden_header_host,
+        concat!(
+            "---\n",
+            "GET / HTTP/1.1\n",
+            "host: example.com\n",
+            "---\n",
+            "---\n",
+            "---\n"
+        ),
+        Err(vec![(
+            errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
+                "host".to_string()
+            )),
+            4..37
+        )])
+    );
+
+    parser_test!(
+        forbidden_header_host_capitalized,
+        concat!(
+            "---\n",
+            "GET / HTTP/1.1\n",
+            "Host: example.com\n",
+            "---\n",
+            "---\n",
+            "---\n"
+        ),
+        Err(vec![(
+            errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
+                "host".to_string()
+            )),
+            4..37
+        )])
+    );
+
+    parser_test!(
+        forbidden_header_host_mixed_capitialization,
+        concat!(
+            "---\n",
+            "GET / HTTP/1.1\n",
+            "hOsT: example.com\n",
+            "---\n",
+            "---\n",
+            "---\n"
+        ),
+        Err(vec![(
+            errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
+                "host".to_string()
+            )),
+            4..37
+        )])
+    );
+
+    parser_test!(
+        forbidden_header_accept_charset,
+        concat!(
+            "---\n",
+            "GET / HTTP/1.1\n",
+            "accept-charset: value\n",
+            "---\n",
+            "---\n",
+            "---\n"
+        ),
+        Err(vec![(
+            errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
+                "accept-charset".to_string()
+            )),
+            4..41
+        )])
+    );
+
+    parser_test!(
+        forbidden_header_accept_encoding,
+        concat!(
+            "---\n",
+            "GET / HTTP/1.1\n",
+            "accept-encoding: value\n",
+            "---\n",
+            "---\n",
+            "---\n"
+        ),
+        Err(vec![(
+            errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
+                "accept-encoding".to_string()
+            )),
+            4..42
+        )])
+    );
+
+    parser_test!(
+        forbidden_header_acr_headers,
+        concat!(
+            "---\n",
+            "GET / HTTP/1.1\n",
+            "access-control-request-headers: value\n",
+            "---\n",
+            "---\n",
+            "---\n"
+        ),
+        Err(vec![(
+            errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
+                "access-control-request-headers".to_string()
+            )),
+            4..57
+        )])
+    );
+
+    parser_test!(
+        forbidden_header_acr_method,
+        concat!(
+            "---\n",
+            "GET / HTTP/1.1\n",
+            "access-control-request-method: value\n",
+            "---\n",
+            "---\n",
+            "---\n"
+        ),
+        Err(vec![(
+            errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
+                "access-control-request-method".to_string()
+            )),
+            4..56
+        )])
+    );
+
+    parser_test!(
+        forbidden_header_connection,
+        concat!(
+            "---\n",
+            "GET / HTTP/1.1\n",
+            "connection: value\n",
+            "---\n",
+            "---\n",
+            "---\n"
+        ),
+        Err(vec![(
+            errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
+                "connection".to_string()
+            )),
+            4..37
+        )])
+    );
+
+    parser_test!(
+        forbidden_header_content_length,
+        concat!(
+            "---\n",
+            "GET / HTTP/1.1\n",
+            "content-length: value\n",
+            "---\n",
+            "---\n",
+            "---\n"
+        ),
+        Err(vec![(
+            errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
+                "content-length".to_string()
+            )),
+            4..41
+        )])
+    );
+
+    parser_test!(
+        forbidden_header_cookie,
+        concat!(
+            "---\n",
+            "GET / HTTP/1.1\n",
+            "cookie: value\n",
+            "---\n",
+            "---\n",
+            "---\n"
+        ),
+        Err(vec![(
+            errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
+                "cookie".to_string()
+            )),
+            4..33
+        )])
+    );
+
+    parser_test!(
+        forbidden_header_date,
+        concat!(
+            "---\n",
+            "GET / HTTP/1.1\n",
+            "date: value\n",
+            "---\n",
+            "---\n",
+            "---\n"
+        ),
+        Err(vec![(
+            errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
+                "date".to_string()
+            )),
+            4..31
+        )])
+    );
+
+    parser_test!(
+        forbidden_header_dnt,
+        concat!(
+            "---\n",
+            "GET / HTTP/1.1\n",
+            "dnt: value\n",
+            "---\n",
+            "---\n",
+            "---\n"
+        ),
+        Err(vec![(
+            errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
+                "dnt".to_string()
+            )),
+            4..30
+        )])
+    );
+
+    parser_test!(
+        forbidden_header_expect,
+        concat!(
+            "---\n",
+            "GET / HTTP/1.1\n",
+            "expect: value\n",
+            "---\n",
+            "---\n",
+            "---\n"
+        ),
+        Err(vec![(
+            errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
+                "expect".to_string()
+            )),
+            4..33
+        )])
+    );
+
+    parser_test!(
+        forbidden_header_keep_alive,
+        concat!(
+            "---\n",
+            "GET / HTTP/1.1\n",
+            "keep-alive: value\n",
+            "---\n",
+            "---\n",
+            "---\n"
+        ),
+        Err(vec![(
+            errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
+                "keep-alive".to_string()
+            )),
+            4..37
+        )])
+    );
+
+    parser_test!(
+        forbidden_header_origin,
+        concat!(
+            "---\n",
+            "GET / HTTP/1.1\n",
+            "origin: value\n",
+            "---\n",
+            "---\n",
+            "---\n"
+        ),
+        Err(vec![(
+            errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
+                "origin".to_string()
+            )),
+            4..33
+        )])
+    );
+
+    parser_test!(
+        forbidden_header_permission_policy,
+        concat!(
+            "---\n",
+            "GET / HTTP/1.1\n",
+            "permission-policy: value\n",
+            "---\n",
+            "---\n",
+            "---\n"
+        ),
+        Err(vec![(
+            errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
+                "permission-policy".to_string()
+            )),
+            4..44
+        )])
+    );
+
+    parser_test!(
+        forbidden_header_te,
+        concat!(
+            "---\n",
+            "GET / HTTP/1.1\n",
+            "te: value\n",
+            "---\n",
+            "---\n",
+            "---\n"
+        ),
+        Err(vec![(
+            errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
+                "te".to_string()
+            )),
+            4..29
+        )])
+    );
+
+    parser_test!(
+        forbidden_header_trailer,
+        concat!(
+            "---\n",
+            "GET / HTTP/1.1\n",
+            "trailer: value\n",
+            "---\n",
+            "---\n",
+            "---\n"
+        ),
+        Err(vec![(
+            errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
+                "trailer".to_string()
+            )),
+            4..34
+        )])
+    );
+
+    parser_test!(
+        forbidden_header_transfer_encoding,
+        concat!(
+            "---\n",
+            "GET / HTTP/1.1\n",
+            "transfer-encoding: value\n",
+            "---\n",
+            "---\n",
+            "---\n"
+        ),
+        Err(vec![(
+            errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
+                "transfer-encoding".to_string()
+            )),
+            4..44
+        )])
+    );
+
+    parser_test!(
+        forbidden_header_upgrade,
+        concat!(
+            "---\n",
+            "GET / HTTP/1.1\n",
+            "upgrade: value\n",
+            "---\n",
+            "---\n",
+            "---\n"
+        ),
+        Err(vec![(
+            errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
+                "upgrade".to_string()
+            )),
+            4..34
+        )])
+    );
+
+    parser_test!(
+        forbidden_header_via,
+        concat!(
+            "---\n",
+            "GET / HTTP/1.1\n",
+            "via: value\n",
+            "---\n",
+            "---\n",
+            "---\n"
+        ),
+        Err(vec![(
+            errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
+                "via".to_string()
+            )),
+            4..30
+        )])
+    );
+
+    parser_test!(
         full_request_file,
         concat!(
             "---\n",
-            "POST / HTTP/1.1\n",
-            "host: {{:base_url}}\n",
+            "POST /?query={{:query_value}} HTTP/1.1\n",
             "x-test: {{?test_value}}\n",
             "x-api-key: {{!api_key}}\n",
             "\n",
@@ -736,15 +1147,15 @@ mod test {
             "{{?expected_response_body}}\n",
             "\n",
             "---\n",
-            "vars = [\"base_url\"]\n",
+            "vars = [\"query_value\"]\n",
             "secrets = [\"api_key\"]",
             "\n",
             "[envs]\n",
             "[envs.dev]\n",
-            "base_url = \"https://dev.example.com\"\n",
+            "query_value = \"dev_value\"\n",
             "\n",
             "[envs.prod]\n",
-            "base_url = \"https://example.com\"\n",
+            "query_value = \"prod_value\"\n",
             "\n",
             "[prompts]\n",
             "test_value = \"\"\n",
@@ -756,16 +1167,15 @@ mod test {
             request: (
                 Request {
                     verb: "POST".to_string(),
-                    target: "/".to_string(),
+                    target: "/?query={{:query_value}}".to_string(),
                     http_version: "1.1".to_string(),
                     headers: HashMap::from([
-                        ("host".to_string(), "{{:base_url}}".to_string()),
                         ("x-test".to_string(), "{{?test_value}}".to_string()),
                         ("x-api-key".to_string(), "{{!api_key}}".to_string()),
                     ]),
                     body: Some("[1, 2, 3]\n\n".to_string())
                 },
-                4..100
+                4..103
             ),
             response: Some((
                 Response {
@@ -775,25 +1185,19 @@ mod test {
                     headers: HashMap::new(),
                     body: Some("{{?expected_response_body}}\n\n".to_string())
                 },
-                104..150
+                107..153
             )),
             config: Some((
                 UnresolvedRequestFileConfig {
-                    vars: Some(vec!["base_url".to_string()]),
+                    vars: Some(vec!["query_value".to_string()]),
                     envs: Some(HashMap::from([
                         (
                             "dev".to_string(),
-                            HashMap::from([(
-                                "base_url".to_string(),
-                                "https://dev.example.com".to_string()
-                            )])
+                            HashMap::from([("query_value".to_string(), "dev_value".to_string())])
                         ),
                         (
                             "prod".to_string(),
-                            HashMap::from([(
-                                "base_url".to_string(),
-                                "https://example.com".to_string()
-                            )])
+                            HashMap::from([("query_value".to_string(), "prod_value".to_string())])
                         ),
                     ])),
                     prompts: Some(HashMap::from([
@@ -802,15 +1206,15 @@ mod test {
                     ])),
                     secrets: Some(vec!["api_key".to_string()])
                 },
-                154..353
+                157..342
             )),
             refs: vec![
-                (ReferenceType::Variable("base_url".to_string()), 4..100),
-                (ReferenceType::Prompt("test_value".to_string()), 4..100),
-                (ReferenceType::Secret("api_key".to_string()), 4..100),
+                (ReferenceType::Variable("query_value".to_string()), 4..103),
+                (ReferenceType::Prompt("test_value".to_string()), 4..103),
+                (ReferenceType::Secret("api_key".to_string()), 4..103),
                 (
                     ReferenceType::Prompt("expected_response_body".to_string()),
-                    104..150
+                    107..153
                 )
             ],
         })
