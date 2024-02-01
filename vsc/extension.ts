@@ -2,6 +2,7 @@
 
 import {
   ExtensionContext,
+  Disposable,
   tasks,
   commands,
   env,
@@ -17,7 +18,6 @@ import {
   LanguageClientOptions,
   ServerOptions,
 } from "vscode-languageclient/node";
-import { Disposable } from "vscode";
 
 let lc: LanguageClient;
 let status: StatusBarItem;
