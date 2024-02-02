@@ -30,6 +30,12 @@ build-wasm:
     cd wasm-example && rm -rf node_modules && npm i
     cd wasm-example && npm run test
 
+lint:
+    cargo clippy
+
+format:
+    cargo fmt
+
 test:
     cargo test
     cd wasm-example && npm run test
