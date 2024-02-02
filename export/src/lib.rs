@@ -47,13 +47,16 @@ pub fn export(request: &Request, format: Format) -> String {
             let h = if request.headers.is_empty() {
                 None
             } else {
-                Some(request
+                Some(
+                    request
                         .headers
                         .clone()
                         .into_iter()
                         .map(|x| format!(r#"-H "{}: {}""#, x.0, x.1))
                         .collect::<Vec<String>>()
-                        .join(" ").to_string())
+                        .join(" ")
+                        .to_string(),
+                )
             };
 
             let b = request.body.clone().and_then(|x| {
