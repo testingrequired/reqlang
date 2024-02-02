@@ -1,12 +1,11 @@
-use std::{collections::HashMap, fs, process::exit};
 use clap::builder::TypedValueParser;
 use clap::Parser;
+use std::{collections::HashMap, fs, process::exit};
 
 use diagnostics::Diagnoser;
 use errors::ReqlangError;
 use export::{export, Format};
 use span::Spanned;
-
 
 use std::error::Error;
 
@@ -54,10 +53,9 @@ where
     Ok((s[..pos].parse()?, s[pos + 1..].parse()?))
 }
 
-fn map_errs(errs: &Vec<Spanned<ReqlangError>>) -> String {
-
+fn map_errs(errs: &[Spanned<ReqlangError>]) -> String {
     let err = errs
-        .into_iter()
+        .iter()
         .map(|x| format!("{} ({:?})", x.0, x.1))
         .collect::<Vec<_>>()
         .join("\n- ");

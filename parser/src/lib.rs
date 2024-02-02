@@ -12,7 +12,7 @@ mod parser;
 mod resolver;
 mod templater;
 
-pub const TEMPLATE_REFERENCE_PATTERN: &'static str = r"\{\{([:?!]{1})([a-zA-Z][_a-zA-Z]+)\}\}";
+pub const TEMPLATE_REFERENCE_PATTERN: &str = r"\{\{([:?!]{1})([a-zA-Z][_a-zA-Z]+)\}\}";
 
 /// Parse a string in to a request file
 pub fn parse(input: &str) -> Result<UnresolvedRequestFile, Vec<Spanned<ReqlangError>>> {
@@ -28,13 +28,7 @@ pub fn resolve(
 ) -> Result<ResolvedRequestFile, Vec<Spanned<ReqlangError>>> {
     let reqfile = RequestFileParser::parse_string(input);
 
-    if let Err(err) = reqfile {
-        return Err(err);
-    }
-
-    let reqfile = reqfile.unwrap();
-
-    RequestFileResolver::resolve_request_file(&reqfile, env, &prompts, &secrets)
+    RequestFileResolver::resolve_request_file(&reqfile?, env, prompts, secrets)
 }
 
 /// Parse a string in to a request file, resolve values, and template the request/response
@@ -46,23 +40,9 @@ pub fn template(
 ) -> Result<TemplatedRequestFile, Vec<Spanned<ReqlangError>>> {
     let reqfile = RequestFileParser::parse_string(input);
 
-    if let Err(err) = reqfile {
-        return Err(err);
-    }
+    let reqfile = RequestFileResolver::resolve_request_file(&reqfile?, env, prompts, secrets);
 
-    let reqfile = reqfile.unwrap();
-
-    let reqfile = RequestFileResolver::resolve_request_file(&reqfile, env, &prompts, &secrets);
-
-    if let Err(err) = reqfile {
-        return Err(err);
-    }
-
-    let reqfile = reqfile.unwrap();
-
-    let reqfile = RequestFileTemplater::template_reqfile(input, &reqfile);
-
-    reqfile
+    RequestFileTemplater::template_reqfile(input, &reqfile?)
 }
 
 /// Export a request file in to another format
@@ -75,21 +55,9 @@ pub fn export(
 ) -> Result<String, Vec<Spanned<ReqlangError>>> {
     let reqfile = RequestFileParser::parse_string(input);
 
-    if let Err(err) = reqfile {
-        return Err(err);
-    }
+    let reqfile = RequestFileResolver::resolve_request_file(&reqfile?, env, prompts, secrets);
 
-    let reqfile = reqfile.unwrap();
-
-    let reqfile = RequestFileResolver::resolve_request_file(&reqfile, env, &prompts, &secrets);
-
-    if let Err(err) = reqfile {
-        return Err(err);
-    }
-
-    let reqfile = reqfile.unwrap();
-
-    let reqfile = RequestFileTemplater::template_reqfile(input, &reqfile).unwrap();
+    let reqfile = RequestFileTemplater::template_reqfile(input, &reqfile?).unwrap();
 
     Ok(export::export(&reqfile.request, format))
 }

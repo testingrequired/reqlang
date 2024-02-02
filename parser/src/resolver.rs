@@ -33,7 +33,7 @@ impl RequestFileResolver {
     ) -> Result<ResolvedRequestFile, Vec<Spanned<ReqlangError>>> {
         if let Some((config, span)) = &reqfile.config {
             if let Some(envs) = &config.envs {
-                if let None = envs.keys().find(|x| x.as_str() == env) {
+                if !envs.keys().any(|x| x.as_str() == env) {
                     return Err(vec![(
                         ReqlangError::ResolverError(errors::ResolverError::InvalidEnvError(
                             env.to_string(),

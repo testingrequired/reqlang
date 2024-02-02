@@ -6,7 +6,7 @@ use types::{ReferenceType, Request, Response, UnresolvedRequestFile, UnresolvedR
 
 use crate::TEMPLATE_REFERENCE_PATTERN;
 
-static FORBIDDEN_REQUEST_HEADER_NAMES: &'static [&str] = &[
+static FORBIDDEN_REQUEST_HEADER_NAMES: &[&str] = &[
     "host",
     "accept-charset",
     "accept-encoding",
@@ -55,7 +55,7 @@ impl RequestFileParser {
 
             let request = match RequestFileParser::parse_request(&reqfile.request) {
                 Ok((request, span)) => {
-                    for key in request.headers.keys().into_iter() {
+                    for key in request.headers.keys() {
                         if FORBIDDEN_REQUEST_HEADER_NAMES.contains(&key.to_lowercase().as_str()) {
                             parse_errors.push((
                                 ParseError::ForbiddenRequestHeaderNameError(key.to_lowercase())
@@ -191,21 +191,17 @@ impl RequestFileParser {
                 let ref_names: Vec<String> = refs
                     .clone()
                     .into_iter()
-                    .map(|(x, _)| {
-                        let ref_name = match x {
-                            ReferenceType::Variable(name) => name,
-                            ReferenceType::Prompt(name) => name,
-                            ReferenceType::Secret(name) => name,
-                            ReferenceType::Unknown(name) => name,
-                        };
-
-                        ref_name
+                    .map(|(x, _)| match x {
+                        ReferenceType::Variable(name) => name,
+                        ReferenceType::Prompt(name) => name,
+                        ReferenceType::Secret(name) => name,
+                        ReferenceType::Unknown(name) => name,
                     })
                     .collect();
 
                 if let Some(vars) = &config.vars {
                     for var in vars {
-                        if !ref_names.contains(&var) {
+                        if !ref_names.contains(var) {
                             parse_errors.push((
                                 ReqlangError::ParseError(ParseError::UnusedValueError(
                                     ReferenceType::Variable(var.clone()),
@@ -220,7 +216,7 @@ impl RequestFileParser {
                     let keys = prompts.keys();
 
                     for key in keys {
-                        if !ref_names.contains(&key) {
+                        if !ref_names.contains(key) {
                             parse_errors.push((
                                 ReqlangError::ParseError(ParseError::UnusedValueError(
                                     ReferenceType::Prompt(key.clone()),
@@ -233,7 +229,7 @@ impl RequestFileParser {
 
                 if let Some(secrets) = &config.secrets {
                     for secret in secrets {
-                        if !ref_names.contains(&secret) {
+                        if !ref_names.contains(secret) {
                             parse_errors.push((
                                 ReqlangError::ParseError(ParseError::UnusedValueError(
                                     ReferenceType::Secret(secret.clone()),
@@ -245,7 +241,7 @@ impl RequestFileParser {
                 }
             }
 
-            if parse_errors.len() > 0 {
+            if !parse_errors.is_empty() {
                 return Err(parse_errors);
             }
 
@@ -299,11 +295,11 @@ impl RequestFileParser {
         let request_end = request_start + request.len();
 
         // Fixes requests that doesn't end in correct number of new lines
-        if !request.ends_with("\n") {
+        if !request.ends_with('\n') {
             request = format!("{request}\n\n");
         }
 
-        if request.ends_with("\n") && !request.ends_with("\n\n") {
+        if request.ends_with('\n') && !request.ends_with("\n\n") {
             request = format!("{request}\n");
         }
 
@@ -349,7 +345,7 @@ impl RequestFileParser {
         config: &Option<Spanned<String>>,
     ) -> Option<Result<Spanned<UnresolvedRequestFileConfig>, Vec<Spanned<ReqlangError>>>> {
         config.as_ref().map(|(config, span)| {
-            let config: Result<UnresolvedRequestFileConfig, _> = toml::from_str(&config);
+            let config: Result<UnresolvedRequestFileConfig, _> = toml::from_str(config);
 
             config.map(|x| (x, span.clone())).map_err(|x| {
                 let toml_span = x.span().unwrap_or(NO_SPAN);
@@ -369,7 +365,7 @@ impl RequestFileParser {
 
         let mut captured_refs: Vec<Spanned<ReferenceType>> = vec![];
 
-        for (_, [prefix, name]) in re.captures_iter(&input).map(|cap| cap.extract()) {
+        for (_, [prefix, name]) in re.captures_iter(input).map(|cap| cap.extract()) {
             captured_refs.push(match prefix {
                 ":" => (ReferenceType::Variable(name.to_string()), span.to_owned()),
                 "?" => (ReferenceType::Prompt(name.to_string()), span.to_owned()),
@@ -378,7 +374,7 @@ impl RequestFileParser {
             });
         }
 
-        return captured_refs;
+        captured_refs
     }
 
     pub fn parse_request(
@@ -426,7 +422,7 @@ impl RequestFileParser {
         let mut mapped_headers = HashMap::new();
 
         req.headers
-            .into_iter()
+            .iter_mut()
             .filter(|x| !x.name.is_empty())
             .for_each(|x| {
                 mapped_headers.insert(
@@ -439,7 +435,7 @@ impl RequestFileParser {
             Request {
                 verb: req.method.unwrap().to_string(),
                 target: req.path.unwrap().to_string(),
-                http_version: format!("1.{}", req.version.unwrap().to_string()),
+                http_version: format!("1.{}", req.version.unwrap()),
                 headers: mapped_headers,
                 body: Some(body.to_string()),
             },
@@ -489,7 +485,7 @@ impl RequestFileParser {
         let mut mapped_headers = HashMap::new();
 
         res.headers
-            .into_iter()
+            .iter_mut()
             .filter(|x| !x.name.is_empty())
             .for_each(|x| {
                 mapped_headers.insert(
@@ -500,7 +496,7 @@ impl RequestFileParser {
 
         Some(Ok((
             Response {
-                http_version: format!("1.{}", res.version.unwrap().to_string()),
+                http_version: format!("1.{}", res.version.unwrap()),
                 status_code: res.code.unwrap().to_string(),
                 status_text: res.reason.unwrap().to_string(),
                 headers: mapped_headers,

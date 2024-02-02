@@ -70,9 +70,9 @@ impl Display for Request {
 
         let the_rest = match (&headers, &body) {
             (Some(headers), Some(body)) => format!("{headers}\n{body}"),
-            (Some(headers), None) => format!("{headers}"),
+            (Some(headers), None) => headers.to_string(),
             (None, Some(body)) => format!("\n{body}"),
-            (None, None) => format!(""),
+            (None, None) => String::new(),
         };
 
         write!(

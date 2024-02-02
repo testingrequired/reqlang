@@ -19,7 +19,6 @@ impl Diagnoser {
                         range: Diagnoser::get_range(source, span),
                         severity: Some(DiagnosisSeverity::ERROR),
                         message: err.to_string(),
-                        ..Default::default()
                     })
                     .collect();
             }
@@ -41,7 +40,6 @@ impl Diagnoser {
                         range: Diagnoser::get_range(source, span),
                         severity: Some(DiagnosisSeverity::ERROR),
                         message: err.to_string(),
-                        ..Default::default()
                     })
                     .collect();
             }
@@ -162,8 +160,7 @@ mod tests {
                     },
                 },
                 severity: Some(DiagnosisSeverity::ERROR),
-                message: String::from("ParseError: Request file is an empty file"),
-                ..Default::default()
+                message: String::from("ParseError: Request file is an empty file")
             }],
             Diagnoser::get_diagnostics(&source)
         );
