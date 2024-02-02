@@ -36,3 +36,9 @@ test:
 
 clean-git-branches:
     git branch -d $(git branch --merged=main | grep -v main) && git fetch --prune
+
+build-docker:
+    docker build -t kyleect/reqlang:0.1.0 .
+
+run-docker *args:
+    docker run --rm -v "/$PWD/examples":/home/reqlang/examples kyleect/reqlang:0.1.0 {{args}}
