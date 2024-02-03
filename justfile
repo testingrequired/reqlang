@@ -30,21 +30,21 @@ build-wasm:
     cd wasm-example && rm -rf node_modules && npm i
     cd wasm-example && npm run test
 
-lint:
-    cargo clippy
+lint *args:
+    cargo clippy --workspace --all-targets --all-features -- {{args}}
 
-format:
-    cargo fmt
+format *args:
+    cargo fmt --all -- {{args}}
 
 verify:
     cargo check --workspace --all-targets
     cargo check --workspace --all-features --lib --target wasm32-unknown-unknown
-    cargo fmt --all -- --check
-    cargo clippy --workspace --all-targets --all-features --  -D warnings -W clippy::all
-    cargo test --workspace --all-targets --all-features
+    just format --check
+    just lint -D warnings -W clippy::all
+    just test
 
 test:
-    cargo test
+    cargo test --workspace --all-targets --all-features
     cd wasm-example && npm run test
 
 clean-git-branches:
