@@ -1,5 +1,0 @@
-[workspace]
-
-members = ["cli", "reqlang-export", "errors", "span", "types", "parser", "reqlang-lsp", "diagnostics", "wasm", "export", "reqlang-client"]
-
-resolver = "2"
