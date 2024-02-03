@@ -200,7 +200,9 @@ test("resolve should return json", () => {
 });
 
 test("parse should return json", () => {
-  expect(reqlang.parse(reqfile)).to.deep.equals({
+  const unresolved = reqlang.parse(reqfile);
+
+  expect(unresolved).to.deep.equals({
     request: [
       {
         verb: "GET",
@@ -257,4 +259,10 @@ test("parse should return json", () => {
       [{ Prompt: "id" }, { start: 94, end: 133 }],
     ],
   });
+});
+
+test("getEnvNames should array of env names", () => {
+  const envNames = reqlang.getEnvNames(reqfile);
+
+  expect(envNames).to.deep.equals(["dev"]);
 });

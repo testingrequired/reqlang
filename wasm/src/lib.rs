@@ -21,6 +21,24 @@ pub fn parse(source: &str) -> JsValue {
     }
 }
 
+/// Get the env names from a request file
+///
+/// # Arguments
+///
+/// * `source` - String to parse
+#[wasm_bindgen]
+#[allow(non_snake_case)]
+pub fn getEnvNames(source: &str) -> JsValue {
+    console_error_panic_hook::set_once();
+
+    let results = parser::parse(source);
+
+    match results {
+        Ok(results) => serde_wasm_bindgen::to_value(&results.env_names()).unwrap(),
+        Err(err) => serde_wasm_bindgen::to_value(&err).unwrap(),
+    }
+}
+
 /// Parse a string in to a request file and resolve template values
 ///
 /// # Arguments

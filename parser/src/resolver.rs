@@ -31,16 +31,16 @@ impl RequestFileResolver {
         prompts: &HashMap<String, String>,
         secrets: &HashMap<String, String>,
     ) -> Result<ResolvedRequestFile, Vec<Spanned<ReqlangError>>> {
+        let env_names = reqfile.env_names();
+
         if let Some((config, span)) = &reqfile.config {
-            if let Some(envs) = &config.envs {
-                if !envs.keys().any(|x| x.as_str() == env) {
-                    return Err(vec![(
-                        ReqlangError::ResolverError(errors::ResolverError::InvalidEnvError(
-                            env.to_string(),
-                        )),
-                        span.clone(),
-                    )]);
-                }
+            if !env_names.contains(&&env.to_owned()) {
+                return Err(vec![(
+                    ReqlangError::ResolverError(errors::ResolverError::InvalidEnvError(
+                        env.to_string(),
+                    )),
+                    span.clone(),
+                )]);
             }
 
             let mut missing_inputs = vec![];

@@ -39,6 +39,9 @@ build-wasm:
 lint *args:
     cargo clippy --workspace --all-targets --all-features -- {{args}}
 
+lint-fix *args:
+    cargo clippy --workspace --all-targets --all-features --fix -- {{args}}
+
 format *args:
     cargo fmt --all -- {{args}}
 

@@ -131,6 +131,18 @@ pub struct UnresolvedRequestFile {
     pub refs: Vec<Spanned<ReferenceType>>,
 }
 
+impl UnresolvedRequestFile {
+    pub fn env_names(&self) -> Vec<&String> {
+        match &self.config {
+            Some((config, _)) => match &config.envs {
+                Some(envs) => Vec::from_iter(envs.keys()),
+                None => vec![],
+            },
+            None => vec![],
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Default, Serialize, Deserialize)]
 pub struct UnresolvedRequestFileConfig {
     pub vars: Option<Vec<String>>,
@@ -166,6 +178,105 @@ pub struct TemplatedRequestFile {
 
 #[cfg(test)]
 mod tests {
+    mod unresolved_requestfile {
+        use std::collections::HashMap;
+
+        use span::NO_SPAN;
+
+        use crate::{Request, UnresolvedRequestFile, UnresolvedRequestFileConfig};
+
+        #[test]
+        fn get_envs_when_config_is_defined() {
+            let reqfile = UnresolvedRequestFile {
+                config: Some((
+                    UnresolvedRequestFileConfig {
+                        vars: Some(vec!["var".to_string()]),
+                        envs: Some(HashMap::from([
+                            (
+                                "dev".to_string(),
+                                HashMap::from([("var".to_string(), "dev_value".to_string())]),
+                            ),
+                            (
+                                "prod".to_string(),
+                                HashMap::from([("var".to_string(), "prod_value".to_string())]),
+                            ),
+                        ])),
+                        prompts: None,
+                        secrets: None,
+                    },
+                    NO_SPAN,
+                )),
+                request: (Request::get("/", "1.1", HashMap::new()), NO_SPAN),
+                response: None,
+                refs: vec![],
+            };
+
+            let mut actual = reqfile.env_names();
+
+            actual.sort();
+
+            assert_eq!(vec!["dev", "prod"], actual);
+        }
+
+        #[test]
+        fn get_envs_when_config_is_defined_empty() {
+            let reqfile = UnresolvedRequestFile {
+                config: Some((
+                    UnresolvedRequestFileConfig {
+                        vars: Some(vec!["var".to_string()]),
+                        envs: Some(HashMap::new()),
+                        prompts: None,
+                        secrets: None,
+                    },
+                    NO_SPAN,
+                )),
+                request: (Request::get("/", "1.1", HashMap::new()), NO_SPAN),
+                response: None,
+                refs: vec![],
+            };
+
+            let empty: Vec<&String> = Vec::new();
+
+            assert_eq!(empty, reqfile.env_names());
+        }
+
+        #[test]
+        fn get_envs_when_config_is_defined_but_envs_none() {
+            let reqfile = UnresolvedRequestFile {
+                config: Some((
+                    UnresolvedRequestFileConfig {
+                        vars: Some(vec!["var".to_string()]),
+                        envs: None,
+                        prompts: None,
+                        secrets: None,
+                    },
+                    NO_SPAN,
+                )),
+                request: (Request::get("/", "1.1", HashMap::new()), NO_SPAN),
+                response: None,
+                refs: vec![],
+            };
+
+            let empty: Vec<&String> = Vec::new();
+
+            assert_eq!(empty, reqfile.env_names());
+        }
+
+        #[test]
+        fn get_envs_when_config_is_missing() {
+            let reqfile = UnresolvedRequestFile {
+                config: None,
+                request: (Request::get("/", "1.1", HashMap::new()), NO_SPAN),
+                response: None,
+                refs: vec![],
+            };
+
+            let empty: Vec<&String> = Vec::new();
+
+            assert_eq!(empty, reqfile.env_names());
+        }
+    }
+
     mod request_display {
         use std::collections::HashMap;
 
