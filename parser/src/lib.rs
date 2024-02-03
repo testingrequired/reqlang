@@ -106,7 +106,7 @@ mod parserlib {
 
     #[test]
     fn parse_full_request_file() {
-        let reqfile = parse(&REQFILE_STRING);
+        let reqfile = parse(REQFILE_STRING);
 
         assert_eq!(
             Ok(UnresolvedRequestFile {
@@ -177,7 +177,7 @@ mod parserlib {
     #[test]
     fn resolve_full_request_file() {
         let resolved_reqfile = resolve(
-            &REQFILE_STRING,
+            REQFILE_STRING,
             "dev",
             &HashMap::from([
                 ("test_value".to_string(), "test_value_value".to_string()),
@@ -249,7 +249,7 @@ mod parserlib {
     #[test]
     fn template_full_request_file() {
         let templated_reqfile = template(
-            &REQFILE_STRING,
+            REQFILE_STRING,
             "dev",
             &HashMap::from([
                 ("test_value".to_string(), "test_value_value".to_string()),

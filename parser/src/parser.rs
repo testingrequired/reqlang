@@ -28,6 +28,9 @@ static FORBIDDEN_REQUEST_HEADER_NAMES: &[&str] = &[
     "via",
 ];
 
+/// Delimiter used to split request files
+const DELIMITER: &str = "---\n";
+
 /// Parse a string in to a request file
 pub struct RequestFileParser {}
 
@@ -505,6 +508,12 @@ impl RequestFileParser {
             span.clone(),
         )))
     }
+}
+
+pub struct RequestFileSplitUp {
+    pub request: Spanned<String>,
+    pub response: Option<Spanned<String>>,
+    pub config: Option<Spanned<String>>,
 }
 
 #[cfg(test)]
@@ -1215,13 +1224,4 @@ mod test {
             ],
         })
     );
-}
-
-/// Delimiter used to split request files
-const DELIMITER: &str = "---\n";
-
-pub struct RequestFileSplitUp {
-    pub request: Spanned<String>,
-    pub response: Option<Spanned<String>>,
-    pub config: Option<Spanned<String>>,
 }
