@@ -50,4 +50,4 @@ build-docker-no-cache:
     docker build --no-cache -t kyleect/reqlang:0.1.0 .
 
 run-docker *args:
-    docker run --rm -v "/$PWD/examples":/home/reqlang/examples kyleect/reqlang:0.1.0 {{args}}
+    docker run --rm -v "/$PWD/examples":/app/examples:ro kyleect/reqlang:0.1.0 {{args}}
