@@ -1,10 +1,13 @@
 use std::fs;
 
 use eframe::{run_native, App};
+use parser::parse;
+use types::UnresolvedRequestFile;
 
 struct Client {
     current_path: Option<String>,
     current_source: Option<String>,
+    current_reqfile: Option<UnresolvedRequestFile>,
 }
 
 impl Client {
@@ -13,6 +16,7 @@ impl Client {
         let mut slf = Self {
             current_path: None,
             current_source: None,
+            current_reqfile: None,
         };
 
         slf
@@ -22,32 +26,47 @@ impl Client {
 impl App for Client {
     fn update(&mut self, ctx: &eframe::egui::Context, _frame: &mut eframe::Frame) {
         eframe::egui::CentralPanel::default().show(ctx, |ui| {
-            if ui.button("Open file…").clicked() {
-                if let Some(path) = rfd::FileDialog::new().pick_file() {
-                    let path = path.display().to_string();
+            ui.horizontal(|ui| {
+                if ui.button("Open file…").clicked() {
+                    if let Some(path) = rfd::FileDialog::new().pick_file() {
+                        let path = path.display().to_string();
 
-                    self.current_source = Some(
-                        fs::read_to_string(&path).expect("Should have been able to read the file"),
-                    );
+                        let source = fs::read_to_string(&path)
+                            .expect("Should have been able to read the file");
 
-                    self.current_path = Some(path);
+                        self.current_reqfile = Some(parse(&source).unwrap());
+
+                        self.current_source = Some(
+                            fs::read_to_string(&path)
+                                .expect("Should have been able to read the file"),
+                        );
+
+                        self.current_path = Some(path);
+                    }
                 }
-            }
 
-            if ui.button("Clear").clicked() {
-                self.current_path = None;
-                self.current_source = None;
-            }
+                if ui.button("Clear").clicked() {
+                    self.current_path = None;
+                    self.current_source = None;
+                    self.current_reqfile = None;
+                }
+            });
 
             if let Some(picked_path) = &self.current_path {
                 ui.horizontal(|ui| {
                     ui.label("Picked file:");
                     ui.monospace(picked_path);
                 });
+
+                ui.separator();
             }
 
-            if let Some(current_source) = &self.current_source {
-                ui.code(current_source);
+            if let Some(reqfile) = &self.current_reqfile {
+                eframe::egui::ScrollArea::vertical()
+                    .auto_shrink(false)
+                    .show(ui, |ui| {
+                        ui.code(format!("{:#?}", reqfile));
+                    });
             }
         });
     }

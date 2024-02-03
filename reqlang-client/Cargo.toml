@@ -9,3 +9,4 @@ edition = "2021"
 eframe = "0.25.0"
 rfd = "0.13.0"
 parser = { path = "../parser" }
+types = { path = "../types" }
