@@ -8,7 +8,7 @@ WORKDIR /app
 
 COPY . .
 
-RUN cargo build --locked --release
+RUN cargo build --locked --release --package cli
 
 ################################################################################
 
