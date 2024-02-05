@@ -1,10 +1,12 @@
 use std::{
+    fs,
     ops::ControlFlow,
     str::FromStr,
     sync::{Arc, Mutex},
 };
 
 use eframe::egui;
+use parser::parse;
 use types::{ResolvedRequestFile, UnresolvedRequestFile};
 
 #[allow(dead_code)]
@@ -18,13 +20,43 @@ enum ClientState {
     Demo(DemoState),
 }
 
-struct InitState;
+struct InitState {
+    picked_path: Option<String>,
+}
+
+impl Default for InitState {
+    fn default() -> Self {
+        Self { picked_path: None }
+    }
+}
 
 impl InitState {
     pub fn ui(&mut self, egui_ctx: &egui::Context) -> Result<ClientState, &str> {
-        egui::CentralPanel::default().show(egui_ctx, |_| {});
+        let mut next_state: ClientState = ClientState::Init(InitState { picked_path: None });
 
-        Ok(ClientState::Init(InitState))
+        egui::CentralPanel::default().show(egui_ctx, |ui| {
+            if ui.button("Open file…").clicked() {
+                if let Some(path) = rfd::FileDialog::new().pick_file() {
+                    self.picked_path = Some(path.display().to_string());
+                }
+            }
+
+            if let Some(picked_path) = &self.picked_path {
+                let source = fs::read_to_string(&picked_path)
+                    .expect("Should have been able to read the file");
+
+                let reqfile = parse(&source).unwrap();
+
+                next_state = ClientState::View(ViewState {
+                    path: picked_path.to_owned(),
+                    reqfile,
+                });
+            } else {
+                next_state = ClientState::Init(InitState { picked_path: None });
+            }
+        });
+
+        Ok(next_state)
     }
 }
 
@@ -215,7 +247,11 @@ struct ViewState {
 
 impl ViewState {
     pub fn ui(&mut self, egui_ctx: &egui::Context) -> Result<ClientState, &str> {
-        egui::CentralPanel::default().show(egui_ctx, |_| {});
+        egui::CentralPanel::default().show(egui_ctx, |ui| {
+            let text = format!("{:#?}", &self.reqfile);
+
+            selectable_text(ui, &text);
+        });
 
         Ok(ClientState::View(self.clone()))
     }
@@ -319,21 +355,21 @@ enum Download {
 #[allow(dead_code)]
 pub struct Client {
     streaming: bool,
-    state: ClientState,
+    state: Box<ClientState>,
 }
 
 impl Default for Client {
     fn default() -> Self {
         Self {
             streaming: true,
-            state: ClientState::Demo(DemoState::default()),
+            state: Box::new(ClientState::Init(InitState::default())),
         }
     }
 }
 
 impl eframe::App for Client {
     fn update(&mut self, egui_ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        let next_state = match &mut self.state {
+        let next_state = match &mut *self.state {
             ClientState::Init(state) => state.ui(egui_ctx),
             ClientState::View(state) => state.ui(egui_ctx),
             ClientState::Edit(state) => state.ui(egui_ctx),
@@ -344,7 +380,7 @@ impl eframe::App for Client {
         };
 
         self.state = match next_state {
-            Ok(next_state) => next_state,
+            Ok(next_state) => Box::new(next_state),
             Err(err) => panic!("{err}"),
         };
     }
