@@ -9,7 +9,7 @@ use types::{ResolvedRequestFile, UnresolvedRequestFile};
 
 #[allow(dead_code)]
 enum ClientState {
-    Init,
+    Init(InitState),
     View(ViewState),
     Edit(EditState),
     Resolving(ResolvingState),
@@ -18,6 +18,17 @@ enum ClientState {
     Demo(DemoState),
 }
 
+struct InitState;
+
+impl InitState {
+    pub fn ui(&mut self, egui_ctx: &egui::Context) -> Result<ClientState, &str> {
+        egui::CentralPanel::default().show(egui_ctx, |_| {});
+
+        Ok(ClientState::Init(InitState))
+    }
+}
+
+#[derive(Clone)]
 struct DemoState {
     url: String,
     method: Method,
@@ -39,7 +50,7 @@ impl Default for DemoState {
 }
 
 impl DemoState {
-    pub fn ui(&mut self, egui_ctx: &egui::Context) -> Result<(), &str> {
+    pub fn ui(&mut self, egui_ctx: &egui::Context) -> Result<ClientState, &str> {
         egui::CentralPanel::default().show(egui_ctx, |ui| {
             let trigger_fetch = self.ui_url(ui);
 
@@ -97,7 +108,7 @@ impl DemoState {
             }
         });
 
-        Ok(())
+        Ok(ClientState::Demo(self.clone()))
     }
 
     fn ui_url(&mut self, ui: &mut egui::Ui) -> bool {
@@ -202,12 +213,28 @@ struct ViewState {
     reqfile: UnresolvedRequestFile,
 }
 
+impl ViewState {
+    pub fn ui(&mut self, egui_ctx: &egui::Context) -> Result<ClientState, &str> {
+        egui::CentralPanel::default().show(egui_ctx, |_| {});
+
+        Ok(ClientState::View(self.clone()))
+    }
+}
+
 #[derive(Debug, PartialEq, Clone)]
 struct EditState {
     path: String,
     request: String,
     response: String,
     config: String,
+}
+
+impl EditState {
+    pub fn ui(&mut self, egui_ctx: &egui::Context) -> Result<ClientState, &str> {
+        egui::CentralPanel::default().show(egui_ctx, |_| {});
+
+        Ok(ClientState::Edit(self.clone()))
+    }
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -219,10 +246,26 @@ struct ResolvingState {
     secrets: Vec<(String, String)>,
 }
 
+impl ResolvingState {
+    pub fn ui(&mut self, egui_ctx: &egui::Context) -> Result<ClientState, &str> {
+        egui::CentralPanel::default().show(egui_ctx, |_| {});
+
+        Ok(ClientState::Resolving(self.clone()))
+    }
+}
+
 #[derive(Debug, PartialEq, Clone)]
 struct ResolvedState {
     path: String,
     reqfile: ResolvedRequestFile,
+}
+
+impl ResolvedState {
+    pub fn ui(&mut self, egui_ctx: &egui::Context) -> Result<ClientState, &str> {
+        egui::CentralPanel::default().show(egui_ctx, |_| {});
+
+        Ok(ClientState::Resolved(self.clone()))
+    }
 }
 
 #[allow(dead_code)]
@@ -231,6 +274,14 @@ struct RequestResponseState {
     path: String,
     reqfile: ResolvedRequestFile,
     download: Arc<Mutex<Download>>,
+}
+
+impl RequestResponseState {
+    pub fn ui(&mut self, egui_ctx: &egui::Context) -> Result<ClientState, &str> {
+        egui::CentralPanel::default().show(egui_ctx, |_| {});
+
+        Ok(ClientState::RequestResponse(self.clone()))
+    }
 }
 
 #[derive(Debug, PartialEq, Copy, Clone)]
@@ -254,6 +305,7 @@ impl FromStr for Method {
     }
 }
 
+#[derive(Clone)]
 enum Download {
     None,
     InProgress,
@@ -281,17 +333,20 @@ impl Default for Client {
 
 impl eframe::App for Client {
     fn update(&mut self, egui_ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        if let Err(err) = match &mut self.state {
-            ClientState::Init => todo!(),
-            ClientState::View(_) => todo!(),
-            ClientState::Edit(_) => todo!(),
-            ClientState::Resolving(_) => todo!(),
-            ClientState::Resolved(_) => todo!(),
-            ClientState::RequestResponse(_) => todo!(),
-            ClientState::Demo(demo) => demo.ui(egui_ctx),
-        } {
-            panic!("{err}");
-        }
+        let next_state = match &mut self.state {
+            ClientState::Init(state) => state.ui(egui_ctx),
+            ClientState::View(state) => state.ui(egui_ctx),
+            ClientState::Edit(state) => state.ui(egui_ctx),
+            ClientState::Resolving(state) => state.ui(egui_ctx),
+            ClientState::Resolved(state) => state.ui(egui_ctx),
+            ClientState::RequestResponse(state) => state.ui(egui_ctx),
+            ClientState::Demo(state) => state.ui(egui_ctx),
+        };
+
+        self.state = match next_state {
+            Ok(next_state) => next_state,
+            Err(err) => panic!("{err}"),
+        };
     }
 }
 
