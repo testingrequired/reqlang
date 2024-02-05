@@ -10,7 +10,7 @@ install:
     code --install-extension=./out/reqlang-vsc-extension-0.1.0.vsix
 
 uninstall:
-    code --uninstall-extension=./out/reqlang-vsc-extension-0.1.0.vsix
+    code --list-extensions | grep reqlang | xargs -I {} code --uninstall-extension={}
 
 clean:
     rm -rf out/* node_modules/

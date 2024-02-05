@@ -21,8 +21,8 @@ move-bins:
 
 build:
     cargo build
-    just build-wasm
     just build-vsc
+    just build-wasm-example
 
 install: build && move-bins
     echo 'Installed Bins (Debug)'
@@ -32,9 +32,14 @@ install: build && move-bins
 build-vsc:
     cd vsc && just build
 
-build-wasm:
-    cd wasm && just build
-    cd wasm-example && rm -rf node_modules && npm i
+install-vsc:
+    cd vsc && just install
+
+uninstall-vsc:
+    cd vsc && just uninstall
+
+build-wasm-example:
+    cd wasm-example && just build
 
 lint *args:
     cargo clippy --workspace --all-targets --all-features -- {{args}}
@@ -51,6 +56,7 @@ verify:
     just format --check
     just lint -D warnings -W clippy::all
     just test
+    just build
 
 test:
     cargo test --workspace --all-targets --all-features

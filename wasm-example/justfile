@@ -1,0 +1,5 @@
+default:
+  @just --list
+
+build:
+  rm -rf node_modules && npm i
