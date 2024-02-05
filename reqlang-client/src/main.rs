@@ -5,162 +5,40 @@ use std::{
 };
 
 use eframe::egui;
+use types::{ResolvedRequestFile, UnresolvedRequestFile};
 
-#[derive(Debug, PartialEq, Copy, Clone)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
-enum Method {
-    Get,
-    Head,
-    Post,
+#[allow(dead_code)]
+enum ClientState {
+    Init,
+    View(ViewState),
+    Edit(EditState),
+    Resolving(ResolvingState),
+    Resolved(ResolvedState),
+    RequestResponse(RequestResponseState),
+    Demo(DemoState),
 }
 
-impl FromStr for Method {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "GET" => Ok(Self::Get),
-            "HEAD" => Ok(Self::Head),
-            "POST" => Ok(Self::Post),
-            _ => Err(format!("Unsupported HTTP Verb: {s}")),
-        }
-    }
-}
-
-enum Download {
-    None,
-    InProgress,
-    StreamingInProgress {
-        response: ehttp::PartialResponse,
-        body: Vec<u8>,
-    },
-    Done(ehttp::Result<ehttp::Response>),
-}
-
-pub struct Client {
+struct DemoState {
     url: String,
     method: Method,
     request_body: String,
-    streaming: bool,
     download: Arc<Mutex<Download>>,
+    streaming: bool,
 }
 
-impl Default for Client {
+impl Default for DemoState {
     fn default() -> Self {
         Self {
             url: "https://raw.githubusercontent.com/emilk/ehttp/master/README.md".to_owned(),
             method: Method::Get,
             request_body: r#"["posting some json"]"#.to_owned(),
-            streaming: true,
             download: Arc::new(Mutex::new(Download::None)),
+            streaming: true,
         }
     }
 }
 
-impl eframe::App for Client {
-    fn update(&mut self, egui_ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        egui::CentralPanel::default().show(egui_ctx, |ui| {
-            let trigger_fetch = self.ui_url(ui);
-
-            if trigger_fetch {
-                let request = match self.method {
-                    Method::Get => ehttp::Request::get(&self.url),
-                    Method::Head => ehttp::Request::head(&self.url),
-                    Method::Post => {
-                        ehttp::Request::post(&self.url, self.request_body.as_bytes().to_vec())
-                    }
-                };
-                let download_store = self.download.clone();
-                *download_store.lock().unwrap() = Download::InProgress;
-                let egui_ctx = egui_ctx.clone();
-
-                if self.streaming {
-                    // The more complicated streaming API:
-                    ehttp::streaming::fetch(request, move |part| {
-                        egui_ctx.request_repaint(); // Wake up UI thread
-                        on_fetch_part(part, &mut download_store.lock().unwrap())
-                    });
-                } else {
-                    // The simple non-streaming API:
-                    ehttp::fetch(request, move |response| {
-                        *download_store.lock().unwrap() = Download::Done(response);
-                        egui_ctx.request_repaint(); // Wake up UI thread
-                    });
-                }
-            }
-
-            ui.separator();
-
-            let download: &Download = &self.download.lock().unwrap();
-            match download {
-                Download::None => {}
-                Download::InProgress => {
-                    ui.label("Wait for it…");
-                }
-                Download::StreamingInProgress { body, .. } => {
-                    let num_bytes = body.len();
-                    if num_bytes < 1_000_000 {
-                        ui.label(format!("{:.1} kB", num_bytes as f32 / 1e3));
-                    } else {
-                        ui.label(format!("{:.1} MB", num_bytes as f32 / 1e6));
-                    }
-                }
-                Download::Done(response) => match response {
-                    Err(err) => {
-                        ui.label(err);
-                    }
-                    Ok(response) => {
-                        response_ui(ui, response);
-                    }
-                },
-            }
-        });
-    }
-}
-
-fn on_fetch_part(
-    part: Result<ehttp::streaming::Part, String>,
-    download_store: &mut Download,
-) -> ControlFlow<()> {
-    let part = match part {
-        Err(err) => {
-            *download_store = Download::Done(Result::Err(err));
-            return ControlFlow::Break(());
-        }
-        Ok(part) => part,
-    };
-
-    match part {
-        ehttp::streaming::Part::Response(response) => {
-            *download_store = Download::StreamingInProgress {
-                response,
-                body: Vec::new(),
-            };
-            ControlFlow::Continue(())
-        }
-        ehttp::streaming::Part::Chunk(chunk) => {
-            if let Download::StreamingInProgress { response, mut body } =
-                std::mem::replace(download_store, Download::None)
-            {
-                body.extend_from_slice(&chunk);
-
-                if chunk.is_empty() {
-                    // This was the last chunk.
-                    *download_store = Download::Done(Ok(response.complete(body)));
-                    ControlFlow::Break(())
-                } else {
-                    // More to come.
-                    *download_store = Download::StreamingInProgress { response, body };
-                    ControlFlow::Continue(())
-                }
-            } else {
-                ControlFlow::Break(()) // some data race - abort download.
-            }
-        }
-    }
-}
-
-impl Client {
+impl DemoState {
     fn ui_url(&mut self, ui: &mut egui::Ui) -> bool {
         let mut trigger_fetch = self.ui_examples(ui);
 
@@ -256,6 +134,204 @@ impl Client {
         trigger_fetch
     }
 }
+
+#[derive(Debug, PartialEq, Clone)]
+struct ViewState {
+    path: String,
+    reqfile: UnresolvedRequestFile,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+struct EditState {
+    path: String,
+    request: String,
+    response: String,
+    config: String,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+struct ResolvingState {
+    path: String,
+    reqfile: UnresolvedRequestFile,
+    env: Option<String>,
+    prompts: Vec<(String, String)>,
+    secrets: Vec<(String, String)>,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+struct ResolvedState {
+    path: String,
+    reqfile: ResolvedRequestFile,
+}
+
+#[allow(dead_code)]
+#[derive(Clone)]
+struct RequestResponseState {
+    path: String,
+    reqfile: ResolvedRequestFile,
+    download: Arc<Mutex<Download>>,
+}
+
+#[derive(Debug, PartialEq, Copy, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
+enum Method {
+    Get,
+    Head,
+    Post,
+}
+
+impl FromStr for Method {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "GET" => Ok(Self::Get),
+            "HEAD" => Ok(Self::Head),
+            "POST" => Ok(Self::Post),
+            _ => Err(format!("Unsupported HTTP Verb: {s}")),
+        }
+    }
+}
+
+enum Download {
+    None,
+    InProgress,
+    StreamingInProgress {
+        response: ehttp::PartialResponse,
+        body: Vec<u8>,
+    },
+    Done(ehttp::Result<ehttp::Response>),
+}
+
+pub struct Client {
+    streaming: bool,
+    state: ClientState,
+}
+
+impl Default for Client {
+    fn default() -> Self {
+        Self {
+            streaming: true,
+            state: ClientState::Demo(DemoState::default()),
+        }
+    }
+}
+
+impl eframe::App for Client {
+    fn update(&mut self, egui_ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        match &mut self.state {
+            ClientState::Init => todo!(),
+            ClientState::View(_) => todo!(),
+            ClientState::Edit(_) => todo!(),
+            ClientState::Resolving(_) => todo!(),
+            ClientState::Resolved(_) => todo!(),
+            ClientState::RequestResponse(_) => todo!(),
+            ClientState::Demo(state) => {
+                egui::CentralPanel::default().show(egui_ctx, |ui| {
+                    let trigger_fetch = state.ui_url(ui);
+
+                    if trigger_fetch {
+                        let request = match state.method {
+                            Method::Get => ehttp::Request::get(&state.url),
+                            Method::Head => ehttp::Request::head(&state.url),
+                            Method::Post => ehttp::Request::post(
+                                &state.url,
+                                state.request_body.as_bytes().to_vec(),
+                            ),
+                        };
+                        let download_store = state.download.clone();
+                        *download_store.lock().unwrap() = Download::InProgress;
+                        let egui_ctx = egui_ctx.clone();
+
+                        if self.streaming {
+                            // The more complicated streaming API:
+                            ehttp::streaming::fetch(request, move |part| {
+                                egui_ctx.request_repaint(); // Wake up UI thread
+                                on_fetch_part(part, &mut download_store.lock().unwrap())
+                            });
+                        } else {
+                            // The simple non-streaming API:
+                            ehttp::fetch(request, move |response| {
+                                *download_store.lock().unwrap() = Download::Done(response);
+                                egui_ctx.request_repaint(); // Wake up UI thread
+                            });
+                        }
+                    }
+
+                    ui.separator();
+
+                    let download: &Download = &state.download.lock().unwrap();
+                    match download {
+                        Download::None => {}
+                        Download::InProgress => {
+                            ui.label("Wait for it…");
+                        }
+                        Download::StreamingInProgress { body, .. } => {
+                            let num_bytes = body.len();
+                            if num_bytes < 1_000_000 {
+                                ui.label(format!("{:.1} kB", num_bytes as f32 / 1e3));
+                            } else {
+                                ui.label(format!("{:.1} MB", num_bytes as f32 / 1e6));
+                            }
+                        }
+                        Download::Done(response) => match response {
+                            Err(err) => {
+                                ui.label(err);
+                            }
+                            Ok(response) => {
+                                response_ui(ui, response);
+                            }
+                        },
+                    }
+                });
+            }
+        }
+    }
+}
+
+fn on_fetch_part(
+    part: Result<ehttp::streaming::Part, String>,
+    download_store: &mut Download,
+) -> ControlFlow<()> {
+    let part = match part {
+        Err(err) => {
+            *download_store = Download::Done(Result::Err(err));
+            return ControlFlow::Break(());
+        }
+        Ok(part) => part,
+    };
+
+    match part {
+        ehttp::streaming::Part::Response(response) => {
+            *download_store = Download::StreamingInProgress {
+                response,
+                body: Vec::new(),
+            };
+            ControlFlow::Continue(())
+        }
+        ehttp::streaming::Part::Chunk(chunk) => {
+            if let Download::StreamingInProgress { response, mut body } =
+                std::mem::replace(download_store, Download::None)
+            {
+                body.extend_from_slice(&chunk);
+
+                if chunk.is_empty() {
+                    // This was the last chunk.
+                    *download_store = Download::Done(Ok(response.complete(body)));
+                    ControlFlow::Break(())
+                } else {
+                    // More to come.
+                    *download_store = Download::StreamingInProgress { response, body };
+                    ControlFlow::Continue(())
+                }
+            } else {
+                ControlFlow::Break(()) // some data race - abort download.
+            }
+        }
+    }
+}
+
+impl Client {}
 
 fn response_ui(ui: &mut egui::Ui, response: &ehttp::Response) {
     ui.monospace(format!("url:          {}", response.url));
