@@ -39,6 +39,67 @@ impl Default for DemoState {
 }
 
 impl DemoState {
+    pub fn ui(&mut self, egui_ctx: &egui::Context) -> Result<(), &str> {
+        egui::CentralPanel::default().show(egui_ctx, |ui| {
+            let trigger_fetch = self.ui_url(ui);
+
+            if trigger_fetch {
+                let request = match self.method {
+                    Method::Get => ehttp::Request::get(&self.url),
+                    Method::Head => ehttp::Request::head(&self.url),
+                    Method::Post => {
+                        ehttp::Request::post(&self.url, self.request_body.as_bytes().to_vec())
+                    }
+                };
+                let download_store = self.download.clone();
+                *download_store.lock().unwrap() = Download::InProgress;
+                let egui_ctx = egui_ctx.clone();
+
+                if self.streaming {
+                    // The more complicated streaming API:
+                    ehttp::streaming::fetch(request, move |part| {
+                        egui_ctx.request_repaint(); // Wake up UI thread
+                        on_fetch_part(part, &mut download_store.lock().unwrap())
+                    });
+                } else {
+                    // The simple non-streaming API:
+                    ehttp::fetch(request, move |response| {
+                        *download_store.lock().unwrap() = Download::Done(response);
+                        egui_ctx.request_repaint(); // Wake up UI thread
+                    });
+                }
+            }
+
+            ui.separator();
+
+            let download: &Download = &self.download.lock().unwrap();
+            match download {
+                Download::None => {}
+                Download::InProgress => {
+                    ui.label("Wait for it…");
+                }
+                Download::StreamingInProgress { body, .. } => {
+                    let num_bytes = body.len();
+                    if num_bytes < 1_000_000 {
+                        ui.label(format!("{:.1} kB", num_bytes as f32 / 1e3));
+                    } else {
+                        ui.label(format!("{:.1} MB", num_bytes as f32 / 1e6));
+                    }
+                }
+                Download::Done(response) => match response {
+                    Err(err) => {
+                        ui.label(err);
+                    }
+                    Ok(response) => {
+                        response_ui(ui, response);
+                    }
+                },
+            }
+        });
+
+        Ok(())
+    }
+
     fn ui_url(&mut self, ui: &mut egui::Ui) -> bool {
         let mut trigger_fetch = self.ui_examples(ui);
 
@@ -203,6 +264,7 @@ enum Download {
     Done(ehttp::Result<ehttp::Response>),
 }
 
+#[allow(dead_code)]
 pub struct Client {
     streaming: bool,
     state: ClientState,
@@ -219,72 +281,16 @@ impl Default for Client {
 
 impl eframe::App for Client {
     fn update(&mut self, egui_ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        match &mut self.state {
+        if let Err(err) = match &mut self.state {
             ClientState::Init => todo!(),
             ClientState::View(_) => todo!(),
             ClientState::Edit(_) => todo!(),
             ClientState::Resolving(_) => todo!(),
             ClientState::Resolved(_) => todo!(),
             ClientState::RequestResponse(_) => todo!(),
-            ClientState::Demo(state) => {
-                egui::CentralPanel::default().show(egui_ctx, |ui| {
-                    let trigger_fetch = state.ui_url(ui);
-
-                    if trigger_fetch {
-                        let request = match state.method {
-                            Method::Get => ehttp::Request::get(&state.url),
-                            Method::Head => ehttp::Request::head(&state.url),
-                            Method::Post => ehttp::Request::post(
-                                &state.url,
-                                state.request_body.as_bytes().to_vec(),
-                            ),
-                        };
-                        let download_store = state.download.clone();
-                        *download_store.lock().unwrap() = Download::InProgress;
-                        let egui_ctx = egui_ctx.clone();
-
-                        if self.streaming {
-                            // The more complicated streaming API:
-                            ehttp::streaming::fetch(request, move |part| {
-                                egui_ctx.request_repaint(); // Wake up UI thread
-                                on_fetch_part(part, &mut download_store.lock().unwrap())
-                            });
-                        } else {
-                            // The simple non-streaming API:
-                            ehttp::fetch(request, move |response| {
-                                *download_store.lock().unwrap() = Download::Done(response);
-                                egui_ctx.request_repaint(); // Wake up UI thread
-                            });
-                        }
-                    }
-
-                    ui.separator();
-
-                    let download: &Download = &state.download.lock().unwrap();
-                    match download {
-                        Download::None => {}
-                        Download::InProgress => {
-                            ui.label("Wait for it…");
-                        }
-                        Download::StreamingInProgress { body, .. } => {
-                            let num_bytes = body.len();
-                            if num_bytes < 1_000_000 {
-                                ui.label(format!("{:.1} kB", num_bytes as f32 / 1e3));
-                            } else {
-                                ui.label(format!("{:.1} MB", num_bytes as f32 / 1e6));
-                            }
-                        }
-                        Download::Done(response) => match response {
-                            Err(err) => {
-                                ui.label(err);
-                            }
-                            Ok(response) => {
-                                response_ui(ui, response);
-                            }
-                        },
-                    }
-                });
-            }
+            ClientState::Demo(demo) => demo.ui(egui_ctx),
+        } {
+            panic!("{err}");
         }
     }
 }
