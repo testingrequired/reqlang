@@ -1,4 +1,5 @@
 use std::{
+    collections::HashMap,
     fs,
     ops::ControlFlow,
     str::FromStr,
@@ -6,7 +7,7 @@ use std::{
 };
 
 use eframe::egui;
-use parser::parse;
+use parser::split;
 use types::{ResolvedRequestFile, UnresolvedRequestFile};
 
 #[allow(dead_code)]
@@ -45,11 +46,20 @@ impl InitState {
                 let source = fs::read_to_string(&picked_path)
                     .expect("Should have been able to read the file");
 
-                let reqfile = parse(&source).unwrap();
+                let split = split(&source).unwrap();
 
                 next_state = ClientState::View(ViewState {
                     path: picked_path.to_owned(),
-                    reqfile,
+                    source: source,
+                    request: split.request.0,
+                    response: split
+                        .response
+                        .map(|(response, _)| response)
+                        .unwrap_or("".to_owned()),
+                    config: split
+                        .config
+                        .map(|(config, _)| config)
+                        .unwrap_or("".to_owned()),
                 });
             } else {
                 next_state = ClientState::Init(InitState { picked_path: None });
@@ -242,18 +252,41 @@ impl DemoState {
 #[derive(Debug, PartialEq, Clone)]
 struct ViewState {
     path: String,
-    reqfile: UnresolvedRequestFile,
+    source: String,
+    request: String,
+    response: String,
+    config: String,
 }
 
 impl ViewState {
     pub fn ui(&mut self, egui_ctx: &egui::Context) -> Result<ClientState, &str> {
-        egui::CentralPanel::default().show(egui_ctx, |ui| {
-            let text = format!("{:#?}", &self.reqfile);
+        let mut next_state: ClientState = ClientState::View(self.clone());
 
-            selectable_text(ui, &text);
+        egui::CentralPanel::default().show(egui_ctx, |ui| {
+            ui.heading("Request");
+
+            selectable_text(ui, &format!("{:#?}", &self.request));
+
+            ui.heading("Response");
+
+            selectable_text(ui, &format!("{:#?}", &self.response));
+
+            ui.heading("Config");
+
+            selectable_text(ui, &format!("{:#?}", &self.config));
+
+            if ui.button("Resolve").clicked() {
+                next_state = ClientState::Resolving(ResolvingState::new(
+                    self.path.clone(),
+                    parser::parse(&self.source).unwrap(),
+                    "".to_owned(),
+                    HashMap::new(),
+                    HashMap::new(),
+                ))
+            }
         });
 
-        Ok(ClientState::View(self.clone()))
+        Ok(next_state)
     }
 }
 
@@ -277,14 +310,107 @@ impl EditState {
 struct ResolvingState {
     path: String,
     reqfile: UnresolvedRequestFile,
-    env: Option<String>,
-    prompts: Vec<(String, String)>,
-    secrets: Vec<(String, String)>,
+    env: String,
+    prompts: HashMap<String, String>,
+    secrets: HashMap<String, String>,
+    resolved: Option<ResolvedRequestFile>,
+}
+
+impl ResolvingState {
+    fn new(
+        path: String,
+        reqfile: UnresolvedRequestFile,
+        env: String,
+        mut prompts: HashMap<String, String>,
+        mut secrets: HashMap<String, String>,
+    ) -> Self {
+        let prompt_names = reqfile.prompt_names();
+        let secret_names = reqfile.secret_names();
+
+        for prompt_name in prompt_names.clone() {
+            prompts.insert(prompt_name.to_string(), String::new());
+        }
+
+        for secret_name in secret_names.clone() {
+            secrets.insert(secret_name.to_string(), String::new());
+        }
+
+        Self {
+            path,
+            reqfile,
+            env,
+            prompts,
+            secrets,
+            resolved: None,
+        }
+    }
 }
 
 impl ResolvingState {
     pub fn ui(&mut self, egui_ctx: &egui::Context) -> Result<ClientState, &str> {
-        egui::CentralPanel::default().show(egui_ctx, |_| {});
+        egui::CentralPanel::default().show(egui_ctx, |ui| {
+            let env_names = self.reqfile.env_names();
+            let prompt_names = self.reqfile.prompt_names();
+            let secret_names = self.reqfile.secret_names();
+
+            if !env_names.is_empty() {
+                ui.heading("Environment");
+
+                ui.horizontal(|ui| {
+                    for env_name in env_names {
+                        ui.radio_value(&mut self.env, env_name.to_owned(), env_name);
+                    }
+                });
+
+                ui.end_row();
+            } else {
+                ui.heading("No Environments Found!");
+            }
+
+            if !prompt_names.is_empty() {
+                ui.heading("Prompts");
+
+                ui.horizontal(|ui| {
+                    for prompt_name in prompt_names {
+                        let input = self.prompts.get_mut(prompt_name).unwrap();
+
+                        ui.horizontal(|ui| {
+                            ui.label(prompt_name);
+                            ui.text_edit_singleline(input);
+                        });
+
+                        ui.end_row();
+                    }
+                });
+
+                ui.end_row();
+            } else {
+                ui.heading("No Prompts Found!");
+            }
+
+            if !secret_names.is_empty() {
+                ui.heading("Secrets");
+
+                ui.horizontal(|ui| {
+                    for secret_name in secret_names {
+                        let input = self.secrets.get_mut(secret_name).unwrap();
+
+                        ui.horizontal(|ui| {
+                            ui.label(secret_name);
+                            ui.text_edit_singleline(input);
+                        });
+
+                        ui.end_row();
+                    }
+                });
+
+                ui.end_row();
+            } else {
+                ui.heading("No Secrets Found!");
+            }
+
+            ui.separator();
+        });
 
         Ok(ClientState::Resolving(self.clone()))
     }

@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use errors::ReqlangError;
 use export::Format;
-use parser::RequestFileParser;
+use parser::{RequestFileParser, RequestFileSplitUp};
 use resolver::RequestFileResolver;
 use span::Spanned;
 use templater::RequestFileTemplater;
@@ -13,6 +13,11 @@ mod resolver;
 mod templater;
 
 pub const TEMPLATE_REFERENCE_PATTERN: &str = r"\{\{([:?!]{1})([a-zA-Z][_a-zA-Z]+)\}\}";
+
+/// Parse a string in to a request, response, and config strings
+pub fn split(input: &str) -> Result<RequestFileSplitUp, Vec<Spanned<ReqlangError>>> {
+    RequestFileParser::split(input)
+}
 
 /// Parse a string in to a request file
 pub fn parse(input: &str) -> Result<UnresolvedRequestFile, Vec<Spanned<ReqlangError>>> {
