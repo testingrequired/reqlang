@@ -269,6 +269,62 @@ mod tests {
         }
 
         #[test]
+        fn get_secret_names_when_defined() {
+            let reqfile = UnresolvedRequestFile {
+                config: Some((
+                    UnresolvedRequestFileConfig {
+                        vars: None,
+                        envs: None,
+                        prompts: None,
+                        secrets: Some(vec!["secret_name".to_owned()]),
+                    },
+                    NO_SPAN,
+                )),
+                request: (Request::get("/", "1.1", HashMap::new()), NO_SPAN),
+                response: None,
+                refs: vec![],
+            };
+
+            assert_eq!(vec!["secret_name"], reqfile.secret_names());
+        }
+
+        #[test]
+        fn get_secret_names_when_config_defined_without_prompts() {
+            let reqfile = UnresolvedRequestFile {
+                config: Some((
+                    UnresolvedRequestFileConfig {
+                        vars: None,
+                        envs: None,
+                        prompts: None,
+                        secrets: None,
+                    },
+                    NO_SPAN,
+                )),
+                request: (Request::get("/", "1.1", HashMap::new()), NO_SPAN),
+                response: None,
+                refs: vec![],
+            };
+
+            let expected: Vec<&str> = vec![];
+
+            assert_eq!(expected, reqfile.secret_names());
+        }
+
+        #[test]
+        fn get_secret_names_when_config_undefined() {
+            let reqfile = UnresolvedRequestFile {
+                config: None,
+                request: (Request::get("/", "1.1", HashMap::new()), NO_SPAN),
+                response: None,
+                refs: vec![],
+            };
+
+            let expected: Vec<&str> = vec![];
+
+            assert_eq!(expected, reqfile.secret_names());
+        }
+
+        #[test]
         fn get_envs_when_config_is_defined() {
             let reqfile = UnresolvedRequestFile {
                 config: Some((
