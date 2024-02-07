@@ -1,15 +1,18 @@
 use std::{
+    collections::HashMap,
+    fs,
     ops::ControlFlow,
     str::FromStr,
     sync::{Arc, Mutex},
 };
 
 use eframe::egui;
-use types::{ResolvedRequestFile, UnresolvedRequestFile};
+use parser::split;
+use types::{ResolvedRequestFile, TemplatedRequestFile, UnresolvedRequestFile};
 
 #[allow(dead_code)]
 enum ClientState {
-    Init,
+    Init(InitState),
     View(ViewState),
     Edit(EditState),
     Resolving(ResolvingState),
@@ -18,6 +21,56 @@ enum ClientState {
     Demo(DemoState),
 }
 
+struct InitState {
+    picked_path: Option<String>,
+}
+
+impl Default for InitState {
+    fn default() -> Self {
+        Self { picked_path: None }
+    }
+}
+
+impl InitState {
+    pub fn ui(&mut self, egui_ctx: &egui::Context) -> Result<ClientState, &str> {
+        let mut next_state: ClientState = ClientState::Init(InitState { picked_path: None });
+
+        egui::CentralPanel::default().show(egui_ctx, |ui| {
+            if ui.button("Open file…").clicked() {
+                if let Some(path) = rfd::FileDialog::new().pick_file() {
+                    self.picked_path = Some(path.display().to_string());
+                }
+            }
+
+            if let Some(picked_path) = &self.picked_path {
+                let source = fs::read_to_string(&picked_path)
+                    .expect("Should have been able to read the file");
+
+                let split = split(&source).unwrap();
+
+                next_state = ClientState::View(ViewState {
+                    path: picked_path.to_owned(),
+                    source: source,
+                    request: split.request.0,
+                    response: split
+                        .response
+                        .map(|(response, _)| response)
+                        .unwrap_or("".to_owned()),
+                    config: split
+                        .config
+                        .map(|(config, _)| config)
+                        .unwrap_or("".to_owned()),
+                });
+            } else {
+                next_state = ClientState::Init(InitState { picked_path: None });
+            }
+        });
+
+        Ok(next_state)
+    }
+}
+
+#[derive(Clone)]
 struct DemoState {
     url: String,
     method: Method,
@@ -39,7 +92,7 @@ impl Default for DemoState {
 }
 
 impl DemoState {
-    pub fn ui(&mut self, egui_ctx: &egui::Context) -> Result<(), &str> {
+    pub fn ui(&mut self, egui_ctx: &egui::Context) -> Result<ClientState, &str> {
         egui::CentralPanel::default().show(egui_ctx, |ui| {
             let trigger_fetch = self.ui_url(ui);
 
@@ -97,7 +150,7 @@ impl DemoState {
             }
         });
 
-        Ok(())
+        Ok(ClientState::Demo(self.clone()))
     }
 
     fn ui_url(&mut self, ui: &mut egui::Ui) -> bool {
@@ -199,7 +252,43 @@ impl DemoState {
 #[derive(Debug, PartialEq, Clone)]
 struct ViewState {
     path: String,
-    reqfile: UnresolvedRequestFile,
+    source: String,
+    request: String,
+    response: String,
+    config: String,
+}
+
+impl ViewState {
+    pub fn ui(&mut self, egui_ctx: &egui::Context) -> Result<ClientState, &str> {
+        let mut next_state: ClientState = ClientState::View(self.clone());
+
+        egui::CentralPanel::default().show(egui_ctx, |ui| {
+            ui.heading("Request");
+
+            selectable_text(ui, &format!("{:#?}", &self.request));
+
+            ui.heading("Response");
+
+            selectable_text(ui, &format!("{:#?}", &self.response));
+
+            ui.heading("Config");
+
+            selectable_text(ui, &format!("{:#?}", &self.config));
+
+            if ui.button("Resolve").clicked() {
+                next_state = ClientState::Resolving(ResolvingState::new(
+                    self.path.clone(),
+                    self.source.clone(),
+                    parser::parse(&self.source).unwrap(),
+                    "".to_owned(),
+                    HashMap::new(),
+                    HashMap::new(),
+                ))
+            }
+        });
+
+        Ok(next_state)
+    }
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -210,19 +299,227 @@ struct EditState {
     config: String,
 }
 
-#[derive(Debug, PartialEq, Clone)]
-struct ResolvingState {
-    path: String,
-    reqfile: UnresolvedRequestFile,
-    env: Option<String>,
-    prompts: Vec<(String, String)>,
-    secrets: Vec<(String, String)>,
+impl EditState {
+    pub fn ui(&mut self, egui_ctx: &egui::Context) -> Result<ClientState, &str> {
+        egui::CentralPanel::default().show(egui_ctx, |_| {});
+
+        Ok(ClientState::Edit(self.clone()))
+    }
 }
 
 #[derive(Debug, PartialEq, Clone)]
+struct ResolvingState {
+    path: String,
+    source: String,
+    reqfile: UnresolvedRequestFile,
+    env: String,
+    prompts: HashMap<String, String>,
+    secrets: HashMap<String, String>,
+    resolved: Option<ResolvedRequestFile>,
+}
+
+impl ResolvingState {
+    fn new(
+        path: String,
+        source: String,
+        reqfile: UnresolvedRequestFile,
+        env: String,
+        mut prompts: HashMap<String, String>,
+        mut secrets: HashMap<String, String>,
+    ) -> Self {
+        let prompt_names = reqfile.prompt_names();
+        let secret_names = reqfile.secret_names();
+
+        for prompt_name in prompt_names.clone() {
+            prompts.insert(prompt_name.to_string(), String::new());
+        }
+
+        for secret_name in secret_names.clone() {
+            secrets.insert(secret_name.to_string(), String::new());
+        }
+
+        Self {
+            path,
+            source,
+            reqfile,
+            env,
+            prompts,
+            secrets,
+            resolved: None,
+        }
+    }
+}
+
+impl ResolvingState {
+    pub fn ui(&mut self, egui_ctx: &egui::Context) -> Result<ClientState, &str> {
+        let mut next_state: Option<ClientState> = None;
+
+        egui::CentralPanel::default().show(egui_ctx, |ui| {
+            let env_names = self.reqfile.env_names();
+            let prompt_names = self.reqfile.prompt_names();
+            let secret_names = self.reqfile.secret_names();
+
+            if !env_names.is_empty() {
+                ui.heading("Environment");
+
+                ui.horizontal(|ui| {
+                    for env_name in env_names {
+                        ui.radio_value(&mut self.env, env_name.to_owned(), env_name);
+                    }
+                });
+
+                ui.end_row();
+            } else {
+                ui.heading("No Environments Found!");
+            }
+
+            if !prompt_names.is_empty() {
+                ui.heading("Prompts");
+
+                ui.horizontal(|ui| {
+                    for prompt_name in prompt_names {
+                        let input = self.prompts.get_mut(prompt_name).unwrap();
+
+                        ui.horizontal(|ui| {
+                            ui.label(prompt_name);
+                            ui.text_edit_singleline(input);
+                        });
+
+                        ui.end_row();
+                    }
+                });
+
+                ui.end_row();
+            } else {
+                ui.heading("No Prompts Found!");
+            }
+
+            if !secret_names.is_empty() {
+                ui.heading("Secrets");
+
+                ui.horizontal(|ui| {
+                    for secret_name in secret_names {
+                        let input = self.secrets.get_mut(secret_name).unwrap();
+
+                        ui.horizontal(|ui| {
+                            ui.label(secret_name);
+                            ui.text_edit_singleline(input);
+                        });
+
+                        ui.end_row();
+                    }
+                });
+
+                ui.end_row();
+            } else {
+                ui.heading("No Secrets Found!");
+            }
+
+            ui.separator();
+
+            if ui.button("Resolve").clicked() {
+                let reqfile =
+                    parser::template(&self.source, &self.env, &self.prompts, &self.secrets)
+                        .unwrap();
+
+                next_state = Some(ClientState::Resolved(ResolvedState {
+                    path: self.path.clone(),
+                    source: self.source.clone(),
+                    download: Arc::new(Mutex::new(Download::None)),
+                    reqfile,
+                }));
+            } else {
+                next_state = Some(ClientState::Resolving(self.clone()));
+            }
+        });
+
+        Ok(next_state.unwrap())
+    }
+}
+
+#[derive(Clone)]
 struct ResolvedState {
     path: String,
-    reqfile: ResolvedRequestFile,
+    source: String,
+    reqfile: TemplatedRequestFile,
+    download: Arc<Mutex<Download>>,
+}
+
+impl ResolvedState {
+    pub fn ui(&mut self, egui_ctx: &egui::Context) -> Result<ClientState, &str> {
+        egui::CentralPanel::default().show(egui_ctx, |ui| {
+            ui.heading("Request");
+
+            selectable_text(ui, &format!("{:#?}", &self.reqfile.request));
+
+            if ui.button("Send Request").clicked() {
+                let request = match self.reqfile.request.verb.as_str() {
+                    "GET" => ehttp::Request::get(&self.reqfile.request.target),
+                    "HEAD" => ehttp::Request::head(&self.reqfile.request.target),
+                    "POST" => ehttp::Request::post(
+                        &self.reqfile.request.target,
+                        self.reqfile
+                            .request
+                            .body
+                            .clone()
+                            .unwrap_or_default()
+                            .as_bytes()
+                            .to_vec(),
+                    ),
+                    _ => unreachable!(),
+                };
+                let download_store = self.download.clone();
+                *download_store.lock().unwrap() = Download::InProgress;
+                let egui_ctx = egui_ctx.clone();
+
+                let streaming = true;
+
+                if streaming {
+                    // The more complicated streaming API:
+                    ehttp::streaming::fetch(request, move |part| {
+                        egui_ctx.request_repaint(); // Wake up UI thread
+                        on_fetch_part(part, &mut download_store.lock().unwrap())
+                    });
+                } else {
+                    // The simple non-streaming API:
+                    ehttp::fetch(request, move |response| {
+                        *download_store.lock().unwrap() = Download::Done(response);
+                        egui_ctx.request_repaint(); // Wake up UI thread
+                    });
+                }
+            }
+
+            ui.separator();
+
+            let download: &Download = &self.download.lock().unwrap();
+            match download {
+                Download::None => {}
+                Download::InProgress => {
+                    ui.label("Wait for it…");
+                }
+                Download::StreamingInProgress { body, .. } => {
+                    let num_bytes = body.len();
+                    if num_bytes < 1_000_000 {
+                        ui.label(format!("{:.1} kB", num_bytes as f32 / 1e3));
+                    } else {
+                        ui.label(format!("{:.1} MB", num_bytes as f32 / 1e6));
+                    }
+                }
+                Download::Done(response) => match response {
+                    Err(err) => {
+                        ui.label(err);
+                    }
+                    Ok(response) => {
+                        response_ui(ui, response);
+                    }
+                },
+            }
+        });
+
+        let next_state: ClientState = ClientState::Resolved(self.clone());
+
+        Ok(next_state)
+    }
 }
 
 #[allow(dead_code)]
@@ -231,6 +528,14 @@ struct RequestResponseState {
     path: String,
     reqfile: ResolvedRequestFile,
     download: Arc<Mutex<Download>>,
+}
+
+impl RequestResponseState {
+    pub fn ui(&mut self, egui_ctx: &egui::Context) -> Result<ClientState, &str> {
+        egui::CentralPanel::default().show(egui_ctx, |_| {});
+
+        Ok(ClientState::RequestResponse(self.clone()))
+    }
 }
 
 #[derive(Debug, PartialEq, Copy, Clone)]
@@ -254,6 +559,7 @@ impl FromStr for Method {
     }
 }
 
+#[derive(Clone)]
 enum Download {
     None,
     InProgress,
@@ -267,31 +573,34 @@ enum Download {
 #[allow(dead_code)]
 pub struct Client {
     streaming: bool,
-    state: ClientState,
+    state: Box<ClientState>,
 }
 
 impl Default for Client {
     fn default() -> Self {
         Self {
             streaming: true,
-            state: ClientState::Demo(DemoState::default()),
+            state: Box::new(ClientState::Init(InitState::default())),
         }
     }
 }
 
 impl eframe::App for Client {
     fn update(&mut self, egui_ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        if let Err(err) = match &mut self.state {
-            ClientState::Init => todo!(),
-            ClientState::View(_) => todo!(),
-            ClientState::Edit(_) => todo!(),
-            ClientState::Resolving(_) => todo!(),
-            ClientState::Resolved(_) => todo!(),
-            ClientState::RequestResponse(_) => todo!(),
-            ClientState::Demo(demo) => demo.ui(egui_ctx),
-        } {
-            panic!("{err}");
-        }
+        let next_state = match &mut *self.state {
+            ClientState::Init(state) => state.ui(egui_ctx),
+            ClientState::View(state) => state.ui(egui_ctx),
+            ClientState::Edit(state) => state.ui(egui_ctx),
+            ClientState::Resolving(state) => state.ui(egui_ctx),
+            ClientState::Resolved(state) => state.ui(egui_ctx),
+            ClientState::RequestResponse(state) => state.ui(egui_ctx),
+            ClientState::Demo(state) => state.ui(egui_ctx),
+        };
+
+        self.state = match next_state {
+            Ok(next_state) => Box::new(next_state),
+            Err(err) => panic!("{err}"),
+        };
     }
 }
 

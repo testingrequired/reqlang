@@ -141,6 +141,30 @@ impl UnresolvedRequestFile {
             None => vec![],
         }
     }
+
+    pub fn prompt_names(&self) -> Vec<&String> {
+        let prompt_names = match &self.config {
+            Some((config, _)) => match &config.prompts {
+                Some(prompts) => prompts.keys().collect(),
+                None => vec![],
+            },
+            None => vec![],
+        };
+
+        prompt_names
+    }
+
+    pub fn secret_names(&self) -> Vec<&String> {
+        let prompt_names = match &self.config {
+            Some((config, _)) => match &config.secrets {
+                Some(prompts) => prompts.into_iter().collect(),
+                None => vec![],
+            },
+            None => vec![],
+        };
+
+        prompt_names
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Default, Serialize, Deserialize)]
@@ -184,6 +208,121 @@ mod tests {
         use span::NO_SPAN;
 
         use crate::{Request, UnresolvedRequestFile, UnresolvedRequestFileConfig};
+
+        #[test]
+        fn get_prompt_names_when_defined() {
+            let reqfile = UnresolvedRequestFile {
+                config: Some((
+                    UnresolvedRequestFileConfig {
+                        vars: None,
+                        envs: None,
+                        prompts: Some(HashMap::from_iter([(
+                            "key".to_owned(),
+                            Some("value".to_owned()),
+                        )])),
+                        secrets: None,
+                    },
+                    NO_SPAN,
+                )),
+                request: (Request::get("/", "1.1", HashMap::new()), NO_SPAN),
+                response: None,
+                refs: vec![],
+            };
+
+            assert_eq!(vec!["key"], reqfile.prompt_names());
+        }
+
+        #[test]
+        fn get_prompt_names_when_config_defined_without_prompts() {
+            let reqfile = UnresolvedRequestFile {
+                config: Some((
+                    UnresolvedRequestFileConfig {
+                        vars: None,
+                        envs: None,
+                        prompts: None,
+                        secrets: None,
+                    },
+                    NO_SPAN,
+                )),
+                request: (Request::get("/", "1.1", HashMap::new()), NO_SPAN),
+                response: None,
+                refs: vec![],
+            };
+
+            let expected: Vec<&str> = vec![];
+
+            assert_eq!(expected, reqfile.prompt_names());
+        }
+
+        #[test]
+        fn get_prompt_names_when_config_undefined() {
+            let reqfile = UnresolvedRequestFile {
+                config: None,
+                request: (Request::get("/", "1.1", HashMap::new()), NO_SPAN),
+                response: None,
+                refs: vec![],
+            };
+
+            let expected: Vec<&str> = vec![];
+
+            assert_eq!(expected, reqfile.prompt_names());
+        }
+
+        #[test]
+        fn get_secret_names_when_defined() {
+            let reqfile = UnresolvedRequestFile {
+                config: Some((
+                    UnresolvedRequestFileConfig {
+                        vars: None,
+                        envs: None,
+                        prompts: None,
+                        secrets: Some(vec!["secret_name".to_owned()]),
+                    },
+                    NO_SPAN,
+                )),
+                request: (Request::get("/", "1.1", HashMap::new()), NO_SPAN),
+                response: None,
+                refs: vec![],
+            };
+
+            assert_eq!(vec!["secret_name"], reqfile.secret_names());
+        }
+
+        #[test]
+        fn get_secret_names_when_config_defined_without_prompts() {
+            let reqfile = UnresolvedRequestFile {
+                config: Some((
+                    UnresolvedRequestFileConfig {
+                        vars: None,
+                        envs: None,
+                        prompts: None,
+                        secrets: None,
+                    },
+                    NO_SPAN,
+                )),
+                request: (Request::get("/", "1.1", HashMap::new()), NO_SPAN),
+                response: None,
+                refs: vec![],
+            };
+
+            let expected: Vec<&str> = vec![];
+
+            assert_eq!(expected, reqfile.secret_names());
+        }
+
+        #[test]
+        fn get_secret_names_when_config_undefined() {
+            let reqfile = UnresolvedRequestFile {
+                config: None,
+                request: (Request::get("/", "1.1", HashMap::new()), NO_SPAN),
+                response: None,
+                refs: vec![],
+            };
+
+            let expected: Vec<&str> = vec![];
+
+            assert_eq!(expected, reqfile.secret_names());
+        }
 
         #[test]
         fn get_envs_when_config_is_defined() {
