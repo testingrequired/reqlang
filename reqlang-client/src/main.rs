@@ -428,8 +428,6 @@ impl ResolvingState {
                     download: Arc::new(Mutex::new(Download::None)),
                     reqfile,
                 }));
-            } else {
-                next_state = Some(ClientState::Resolving(self.clone()));
             }
         });
 
