@@ -32,8 +32,8 @@ impl Default for InitState {
 }
 
 impl InitState {
-    pub fn ui(&mut self, egui_ctx: &egui::Context) -> Result<ClientState, &str> {
-        let mut next_state: ClientState = ClientState::Init(InitState { picked_path: None });
+    pub fn ui(&mut self, egui_ctx: &egui::Context) -> Result<Option<ClientState>, &str> {
+        let mut next_state: Option<ClientState> = None;
 
         egui::CentralPanel::default().show(egui_ctx, |ui| {
             if ui.button("Open file…").clicked() {
@@ -48,7 +48,7 @@ impl InitState {
 
                 let split = split(&source).unwrap();
 
-                next_state = ClientState::View(ViewState {
+                next_state = Some(ClientState::View(ViewState {
                     path: picked_path.to_owned(),
                     source: source,
                     request: split.request.0,
@@ -60,9 +60,9 @@ impl InitState {
                         .config
                         .map(|(config, _)| config)
                         .unwrap_or("".to_owned()),
-                });
+                }));
             } else {
-                next_state = ClientState::Init(InitState { picked_path: None });
+                next_state = None;
             }
         });
 
@@ -92,7 +92,7 @@ impl Default for DemoState {
 }
 
 impl DemoState {
-    pub fn ui(&mut self, egui_ctx: &egui::Context) -> Result<ClientState, &str> {
+    pub fn ui(&mut self, egui_ctx: &egui::Context) -> Result<Option<ClientState>, &str> {
         egui::CentralPanel::default().show(egui_ctx, |ui| {
             let trigger_fetch = self.ui_url(ui);
 
@@ -150,7 +150,7 @@ impl DemoState {
             }
         });
 
-        Ok(ClientState::Demo(self.clone()))
+        Ok(None)
     }
 
     fn ui_url(&mut self, ui: &mut egui::Ui) -> bool {
@@ -259,8 +259,8 @@ struct ViewState {
 }
 
 impl ViewState {
-    pub fn ui(&mut self, egui_ctx: &egui::Context) -> Result<ClientState, &str> {
-        let mut next_state: ClientState = ClientState::View(self.clone());
+    pub fn ui(&mut self, egui_ctx: &egui::Context) -> Result<Option<ClientState>, &str> {
+        let mut next_state: Option<ClientState> = None;
 
         egui::CentralPanel::default().show(egui_ctx, |ui| {
             ui.heading("Request");
@@ -276,14 +276,14 @@ impl ViewState {
             selectable_text(ui, &format!("{:#?}", &self.config));
 
             if ui.button("Resolve").clicked() {
-                next_state = ClientState::Resolving(ResolvingState::new(
+                next_state = Some(ClientState::Resolving(ResolvingState::new(
                     self.path.clone(),
                     self.source.clone(),
                     parser::parse(&self.source).unwrap(),
                     "".to_owned(),
                     HashMap::new(),
                     HashMap::new(),
-                ))
+                )));
             }
         });
 
@@ -300,10 +300,10 @@ struct EditState {
 }
 
 impl EditState {
-    pub fn ui(&mut self, egui_ctx: &egui::Context) -> Result<ClientState, &str> {
+    pub fn ui(&mut self, egui_ctx: &egui::Context) -> Result<Option<ClientState>, &str> {
         egui::CentralPanel::default().show(egui_ctx, |_| {});
 
-        Ok(ClientState::Edit(self.clone()))
+        Ok(None)
     }
 }
 
@@ -351,7 +351,7 @@ impl ResolvingState {
 }
 
 impl ResolvingState {
-    pub fn ui(&mut self, egui_ctx: &egui::Context) -> Result<ClientState, &str> {
+    pub fn ui(&mut self, egui_ctx: &egui::Context) -> Result<Option<ClientState>, &str> {
         let mut next_state: Option<ClientState> = None;
 
         egui::CentralPanel::default().show(egui_ctx, |ui| {
@@ -433,7 +433,7 @@ impl ResolvingState {
             }
         });
 
-        Ok(next_state.unwrap())
+        Ok(next_state)
     }
 }
 
@@ -446,7 +446,9 @@ struct ResolvedState {
 }
 
 impl ResolvedState {
-    pub fn ui(&mut self, egui_ctx: &egui::Context) -> Result<ClientState, &str> {
+    pub fn ui(&mut self, egui_ctx: &egui::Context) -> Result<Option<ClientState>, &str> {
+        let mut next_state: Option<ClientState> = None;
+
         egui::CentralPanel::default().show(egui_ctx, |ui| {
             ui.heading("Request");
 
@@ -516,8 +518,6 @@ impl ResolvedState {
             }
         });
 
-        let next_state: ClientState = ClientState::Resolved(self.clone());
-
         Ok(next_state)
     }
 }
@@ -531,10 +531,10 @@ struct RequestResponseState {
 }
 
 impl RequestResponseState {
-    pub fn ui(&mut self, egui_ctx: &egui::Context) -> Result<ClientState, &str> {
+    pub fn ui(&mut self, egui_ctx: &egui::Context) -> Result<Option<ClientState>, &str> {
         egui::CentralPanel::default().show(egui_ctx, |_| {});
 
-        Ok(ClientState::RequestResponse(self.clone()))
+        Ok(None)
     }
 }
 
@@ -597,8 +597,12 @@ impl eframe::App for Client {
             ClientState::Demo(state) => state.ui(egui_ctx),
         };
 
-        self.state = match next_state {
-            Ok(next_state) => Box::new(next_state),
+        match next_state {
+            Ok(next_state) => {
+                if let Some(next_state) = next_state {
+                    self.state = Box::new(next_state);
+                }
+            }
             Err(err) => panic!("{err}"),
         };
     }
