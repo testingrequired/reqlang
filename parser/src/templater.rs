@@ -149,10 +149,10 @@ mod test {
                 verb: "POST".to_string(),
                 target: "/?query=dev_value".to_string(),
                 http_version: "1.1".to_string(),
-                headers: HashMap::from([
+                headers: vec![
                     ("x-test".to_string(), "test_value_value".to_string()),
                     ("x-api-key".to_string(), "api_key_value".to_string()),
-                ]),
+                ],
                 body: Some("[1, 2, 3]\n\n".to_string())
             },
             response: Some(Response {

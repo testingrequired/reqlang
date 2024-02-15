@@ -9,12 +9,12 @@ pub struct Request {
     pub verb: String,
     pub target: String,
     pub http_version: String,
-    pub headers: HashMap<String, String>,
+    pub headers: Vec<(String, String)>,
     pub body: Option<String>,
 }
 
 impl Request {
-    pub fn get(target: &str, http_version: &str, headers: HashMap<String, String>) -> Self {
+    pub fn get(target: &str, http_version: &str, headers: Vec<(String, String)>) -> Self {
         Request {
             verb: "GET".to_string(),
             target: target.to_string(),
@@ -27,7 +27,7 @@ impl Request {
     pub fn post(
         target: &str,
         http_version: &str,
-        headers: HashMap<String, String>,
+        headers: Vec<(String, String)>,
         body: Option<&str>,
     ) -> Self {
         Request {
@@ -40,7 +40,7 @@ impl Request {
     }
 
     pub fn with_header(&mut self, key: &str, value: &str) -> &mut Self {
-        self.headers.insert(key.to_string(), value.to_string());
+        self.headers.push((key.to_string(), value.to_string()));
 
         self
     }
@@ -157,7 +157,7 @@ impl UnresolvedRequestFile {
     pub fn secret_names(&self) -> Vec<&String> {
         let prompt_names = match &self.config {
             Some((config, _)) => match &config.secrets {
-                Some(prompts) => prompts.into_iter().collect(),
+                Some(prompts) => prompts.iter().collect(),
                 None => vec![],
             },
             None => vec![],
@@ -203,7 +203,7 @@ pub struct TemplatedRequestFile {
 #[cfg(test)]
 mod tests {
     mod unresolved_requestfile {
-        use std::collections::HashMap;
+        use std::{collections::HashMap, vec};
 
         use span::NO_SPAN;
 
@@ -224,7 +224,7 @@ mod tests {
                     },
                     NO_SPAN,
                 )),
-                request: (Request::get("/", "1.1", HashMap::new()), NO_SPAN),
+                request: (Request::get("/", "1.1", vec![]), NO_SPAN),
                 response: None,
                 refs: vec![],
             };
@@ -244,7 +244,7 @@ mod tests {
                     },
                     NO_SPAN,
                 )),
-                request: (Request::get("/", "1.1", HashMap::new()), NO_SPAN),
+                request: (Request::get("/", "1.1", vec![]), NO_SPAN),
                 response: None,
                 refs: vec![],
             };
@@ -258,7 +258,7 @@ mod tests {
         fn get_prompt_names_when_config_undefined() {
             let reqfile = UnresolvedRequestFile {
                 config: None,
-                request: (Request::get("/", "1.1", HashMap::new()), NO_SPAN),
+                request: (Request::get("/", "1.1", vec![]), NO_SPAN),
                 response: None,
                 refs: vec![],
             };
@@ -280,7 +280,7 @@ mod tests {
                     },
                     NO_SPAN,
                 )),
-                request: (Request::get("/", "1.1", HashMap::new()), NO_SPAN),
+                request: (Request::get("/", "1.1", vec![]), NO_SPAN),
                 response: None,
                 refs: vec![],
             };
@@ -300,7 +300,7 @@ mod tests {
                     },
                     NO_SPAN,
                 )),
-                request: (Request::get("/", "1.1", HashMap::new()), NO_SPAN),
+                request: (Request::get("/", "1.1", vec![]), NO_SPAN),
                 response: None,
                 refs: vec![],
             };
@@ -314,7 +314,7 @@ mod tests {
         fn get_secret_names_when_config_undefined() {
             let reqfile = UnresolvedRequestFile {
                 config: None,
-                request: (Request::get("/", "1.1", HashMap::new()), NO_SPAN),
+                request: (Request::get("/", "1.1", vec![]), NO_SPAN),
                 response: None,
                 refs: vec![],
             };
@@ -345,7 +345,7 @@ mod tests {
                     },
                     NO_SPAN,
                 )),
-                request: (Request::get("/", "1.1", HashMap::new()), NO_SPAN),
+                request: (Request::get("/", "1.1", vec![]), NO_SPAN),
                 response: None,
                 refs: vec![],
             };
@@ -369,7 +369,7 @@ mod tests {
                     },
                     NO_SPAN,
                 )),
-                request: (Request::get("/", "1.1", HashMap::new()), NO_SPAN),
+                request: (Request::get("/", "1.1", vec![]), NO_SPAN),
                 response: None,
                 refs: vec![],
             };
@@ -391,7 +391,7 @@ mod tests {
                     },
                     NO_SPAN,
                 )),
-                request: (Request::get("/", "1.1", HashMap::new()), NO_SPAN),
+                request: (Request::get("/", "1.1", vec![]), NO_SPAN),
                 response: None,
                 refs: vec![],
             };
@@ -405,7 +405,7 @@ mod tests {
         fn get_envs_when_config_is_missing() {
             let reqfile = UnresolvedRequestFile {
                 config: None,
-                request: (Request::get("/", "1.1", HashMap::new()), NO_SPAN),
+                request: (Request::get("/", "1.1", vec![]), NO_SPAN),
                 response: None,
                 refs: vec![],
             };
@@ -417,8 +417,6 @@ mod tests {
     }
 
     mod request_display {
-        use std::collections::HashMap;
-
         use crate::Request;
 
         #[test]
@@ -426,7 +424,7 @@ mod tests {
             let req = Request::post(
                 "/",
                 "1.1",
-                HashMap::from([("host".to_string(), "https://example.com".to_string())]),
+                vec![("host".to_string(), "https://example.com".to_string())],
                 Some("[1, 2, 3]\n"),
             );
 
@@ -445,7 +443,7 @@ mod tests {
             let req = Request::get(
                 "/",
                 "1.1",
-                HashMap::from([("host".to_string(), "https://example.com".to_string())]),
+                vec![("host".to_string(), "https://example.com".to_string())],
             );
 
             assert_eq!(
@@ -460,7 +458,7 @@ mod tests {
                 verb: "GET".to_string(),
                 target: "/".to_string(),
                 http_version: "1.1".to_string(),
-                headers: HashMap::new(),
+                headers: vec![],
                 body: None,
             };
 

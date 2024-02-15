@@ -58,7 +58,7 @@ impl RequestFileParser {
 
             let request = match RequestFileParser::parse_request(&reqfile.request) {
                 Ok((request, span)) => {
-                    for key in request.headers.keys() {
+                    for key in request.headers.iter().map(|x| &x.0) {
                         if FORBIDDEN_REQUEST_HEADER_NAMES.contains(&key.to_lowercase().as_str()) {
                             parse_errors.push((
                                 ParseError::ForbiddenRequestHeaderNameError(key.to_lowercase())
@@ -422,16 +422,16 @@ impl RequestFileParser {
 
         let body = &request[size_minus_body..];
 
-        let mut mapped_headers = HashMap::new();
+        let mut mapped_headers = vec![];
 
         req.headers
             .iter_mut()
             .filter(|x| !x.name.is_empty())
             .for_each(|x| {
-                mapped_headers.insert(
+                mapped_headers.push((
                     x.name.to_string(),
                     std::str::from_utf8(x.value).unwrap().to_string(),
-                );
+                ));
             });
 
         Ok((
@@ -567,10 +567,7 @@ mod test {
         concat!("---\n", "GET http://example.com HTTP/1.1", "---\n"),
         Ok(UnresolvedRequestFile {
             config: None,
-            request: (
-                Request::get("http://example.com", "1.1", HashMap::new()),
-                4..35
-            ),
+            request: (Request::get("http://example.com", "1.1", vec![]), 4..35),
             response: None,
             refs: vec![],
         })
@@ -673,7 +670,7 @@ mod test {
                     verb: "GET".to_string(),
                     target: "http://example.com".to_string(),
                     http_version: "1.1".to_string(),
-                    headers: HashMap::new(),
+                    headers: vec![],
                     body: Some("".to_string())
                 },
                 4..36
@@ -693,7 +690,7 @@ mod test {
                     verb: "GET".to_string(),
                     target: "http://example.com".to_string(),
                     http_version: "1.1".to_string(),
-                    headers: HashMap::new(),
+                    headers: vec![],
                     body: Some("".to_string())
                 },
                 4..37
@@ -1174,10 +1171,10 @@ mod test {
                     verb: "POST".to_string(),
                     target: "/?query={{:query_value}}".to_string(),
                     http_version: "1.1".to_string(),
-                    headers: HashMap::from([
+                    headers: vec![
                         ("x-test".to_string(), "{{?test_value}}".to_string()),
                         ("x-api-key".to_string(), "{{!api_key}}".to_string()),
-                    ]),
+                    ],
                     body: Some("[1, 2, 3]\n\n".to_string())
                 },
                 4..103

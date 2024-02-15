@@ -84,8 +84,6 @@ pub fn export(request: &Request, format: Format) -> String {
 
 #[cfg(test)]
 mod test {
-    use std::collections::HashMap;
-
     use types::Request;
 
     use crate::export;
@@ -102,25 +100,21 @@ mod test {
 
     export_test!(
         format_to_curl_get_request,
-        Request::get("/", "1.1", HashMap::new()),
+        Request::get("/", "1.1", vec![]),
         crate::Format::Curl,
         "curl / --http1.1"
     );
 
     export_test!(
         format_to_curl_get_request_with_single_header,
-        Request::get(
-            "/",
-            "1.1",
-            HashMap::from([("test".to_string(), "value".to_string())])
-        ),
+        Request::get("/", "1.1", vec![("test".to_string(), "value".to_string())]),
         crate::Format::Curl,
         "curl / --http1.1 -H \"test: value\""
     );
 
     export_test!(
         format_to_curl_post_request,
-        Request::post("/", "1.1", HashMap::new(), Some("")),
+        Request::post("/", "1.1", vec![], Some("")),
         crate::Format::Curl,
         "curl -X POST / --http1.1"
     );
@@ -130,7 +124,7 @@ mod test {
         Request::post(
             "/",
             "1.1",
-            HashMap::from([("test".to_string(), "value".to_string())]),
+            vec![("test".to_string(), "value".to_string())],
             None
         ),
         crate::Format::Curl,
@@ -142,7 +136,7 @@ mod test {
         Request::post(
             "/",
             "1.1",
-            HashMap::from([("test".to_string(), "value".to_string())]),
+            vec![("test".to_string(), "value".to_string())],
             Some("testing")
         ),
         crate::Format::Curl,
@@ -151,14 +145,14 @@ mod test {
 
     export_test!(
         format_to_http_get_request,
-        Request::get("/", "1.1", HashMap::new()),
+        Request::get("/", "1.1", vec![]),
         crate::Format::Http,
         "GET / HTTP/1.1\n"
     );
 
     export_test!(
         format_to_http_post_request,
-        Request::post("/", "1.1", HashMap::new(), Some("[1, 2, 3]\n")),
+        Request::post("/", "1.1", vec![], Some("[1, 2, 3]\n")),
         crate::Format::Http,
         "POST / HTTP/1.1\n\n[1, 2, 3]\n"
     );
