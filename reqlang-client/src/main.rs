@@ -67,7 +67,7 @@ impl ViewState {
     pub fn ui(
         &mut self,
         egui_ctx: &egui::Context,
-        client_ctx: &ClientContext,
+        client_ctx: &mut ClientContext,
     ) -> Result<Option<ClientState>, &str> {
         let mut next_state: Option<ClientState> = None;
 
@@ -102,6 +102,12 @@ impl ViewState {
         };
 
         egui::CentralPanel::default().show(egui_ctx, |ui| {
+            if ui.button("Back").clicked() {
+                client_ctx.path = None;
+                next_state = Some(ClientState::Init(InitState {}));
+                return;
+            }
+
             if ui.button("Resolve").clicked() {
                 match &client_ctx.source {
                     Some(_) => {
@@ -460,7 +466,7 @@ impl eframe::App for Client {
     fn update(&mut self, egui_ctx: &egui::Context, _frame: &mut eframe::Frame) {
         let next_state = match &mut *self.state {
             ClientState::Init(state) => state.ui(egui_ctx, &mut self.context),
-            ClientState::View(state) => state.ui(egui_ctx, &self.context),
+            ClientState::View(state) => state.ui(egui_ctx, &mut self.context),
             ClientState::Resolving(state) => state.ui(egui_ctx, &self.context),
             ClientState::Resolved(state) => state.ui(egui_ctx, &self.context),
         };
