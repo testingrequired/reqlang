@@ -194,6 +194,11 @@ impl ResolvingState {
         };
 
         egui::CentralPanel::default().show(egui_ctx, |ui| {
+            if ui.button("Back").clicked() {
+                next_state = Some(ClientState::View(ViewState {}));
+                return;
+            }
+
             if !env_names.is_empty() {
                 ui.heading("Environment");
 
@@ -292,7 +297,7 @@ impl ResolvedState {
         egui_ctx: &egui::Context,
         client_ctx: &ClientContext,
     ) -> Result<Option<ClientState>, &str> {
-        let next_state: Option<ClientState> = None;
+        let mut next_state: Option<ClientState> = None;
 
         let reqfile = template(
             client_ctx.source.as_ref().unwrap(),
@@ -312,6 +317,15 @@ impl ResolvedState {
         .unwrap();
 
         egui::CentralPanel::default().show(egui_ctx, |ui| {
+            if ui.button("Back").clicked() {
+                next_state = Some(ClientState::Resolving(ResolvingState {
+                    env: self.env.clone(),
+                    prompts: self.prompts.clone(),
+                    secrets: self.secrets.clone(),
+                }));
+                return;
+            }
+
             ui.heading("Request");
 
             selectable_text(ui, &request_string);
