@@ -132,6 +132,16 @@ pub struct UnresolvedRequestFile {
 }
 
 impl UnresolvedRequestFile {
+    pub fn var_names(&self) -> Vec<&String> {
+        match &self.config {
+            Some((config, _)) => match &config.vars {
+                Some(envs) => envs.iter().map(|x| x).collect(),
+                None => vec![],
+            },
+            None => vec![],
+        }
+    }
+
     pub fn env_names(&self) -> Vec<&String> {
         match &self.config {
             Some((config, _)) => match &config.envs {

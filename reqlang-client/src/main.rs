@@ -81,12 +81,14 @@ impl ViewState {
             None => String::new(),
         };
 
-        let config: Option<&types::UnresolvedRequestFileConfig> = match &client_ctx.reqfile {
-            Some(reqfile) => match &reqfile.config {
-                Some(config) => Some(&config.0),
-                None => None,
-            },
-            None => None,
+        let env_names: Vec<&String> = match &client_ctx.reqfile {
+            Some(reqfile) => reqfile.env_names(),
+            None => vec![],
+        };
+
+        let var_names: Vec<&String> = match &client_ctx.reqfile {
+            Some(reqfile) => reqfile.var_names(),
+            None => vec![],
         };
 
         let prompt_names: Vec<&String> = match &client_ctx.reqfile {
@@ -105,8 +107,8 @@ impl ViewState {
                     Some(_) => {
                         next_state = Some(ClientState::Resolving(ResolvingState::new(
                             "".to_owned(),
-                            prompt_names,
-                            secret_names,
+                            prompt_names.clone(),
+                            secret_names.clone(),
                             HashMap::new(),
                             HashMap::new(),
                         )));
@@ -124,7 +126,10 @@ impl ViewState {
 
                 ui.heading("Config");
 
-                selectable_text(ui, &format!("{:#?}", &config.unwrap()));
+                ui.label(format!("Environments: {:?}", &env_names));
+                ui.label(format!("Variables: {:?}", &var_names));
+                ui.label(format!("Prompts: {:?}", &prompt_names));
+                ui.label(format!("Secrets: {:?}", &secret_names));
             });
         });
 
