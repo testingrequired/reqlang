@@ -15,10 +15,8 @@ use types::UnresolvedRequestFile;
 enum ClientState {
     Init(InitState),
     View(ViewState),
-    Edit(EditState),
     Resolving(ResolvingState),
     Resolved(ResolvedState),
-    Demo(DemoState),
 }
 
 #[derive(Debug, Default)]
@@ -59,189 +57,6 @@ impl InitState {
         });
 
         Ok(next_state)
-    }
-}
-
-#[derive(Clone)]
-struct DemoState {
-    url: String,
-    method: Method,
-    request_body: String,
-    download: Arc<Mutex<Download>>,
-    streaming: bool,
-}
-
-impl Default for DemoState {
-    fn default() -> Self {
-        Self {
-            url: "https://raw.githubusercontent.com/emilk/ehttp/master/README.md".to_owned(),
-            method: Method::Get,
-            request_body: r#"["posting some json"]"#.to_owned(),
-            download: Arc::new(Mutex::new(Download::None)),
-            streaming: true,
-        }
-    }
-}
-
-impl DemoState {
-    pub fn ui(
-        &mut self,
-        egui_ctx: &egui::Context,
-        _client_ctx: &ClientContext,
-    ) -> Result<Option<ClientState>, &str> {
-        egui::CentralPanel::default().show(egui_ctx, |ui| {
-            let trigger_fetch = self.ui_url(ui);
-
-            if trigger_fetch {
-                let request = match self.method {
-                    Method::Get => ehttp::Request::get(&self.url),
-                    Method::Head => ehttp::Request::head(&self.url),
-                    Method::Post => {
-                        ehttp::Request::post(&self.url, self.request_body.as_bytes().to_vec())
-                    }
-                };
-                let download_store = self.download.clone();
-                *download_store.lock().unwrap() = Download::InProgress;
-                let egui_ctx = egui_ctx.clone();
-
-                if self.streaming {
-                    // The more complicated streaming API:
-                    ehttp::streaming::fetch(request, move |part| {
-                        egui_ctx.request_repaint(); // Wake up UI thread
-                        on_fetch_part(part, &mut download_store.lock().unwrap())
-                    });
-                } else {
-                    // The simple non-streaming API:
-                    ehttp::fetch(request, move |response| {
-                        *download_store.lock().unwrap() = Download::Done(response);
-                        egui_ctx.request_repaint(); // Wake up UI thread
-                    });
-                }
-            }
-
-            ui.separator();
-
-            let download: &Download = &self.download.lock().unwrap();
-            match download {
-                Download::None => {}
-                Download::InProgress => {
-                    ui.label("Wait for it…");
-                }
-                Download::StreamingInProgress { body, .. } => {
-                    let num_bytes = body.len();
-                    if num_bytes < 1_000_000 {
-                        ui.label(format!("{:.1} kB", num_bytes as f32 / 1e3));
-                    } else {
-                        ui.label(format!("{:.1} MB", num_bytes as f32 / 1e6));
-                    }
-                }
-                Download::Done(response) => match response {
-                    Err(err) => {
-                        ui.label(err);
-                    }
-                    Ok(response) => {
-                        response_ui(ui, response);
-                    }
-                },
-            }
-        });
-
-        Ok(None)
-    }
-
-    fn ui_url(&mut self, ui: &mut egui::Ui) -> bool {
-        let mut trigger_fetch = self.ui_examples(ui);
-
-        egui::Grid::new("request_parameters")
-            .spacing(egui::Vec2::splat(4.0))
-            .min_col_width(70.0)
-            .num_columns(2)
-            .show(ui, |ui| {
-                ui.label("URL:");
-                trigger_fetch |= ui.text_edit_singleline(&mut self.url).lost_focus();
-                ui.end_row();
-
-                ui.label("Method:");
-                ui.horizontal(|ui| {
-                    ui.radio_value(&mut self.method, Method::Get, "GET")
-                        .clicked();
-                    ui.radio_value(&mut self.method, Method::Head, "HEAD")
-                        .clicked();
-                    ui.radio_value(&mut self.method, Method::Post, "POST")
-                        .clicked();
-                });
-                ui.end_row();
-
-                if self.method == Method::Post {
-                    ui.label("POST Body:");
-                    ui.add(
-                        egui::TextEdit::multiline(&mut self.request_body)
-                            .code_editor()
-                            .desired_rows(1),
-                    );
-                    ui.end_row();
-                }
-
-                ui.checkbox(&mut self.streaming, "Stream HTTP Response")
-                    .on_hover_text("Read the HTTP response in chunks");
-                ui.end_row();
-            });
-
-        trigger_fetch |= ui.button("fetch ▶").clicked();
-
-        trigger_fetch
-    }
-
-    fn ui_examples(&mut self, ui: &mut egui::Ui) -> bool {
-        let mut trigger_fetch = false;
-
-        ui.horizontal(|ui| {
-            ui.label("Examples:");
-
-            let self_url = format!(
-                "https://raw.githubusercontent.com/emilk/ehttp/master/{}",
-                file!()
-            );
-            if ui
-                .selectable_label(
-                    (&self.url, self.method) == (&self_url, Method::Get),
-                    "GET source code",
-                )
-                .clicked()
-            {
-                self.url = self_url;
-                self.method = Method::Get;
-                trigger_fetch = true;
-            }
-
-            let wasm_file = "https://emilk.github.io/ehttp/example_eframe_bg.wasm".to_owned();
-            if ui
-                .selectable_label(
-                    (&self.url, self.method) == (&wasm_file, Method::Get),
-                    "GET .wasm",
-                )
-                .clicked()
-            {
-                self.url = wasm_file;
-                self.method = Method::Get;
-                trigger_fetch = true;
-            }
-
-            let pastebin_url = "https://httpbin.org/post".to_owned();
-            if ui
-                .selectable_label(
-                    (&self.url, self.method) == (&pastebin_url, Method::Post),
-                    "POST to httpbin.org",
-                )
-                .clicked()
-            {
-                self.url = pastebin_url;
-                self.method = Method::Post;
-                trigger_fetch = true;
-            }
-        });
-
-        trigger_fetch
     }
 }
 
@@ -317,25 +132,6 @@ impl ViewState {
         });
 
         Ok(next_state)
-    }
-}
-
-#[derive(Debug, PartialEq, Clone)]
-struct EditState {
-    request: String,
-    response: String,
-    config: String,
-}
-
-impl EditState {
-    pub fn ui(
-        &mut self,
-        egui_ctx: &egui::Context,
-        _client_ctx: &ClientContext,
-    ) -> Result<Option<ClientState>, &str> {
-        egui::CentralPanel::default().show(egui_ctx, |_| {});
-
-        Ok(None)
     }
 }
 
@@ -648,10 +444,8 @@ impl eframe::App for Client {
         let next_state = match &mut *self.state {
             ClientState::Init(state) => state.ui(egui_ctx, &mut self.context),
             ClientState::View(state) => state.ui(egui_ctx, &self.context),
-            ClientState::Edit(state) => state.ui(egui_ctx, &self.context),
             ClientState::Resolving(state) => state.ui(egui_ctx, &self.context),
             ClientState::Resolved(state) => state.ui(egui_ctx, &self.context),
-            ClientState::Demo(state) => state.ui(egui_ctx, &self.context),
         };
 
         match next_state {
