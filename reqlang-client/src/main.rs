@@ -118,7 +118,7 @@ impl ViewState {
             egui::ScrollArea::vertical().show(ui, |ui| {
                 ui.heading("Request");
 
-                selectable_text(ui, &format!("{}", &request_string));
+                selectable_text(ui, &request_string);
 
                 ui.separator();
 
@@ -309,7 +309,7 @@ impl ResolvedState {
         egui::CentralPanel::default().show(egui_ctx, |ui| {
             ui.heading("Request");
 
-            selectable_text(ui, &format!("{}", &request_string));
+            selectable_text(ui, &request_string);
 
             if ui.button("Send Request").clicked() {
                 let request = match reqfile.request.verb.as_str() {
