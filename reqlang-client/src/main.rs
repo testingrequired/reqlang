@@ -7,7 +7,7 @@ use std::{
 };
 
 use eframe::egui;
-use parser::split;
+use parser::{parse, split, template};
 use types::{ResolvedRequestFile, TemplatedRequestFile, UnresolvedRequestFile};
 
 #[allow(dead_code)]
@@ -17,52 +17,49 @@ enum ClientState {
     Edit(EditState),
     Resolving(ResolvingState),
     Resolved(ResolvedState),
-    RequestResponse(RequestResponseState),
     Demo(DemoState),
 }
 
-struct InitState {
-    picked_path: Option<String>,
-}
+struct InitState {}
 
 impl Default for InitState {
     fn default() -> Self {
-        Self { picked_path: None }
+        Self {}
     }
 }
 
 impl InitState {
-    pub fn ui(&mut self, egui_ctx: &egui::Context) -> Result<Option<ClientState>, &str> {
+    pub fn ui(
+        &mut self,
+        egui_ctx: &egui::Context,
+        client_ctx: &mut ClientContext,
+    ) -> Result<Option<ClientState>, &str> {
         let mut next_state: Option<ClientState> = None;
 
         egui::CentralPanel::default().show(egui_ctx, |ui| {
             if ui.button("Open file…").clicked() {
                 if let Some(path) = rfd::FileDialog::new().pick_file() {
-                    self.picked_path = Some(path.display().to_string());
+                    client_ctx.path = Some(path.display().to_string());
                 }
             }
 
-            if let Some(picked_path) = &self.picked_path {
-                let source = fs::read_to_string(&picked_path)
-                    .expect("Should have been able to read the file");
+            client_ctx.source = if let Some(path) = &client_ctx.path {
+                let source =
+                    fs::read_to_string(&path).expect("Should have been able to read the file");
 
-                let split = split(&source).unwrap();
-
-                next_state = Some(ClientState::View(ViewState {
-                    path: picked_path.to_owned(),
-                    source: source,
-                    request: split.request.0,
-                    response: split
-                        .response
-                        .map(|(response, _)| response)
-                        .unwrap_or("".to_owned()),
-                    config: split
-                        .config
-                        .map(|(config, _)| config)
-                        .unwrap_or("".to_owned()),
-                }));
+                Some(Box::new(source))
             } else {
-                next_state = None;
+                None
+            };
+
+            client_ctx.reqfile = if let Some(source) = &client_ctx.source {
+                Some(Box::new(parse(&source).unwrap()))
+            } else {
+                None
+            };
+
+            if let Some(_) = &client_ctx.reqfile {
+                next_state = Some(ClientState::View(ViewState {}));
             }
         });
 
@@ -92,7 +89,11 @@ impl Default for DemoState {
 }
 
 impl DemoState {
-    pub fn ui(&mut self, egui_ctx: &egui::Context) -> Result<Option<ClientState>, &str> {
+    pub fn ui(
+        &mut self,
+        egui_ctx: &egui::Context,
+        client_ctx: &ClientContext,
+    ) -> Result<Option<ClientState>, &str> {
         egui::CentralPanel::default().show(egui_ctx, |ui| {
             let trigger_fetch = self.ui_url(ui);
 
@@ -250,41 +251,74 @@ impl DemoState {
 }
 
 #[derive(Debug, PartialEq, Clone)]
-struct ViewState {
-    path: String,
-    source: String,
-    request: String,
-    response: String,
-    config: String,
-}
+struct ViewState {}
 
 impl ViewState {
-    pub fn ui(&mut self, egui_ctx: &egui::Context) -> Result<Option<ClientState>, &str> {
+    pub fn ui(
+        &mut self,
+        egui_ctx: &egui::Context,
+        client_ctx: &ClientContext,
+    ) -> Result<Option<ClientState>, &str> {
         let mut next_state: Option<ClientState> = None;
 
+        let request: Option<&types::Request> = match &client_ctx.reqfile {
+            Some(reqfile) => Some(&reqfile.request.0),
+            None => None,
+        };
+
+        let response: Option<&types::Response> = match &client_ctx.reqfile {
+            Some(reqfile) => match &reqfile.response {
+                Some(response) => Some(&response.0),
+                None => None,
+            },
+            None => None,
+        };
+
+        let config: Option<&types::UnresolvedRequestFileConfig> = match &client_ctx.reqfile {
+            Some(reqfile) => match &reqfile.config {
+                Some(config) => Some(&config.0),
+                None => None,
+            },
+            None => None,
+        };
+
+        let prompt_names: Vec<&String> = match &client_ctx.reqfile {
+            Some(reqfile) => reqfile.prompt_names(),
+            None => vec![],
+        };
+
+        let secret_names: Vec<&String> = match &client_ctx.reqfile {
+            Some(reqfile) => reqfile.secret_names(),
+            None => vec![],
+        };
+
         egui::CentralPanel::default().show(egui_ctx, |ui| {
+            if ui.button("Resolve").clicked() {
+                match &client_ctx.source {
+                    Some(_) => {
+                        next_state = Some(ClientState::Resolving(ResolvingState::new(
+                            "".to_owned(),
+                            prompt_names,
+                            secret_names,
+                            HashMap::new(),
+                            HashMap::new(),
+                        )));
+                    }
+                    None => todo!(),
+                }
+            }
+
             ui.heading("Request");
 
-            selectable_text(ui, &format!("{:#?}", &self.request));
+            selectable_text(ui, &format!("{:#?}", &request.unwrap()));
 
             ui.heading("Response");
 
-            selectable_text(ui, &format!("{:#?}", &self.response));
+            selectable_text(ui, &format!("{:#?}", &response.unwrap()));
 
             ui.heading("Config");
 
-            selectable_text(ui, &format!("{:#?}", &self.config));
-
-            if ui.button("Resolve").clicked() {
-                next_state = Some(ClientState::Resolving(ResolvingState::new(
-                    self.path.clone(),
-                    self.source.clone(),
-                    parser::parse(&self.source).unwrap(),
-                    "".to_owned(),
-                    HashMap::new(),
-                    HashMap::new(),
-                )));
-            }
+            selectable_text(ui, &format!("{:#?}", &config.unwrap()));
         });
 
         Ok(next_state)
@@ -293,14 +327,17 @@ impl ViewState {
 
 #[derive(Debug, PartialEq, Clone)]
 struct EditState {
-    path: String,
     request: String,
     response: String,
     config: String,
 }
 
 impl EditState {
-    pub fn ui(&mut self, egui_ctx: &egui::Context) -> Result<Option<ClientState>, &str> {
+    pub fn ui(
+        &mut self,
+        egui_ctx: &egui::Context,
+        client_ctx: &ClientContext,
+    ) -> Result<Option<ClientState>, &str> {
         egui::CentralPanel::default().show(egui_ctx, |_| {});
 
         Ok(None)
@@ -309,27 +346,19 @@ impl EditState {
 
 #[derive(Debug, PartialEq, Clone)]
 struct ResolvingState {
-    path: String,
-    source: String,
-    reqfile: UnresolvedRequestFile,
     env: String,
     prompts: HashMap<String, String>,
     secrets: HashMap<String, String>,
-    resolved: Option<ResolvedRequestFile>,
 }
 
 impl ResolvingState {
     fn new(
-        path: String,
-        source: String,
-        reqfile: UnresolvedRequestFile,
         env: String,
+        prompt_names: Vec<&String>,
+        secret_names: Vec<&String>,
         mut prompts: HashMap<String, String>,
         mut secrets: HashMap<String, String>,
     ) -> Self {
-        let prompt_names = reqfile.prompt_names();
-        let secret_names = reqfile.secret_names();
-
         for prompt_name in prompt_names.clone() {
             prompts.insert(prompt_name.to_string(), String::new());
         }
@@ -339,32 +368,45 @@ impl ResolvingState {
         }
 
         Self {
-            path,
-            source,
-            reqfile,
             env,
             prompts,
             secrets,
-            resolved: None,
         }
     }
 }
 
 impl ResolvingState {
-    pub fn ui(&mut self, egui_ctx: &egui::Context) -> Result<Option<ClientState>, &str> {
+    pub fn ui(
+        &mut self,
+        egui_ctx: &egui::Context,
+        client_ctx: &ClientContext,
+    ) -> Result<Option<ClientState>, &str> {
         let mut next_state: Option<ClientState> = None;
 
-        egui::CentralPanel::default().show(egui_ctx, |ui| {
-            let env_names = self.reqfile.env_names();
-            let prompt_names = self.reqfile.prompt_names();
-            let secret_names = self.reqfile.secret_names();
+        // let reqfile = &client_ctx.reqfile.unwrap();
 
+        let env_names: Vec<&String> = match &client_ctx.reqfile {
+            Some(reqfile) => reqfile.env_names(),
+            None => vec![],
+        };
+
+        let prompt_names: Vec<&String> = match &client_ctx.reqfile {
+            Some(reqfile) => reqfile.prompt_names(),
+            None => vec![],
+        };
+
+        let secret_names: Vec<&String> = match &client_ctx.reqfile {
+            Some(reqfile) => reqfile.secret_names(),
+            None => vec![],
+        };
+
+        egui::CentralPanel::default().show(egui_ctx, |ui| {
             if !env_names.is_empty() {
                 ui.heading("Environment");
 
                 ui.horizontal(|ui| {
                     for env_name in env_names {
-                        ui.radio_value(&mut self.env, env_name.to_owned(), env_name);
+                        ui.radio_value(&mut self.env, env_name.to_string(), env_name.to_string());
                     }
                 });
 
@@ -378,10 +420,10 @@ impl ResolvingState {
 
                 ui.horizontal(|ui| {
                     for prompt_name in prompt_names {
-                        let input = self.prompts.get_mut(prompt_name).unwrap();
+                        let input = self.prompts.get_mut(prompt_name.as_str()).unwrap();
 
                         ui.horizontal(|ui| {
-                            ui.label(prompt_name);
+                            ui.label(prompt_name.as_str());
                             ui.text_edit_singleline(input);
                         });
 
@@ -399,10 +441,10 @@ impl ResolvingState {
 
                 ui.horizontal(|ui| {
                     for secret_name in secret_names {
-                        let input = self.secrets.get_mut(secret_name).unwrap();
+                        let input = self.secrets.get_mut(secret_name.as_str()).unwrap();
 
                         ui.horizontal(|ui| {
-                            ui.label(secret_name);
+                            ui.label(secret_name.as_str());
                             ui.text_edit_singleline(input);
                         });
 
@@ -418,15 +460,11 @@ impl ResolvingState {
             ui.separator();
 
             if ui.button("Resolve").clicked() {
-                let reqfile =
-                    parser::template(&self.source, &self.env, &self.prompts, &self.secrets)
-                        .unwrap();
-
                 next_state = Some(ClientState::Resolved(ResolvedState {
-                    path: self.path.clone(),
-                    source: self.source.clone(),
                     download: Arc::new(Mutex::new(Download::None)),
-                    reqfile,
+                    env: self.env.clone(),
+                    prompts: self.prompts.clone(),
+                    secrets: self.secrets.clone(),
                 }));
             }
         });
@@ -437,28 +475,40 @@ impl ResolvingState {
 
 #[derive(Clone)]
 struct ResolvedState {
-    path: String,
-    source: String,
-    reqfile: TemplatedRequestFile,
+    env: String,
+    prompts: HashMap<String, String>,
+    secrets: HashMap<String, String>,
     download: Arc<Mutex<Download>>,
 }
 
 impl ResolvedState {
-    pub fn ui(&mut self, egui_ctx: &egui::Context) -> Result<Option<ClientState>, &str> {
-        let mut next_state: Option<ClientState> = None;
+    pub fn ui(
+        &mut self,
+        egui_ctx: &egui::Context,
+        client_ctx: &ClientContext,
+    ) -> Result<Option<ClientState>, &str> {
+        let next_state: Option<ClientState> = None;
+
+        let reqfile = template(
+            &client_ctx.source.as_ref().unwrap(),
+            &self.env,
+            &self.prompts,
+            &self.secrets,
+        )
+        .unwrap();
 
         egui::CentralPanel::default().show(egui_ctx, |ui| {
             ui.heading("Request");
 
-            selectable_text(ui, &format!("{:#?}", &self.reqfile.request));
+            selectable_text(ui, &format!("{:#?}", &reqfile.request));
 
             if ui.button("Send Request").clicked() {
-                let request = match self.reqfile.request.verb.as_str() {
-                    "GET" => ehttp::Request::get(&self.reqfile.request.target),
-                    "HEAD" => ehttp::Request::head(&self.reqfile.request.target),
+                let request = match reqfile.request.verb.as_str() {
+                    "GET" => ehttp::Request::get(&reqfile.request.target),
+                    "HEAD" => ehttp::Request::head(&reqfile.request.target),
                     "POST" => ehttp::Request::post(
-                        &self.reqfile.request.target,
-                        self.reqfile
+                        &reqfile.request.target,
+                        reqfile
                             .request
                             .body
                             .clone()
@@ -520,22 +570,6 @@ impl ResolvedState {
     }
 }
 
-#[allow(dead_code)]
-#[derive(Clone)]
-struct RequestResponseState {
-    path: String,
-    reqfile: ResolvedRequestFile,
-    download: Arc<Mutex<Download>>,
-}
-
-impl RequestResponseState {
-    pub fn ui(&mut self, egui_ctx: &egui::Context) -> Result<Option<ClientState>, &str> {
-        egui::CentralPanel::default().show(egui_ctx, |_| {});
-
-        Ok(None)
-    }
-}
-
 #[derive(Debug, PartialEq, Copy, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 enum Method {
@@ -568,17 +602,37 @@ enum Download {
     Done(ehttp::Result<ehttp::Response>),
 }
 
+struct ClientContext {
+    path: Option<String>,
+    source: Option<Box<String>>,
+    reqfile: Option<Box<UnresolvedRequestFile>>,
+}
+
+impl Default for ClientContext {
+    fn default() -> Self {
+        Self {
+            path: None,
+            source: None,
+            reqfile: None,
+        }
+    }
+}
+
 #[allow(dead_code)]
 pub struct Client {
     streaming: bool,
     state: Box<ClientState>,
+    context: Box<ClientContext>,
 }
+
+impl Client {}
 
 impl Default for Client {
     fn default() -> Self {
         Self {
             streaming: true,
             state: Box::new(ClientState::Init(InitState::default())),
+            context: Box::new(ClientContext::default()),
         }
     }
 }
@@ -586,13 +640,12 @@ impl Default for Client {
 impl eframe::App for Client {
     fn update(&mut self, egui_ctx: &egui::Context, _frame: &mut eframe::Frame) {
         let next_state = match &mut *self.state {
-            ClientState::Init(state) => state.ui(egui_ctx),
-            ClientState::View(state) => state.ui(egui_ctx),
-            ClientState::Edit(state) => state.ui(egui_ctx),
-            ClientState::Resolving(state) => state.ui(egui_ctx),
-            ClientState::Resolved(state) => state.ui(egui_ctx),
-            ClientState::RequestResponse(state) => state.ui(egui_ctx),
-            ClientState::Demo(state) => state.ui(egui_ctx),
+            ClientState::Init(state) => state.ui(egui_ctx, &mut self.context),
+            ClientState::View(state) => state.ui(egui_ctx, &self.context),
+            ClientState::Edit(state) => state.ui(egui_ctx, &self.context),
+            ClientState::Resolving(state) => state.ui(egui_ctx, &self.context),
+            ClientState::Resolved(state) => state.ui(egui_ctx, &self.context),
+            ClientState::Demo(state) => state.ui(egui_ctx, &self.context),
         };
 
         match next_state {
@@ -647,8 +700,6 @@ fn on_fetch_part(
         }
     }
 }
-
-impl Client {}
 
 fn response_ui(ui: &mut egui::Ui, response: &ehttp::Response) {
     ui.monospace(format!("url:          {}", response.url));
