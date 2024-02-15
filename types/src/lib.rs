@@ -135,7 +135,7 @@ impl UnresolvedRequestFile {
     pub fn var_names(&self) -> Vec<&String> {
         match &self.config {
             Some((config, _)) => match &config.vars {
-                Some(envs) => envs.iter().map(|x| x).collect(),
+                Some(envs) => envs.iter().collect(),
                 None => vec![],
             },
             None => vec![],
