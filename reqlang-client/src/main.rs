@@ -76,12 +76,9 @@ impl ViewState {
             None => None,
         };
 
-        let response: Option<&types::Response> = match &client_ctx.reqfile {
-            Some(reqfile) => match &reqfile.response {
-                Some(response) => Some(&response.0),
-                None => None,
-            },
-            None => None,
+        let request_string = match request {
+            Some(request) => export::export(request, Format::Http),
+            None => String::new(),
         };
 
         let config: Option<&types::UnresolvedRequestFileConfig> = match &client_ctx.reqfile {
@@ -121,11 +118,9 @@ impl ViewState {
             egui::ScrollArea::vertical().show(ui, |ui| {
                 ui.heading("Request");
 
-                selectable_text(ui, &format!("{:#?}", &request.unwrap()));
+                selectable_text(ui, &format!("{}", &request_string));
 
-                ui.heading("Response");
-
-                selectable_text(ui, &format!("{:#?}", &response.unwrap()));
+                ui.separator();
 
                 ui.heading("Config");
 
@@ -308,12 +303,13 @@ impl ResolvedState {
             &self.prompts,
             &self.secrets,
             Format::Http,
-        );
+        )
+        .unwrap();
 
         egui::CentralPanel::default().show(egui_ctx, |ui| {
             ui.heading("Request");
 
-            selectable_text(ui, &format!("{:#?}", &request_string));
+            selectable_text(ui, &format!("{}", &request_string));
 
             if ui.button("Send Request").clicked() {
                 let request = match reqfile.request.verb.as_str() {
