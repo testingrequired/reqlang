@@ -118,17 +118,19 @@ impl ViewState {
                 }
             }
 
-            ui.heading("Request");
+            egui::ScrollArea::vertical().show(ui, |ui| {
+                ui.heading("Request");
 
-            selectable_text(ui, &format!("{:#?}", &request.unwrap()));
+                selectable_text(ui, &format!("{:#?}", &request.unwrap()));
 
-            ui.heading("Response");
+                ui.heading("Response");
 
-            selectable_text(ui, &format!("{:#?}", &response.unwrap()));
+                selectable_text(ui, &format!("{:#?}", &response.unwrap()));
 
-            ui.heading("Config");
+                ui.heading("Config");
 
-            selectable_text(ui, &format!("{:#?}", &config.unwrap()));
+                selectable_text(ui, &format!("{:#?}", &config.unwrap()));
+            });
         });
 
         Ok(next_state)
