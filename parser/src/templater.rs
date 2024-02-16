@@ -80,7 +80,7 @@ mod test {
             fn $test_name() {
                 let unresolved_reqfile = RequestFileParser::parse_string(&$reqfile);
 
-                assert_eq!(unresolved_reqfile.is_ok(), true);
+                // assert_eq!(unresolved_reqfile.is_ok(), true);
 
                 let unresolved_reqfile = unresolved_reqfile.unwrap();
 
@@ -124,10 +124,10 @@ mod test {
             "\n",
             "[envs]\n",
             "[envs.dev]\n",
-            "query_value = \"dev_value\"\n",
+            "query_value = \"{{?test_value}}\"\n",
             "\n",
             "[envs.prod]\n",
-            "query_value = \"prod_value\"\n",
+            "query_value = \"{{?test_value}}\"\n",
             "\n",
             "[prompts]\n",
             "test_value = \"\"\n",
@@ -147,7 +147,7 @@ mod test {
         Ok(TemplatedRequestFile {
             request: Request {
                 verb: "POST".to_string(),
-                target: "/?query=dev_value".to_string(),
+                target: "/?query=test_value_value".to_string(),
                 http_version: "1.1".to_string(),
                 headers: vec![
                     ("x-test".to_string(), "test_value_value".to_string()),
@@ -162,6 +162,36 @@ mod test {
                 headers: HashMap::new(),
                 body: Some("expected_response_body_value\n\n".to_string())
             }),
+        })
+    );
+
+    templater_test!(
+        nested_references_in_config_not_supported,
+        concat!(
+            "---\n",
+            "GET /?query={{:copy}} HTTP/1.1\n\n",
+            "---\n",
+            "---\n",
+            "vars = [\"query_value\", \"copy\"]\n",
+            "secrets = [\"api_key\"]",
+            "\n",
+            "envs.dev.query_value = \"{{!api_key}}\"\n",
+            "envs.dev.copy = \"{{:query_value}}\"\n",
+            "\n",
+            "---\n"
+        ),
+        "dev",
+        HashMap::new(),
+        HashMap::from([("api_key".to_string(), "api_key_value".to_string())]),
+        Ok(TemplatedRequestFile {
+            request: Request {
+                verb: "GET".to_string(),
+                target: "/?query={{!api_key}}".to_string(),
+                http_version: "1.1".to_string(),
+                headers: vec![],
+                body: Some("".to_string())
+            },
+            response: None,
         })
     );
 }
