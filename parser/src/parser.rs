@@ -52,9 +52,12 @@ impl RequestFileParser {
             let request_refs = RequestFileParser::parse_references(&reqfile.request);
             let response_refs =
                 RequestFileParser::parse_references(&reqfile.response.clone().unwrap_or_default());
+            let config_refs =
+                RequestFileParser::parse_references(&reqfile.config.clone().unwrap_or_default());
             let mut refs: Vec<(ReferenceType, std::ops::Range<usize>)> = vec![];
             refs.extend(request_refs);
             refs.extend(response_refs);
+            refs.extend(config_refs);
 
             let request = match RequestFileParser::parse_request(&reqfile.request) {
                 Ok((request, span)) => {
@@ -716,6 +719,52 @@ mod test {
             )),
             45..65
         )])
+    );
+
+    parser_test!(
+        template_reference_in_config,
+        concat!(
+            "---\n",
+            "GET http://example.com?value={{:bar}} HTTP/1.1\n\n",
+            "---\n",
+            "---\n",
+            "vars = [\"foo\", \"bar\"]\n",
+            "envs.dev.foo = \"test!\"\n",
+            "envs.dev.bar = \"{{:foo}}\"\n",
+            "---\n"
+        ),
+        Ok(UnresolvedRequestFile {
+            config: Some((
+                UnresolvedRequestFileConfig {
+                    vars: Some(vec!["foo".to_string(), "bar".to_string()]),
+                    envs: Some(HashMap::from([(
+                        "dev".to_string(),
+                        HashMap::from([
+                            ("foo".to_string(), "test!".to_string()),
+                            ("bar".to_string(), "{{:foo}}".to_string())
+                        ])
+                    ),])),
+                    prompts: None,
+                    secrets: None
+                },
+                60..131
+            )),
+            request: (
+                Request {
+                    verb: "GET".to_string(),
+                    target: "http://example.com?value={{:bar}}".to_string(),
+                    http_version: "1.1".to_string(),
+                    headers: vec![],
+                    body: Some("".to_string())
+                },
+                4..52
+            ),
+            response: None,
+            refs: vec![
+                (ReferenceType::Variable("bar".to_string()), 4..52),
+                (ReferenceType::Variable("foo".to_string()), 60..131),
+            ],
+        })
     );
 
     parser_test!(
