@@ -75,8 +75,6 @@ impl RequestFileTemplater {
                         let authorize_url = oauth2.get("authorize_url").unwrap().to_owned();
                         let access_token_url = oauth2.get("access_token_url").unwrap().to_owned();
 
-                        eprintln!("TEST {authorize_url}");
-
                         let client = BasicClient::new(
                             ClientId::new(client_id),
                             Some(ClientSecret::new(client_secret)),
