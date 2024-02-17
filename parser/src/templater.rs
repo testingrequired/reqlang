@@ -3,6 +3,11 @@ use span::Spanned;
 use types::{ReferenceType, ResolvedRequestFile, TemplatedRequestFile};
 
 use crate::parser::RequestFileParser;
+use crate::split;
+
+use oauth2::basic::BasicClient;
+use oauth2::reqwest::http_client;
+use oauth2::{AuthUrl, ClientId, ClientSecret, Scope, TokenResponse, TokenUrl};
 
 pub struct RequestFileTemplater {}
 
@@ -36,18 +41,65 @@ impl RequestFileTemplater {
 
         let mut input = input.to_string();
 
-        for (template_ref, ref_type) in template_refs_to_replace {
-            let value = match ref_type {
-                ReferenceType::Variable(name) => reqfile.config.0.vars.get(&name),
-                ReferenceType::Prompt(name) => reqfile.config.0.prompts.get(&name),
-                ReferenceType::Secret(name) => reqfile.config.0.secrets.get(&name),
-                ReferenceType::Unknown(_) => unreachable!(),
+        for (template_ref, ref_type) in &template_refs_to_replace {
+            let value: Option<String> = match ref_type {
+                ReferenceType::Variable(name) => {
+                    Some(reqfile.config.0.vars.get(name).unwrap().to_owned())
+                }
+                ReferenceType::Prompt(name) => {
+                    Some(reqfile.config.0.prompts.get(name).unwrap().to_owned())
+                }
+                ReferenceType::Secret(name) => {
+                    Some(reqfile.config.0.secrets.get(name).unwrap().to_owned())
+                }
+                _ => None,
             };
 
-            input = input.replace(
-                &template_ref,
-                value.unwrap_or(&String::from("COULD NOT FIND TEMPLATE VALUE")),
-            );
+            input = input.replace(template_ref, &value.unwrap_or(template_ref.clone()));
+        }
+
+        let reqfile = &split(&input).unwrap();
+
+        for (template_ref, ref_type) in &template_refs_to_replace {
+            let value: Option<String> = match ref_type {
+                ReferenceType::Provider(name) => match name.as_str() {
+                    "auth.oauth2.access_token" => {
+                        let (config, _) = RequestFileParser::parse_config(&reqfile.config)
+                            .unwrap()
+                            .unwrap();
+                        let auth = &config.auth.clone().unwrap();
+                        let oauth2 = &auth.get("oauth2").unwrap();
+
+                        let client_id = oauth2.get("client_id").unwrap().to_owned();
+                        let client_secret = oauth2.get("client_secret").unwrap().to_owned();
+                        let authorize_url = oauth2.get("authorize_url").unwrap().to_owned();
+                        let access_token_url = oauth2.get("access_token_url").unwrap().to_owned();
+
+                        eprintln!("TEST {authorize_url}");
+
+                        let client = BasicClient::new(
+                            ClientId::new(client_id),
+                            Some(ClientSecret::new(client_secret)),
+                            AuthUrl::new(authorize_url).unwrap(),
+                            Some(TokenUrl::new(access_token_url).unwrap()),
+                        );
+
+                        let token_result = client
+                            .exchange_client_credentials()
+                            .add_scope(Scope::new("read".to_string()))
+                            .request(http_client)
+                            .unwrap();
+
+                        let access_token = token_result.access_token().secret().to_owned();
+
+                        Some(access_token)
+                    }
+                    _ => None,
+                },
+                _ => None,
+            };
+
+            input = input.replace(template_ref, &value.unwrap_or(template_ref.clone()));
         }
 
         let split = RequestFileParser::split(&input).unwrap();

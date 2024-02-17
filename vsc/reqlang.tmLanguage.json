@@ -35,19 +35,23 @@
       "patterns": [
         {
           "name": "variable.parameter.reqlang",
-          "match": "\\{\\{([:?!]{1})([a-zA-Z][_a-zA-Z]+)\\}\\}"
+          "match": "\\{\\{([:?!@]{1})([a-zA-Z][_a-zA-Z0-9.]+)\\}\\}"
         },
         {
           "name": "invalid.illegal.reqlang",
-          "match": "\\{\\{([:?!]{1})([^a-zA-Z].*)\\}\\}"
+          "match": "\\{\\{([:?!@]{1})([^_a-zA-Z0-9.].*)\\}\\}"
         },
         {
           "name": "invalid.illegal.reqlang",
-          "match": "\\{\\{([^:?!]{1}).+\\}\\}"
+          "match": "\\{\\{([:?!@]{1})([a-zA-Z][_a-zA-Z0-9.]+\\s+.+)\\}\\}"
         },
         {
           "name": "invalid.illegal.reqlang",
-          "match": "\\{\\{([:?!]{1})\\s+.+\\}\\}"
+          "match": "\\{\\{([^:?!@]{1}).+\\}\\}"
+        },
+        {
+          "name": "invalid.illegal.reqlang",
+          "match": "\\{\\{([:?!@]{1})\\s+.+\\}\\}"
         }
       ]
     },

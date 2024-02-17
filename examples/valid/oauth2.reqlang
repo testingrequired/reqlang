@@ -1,0 +1,24 @@
+#!/usr/bin/env reqlang
+---
+POST https://httpbin.org/post HTTP/1.1
+authenication: Bearer {{@auth.oauth2.access_token}}
+
+---
+---
+vars = ["access_token_url", "authorize_url"]
+secrets = ["client_secret"]
+
+envs.dev.access_token_url = "http://localhost:8080/default/token"
+envs.dev.authorize_url = "http://localhost:8080/default/authorize"
+
+prompts.client_key = ""
+
+[auth.oauth2]
+grant = "client"
+access_token_url = "{{:access_token_url}}"
+authorize_url = "{{:authorize_url}}"
+client_id = "{{?client_key}}"
+client_secret = "{{!client_secret}}"
+scopes = "profile"
+
+---

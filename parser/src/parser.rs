@@ -88,7 +88,7 @@ impl RequestFileParser {
                 None => None,
             };
 
-            let config = match self.parse_config(&reqfile.config) {
+            let config = match RequestFileParser::parse_config(&reqfile.config) {
                 Some(Ok(config)) => Some(config),
                 Some(Err(err)) => {
                     parse_errors.extend(err);
@@ -97,6 +97,7 @@ impl RequestFileParser {
                 None => None,
             };
 
+            // Validate template references are declared/defined vars, secrets, prompts, etc.
             for (ref_type, span) in refs.iter() {
                 match ref_type {
                     ReferenceType::Variable(name) => {
@@ -189,6 +190,7 @@ impl RequestFileParser {
                             ));
                         }
                     }
+                    ReferenceType::Provider(_name) => {}
                     ReferenceType::Unknown(_name) => {}
                 }
             }
@@ -201,6 +203,7 @@ impl RequestFileParser {
                         ReferenceType::Variable(name) => name,
                         ReferenceType::Prompt(name) => name,
                         ReferenceType::Secret(name) => name,
+                        ReferenceType::Provider(name) => name,
                         ReferenceType::Unknown(name) => name,
                     })
                     .collect();
@@ -346,8 +349,7 @@ impl RequestFileParser {
         })
     }
 
-    fn parse_config(
-        &self,
+    pub fn parse_config(
         config: &Option<Spanned<String>>,
     ) -> Option<Result<Spanned<UnresolvedRequestFileConfig>, Vec<Spanned<ReqlangError>>>> {
         config.as_ref().map(|(config, span)| {
@@ -376,6 +378,7 @@ impl RequestFileParser {
                 ":" => (ReferenceType::Variable(name.to_string()), span.to_owned()),
                 "?" => (ReferenceType::Prompt(name.to_string()), span.to_owned()),
                 "!" => (ReferenceType::Secret(name.to_string()), span.to_owned()),
+                "@" => (ReferenceType::Provider(name.to_string()), span.to_owned()),
                 _ => (ReferenceType::Unknown(name.to_string()), span.to_owned()),
             });
         }
@@ -745,7 +748,8 @@ mod test {
                         ])
                     ),])),
                     prompts: None,
-                    secrets: None
+                    secrets: None,
+                    auth: None
                 },
                 60..131
             )),
@@ -763,6 +767,94 @@ mod test {
             refs: vec![
                 (ReferenceType::Variable("bar".to_string()), 4..52),
                 (ReferenceType::Variable("foo".to_string()), 60..131),
+            ],
+        })
+    );
+
+    parser_test!(
+        auth_in_config,
+        concat!(
+            "#!/usr/bin/env reqlang\n",
+            "---\n",
+            "POST https://httpbin.org/post HTTP/1.1\n",
+            "authenication: Bearer {{@auth.oauth2.access_token}}\n",
+            "\n",
+            "---\n",
+            "---\n",
+            "vars = [\"access_token_url\"]\n",
+            "secrets = [\"client_secret\"]\n",
+            "\n",
+            "envs.dev.access_token_url = \"\"\n",
+            "\n",
+            "prompts.client_key = \"\"\n",
+            "\n",
+            "[auth.oauth2]\n",
+            "grant = \"client\"\n",
+            "access_token_url = \"{{:access_token_url}}\"\n",
+            "client_id = \"{{?client_key}}\"\n",
+            "client_secret = \"{{!client_secret}}\"\n",
+            "scopes = \"profile\"\n",
+            "\n",
+            "---\n",
+            "\n",
+        ),
+        Ok(UnresolvedRequestFile {
+            config: Some((
+                UnresolvedRequestFileConfig {
+                    vars: Some(vec!["access_token_url".to_string()]),
+                    envs: Some(HashMap::from([(
+                        "dev".to_string(),
+                        HashMap::from([("access_token_url".to_string(), "".to_string()),])
+                    ),])),
+                    prompts: Some(HashMap::from([(
+                        "client_key".to_string(),
+                        Some("".to_string())
+                    )])),
+                    secrets: Some(vec!["client_secret".to_string()]),
+                    auth: Some(HashMap::from([(
+                        "oauth2".to_string(),
+                        HashMap::from([
+                            ("grant".to_string(), "client".to_string()),
+                            (
+                                "access_token_url".to_string(),
+                                "{{:access_token_url}}".to_string()
+                            ),
+                            ("client_id".to_string(), "{{?client_key}}".to_string()),
+                            (
+                                "client_secret".to_string(),
+                                "{{!client_secret}}".to_string()
+                            ),
+                            ("scopes".to_string(), "profile".to_string()),
+                        ])
+                    ),]))
+                },
+                127..402
+            )),
+            request: (
+                Request {
+                    verb: "POST".to_string(),
+                    target: "https://httpbin.org/post".to_string(),
+                    http_version: "1.1".to_string(),
+                    headers: vec![(
+                        "authenication".to_string(),
+                        "Bearer {{@auth.oauth2.access_token}}".to_string()
+                    )],
+                    body: Some("".to_string())
+                },
+                27..119
+            ),
+            response: None,
+            refs: vec![
+                (
+                    ReferenceType::Provider("auth.oauth2.access_token".to_string()),
+                    27..119
+                ),
+                (
+                    ReferenceType::Variable("access_token_url".to_string()),
+                    127..402
+                ),
+                (ReferenceType::Prompt("client_key".to_string()), 127..402),
+                (ReferenceType::Secret("client_secret".to_string()), 127..402),
             ],
         })
     );
@@ -1189,6 +1281,7 @@ mod test {
             "POST /?query={{:query_value}} HTTP/1.1\n",
             "x-test: {{?test_value}}\n",
             "x-api-key: {{!api_key}}\n",
+            "x-provider: {{@provider}}\n",
             "\n",
             "[1, 2, 3]\n",
             "\n",
@@ -1223,10 +1316,11 @@ mod test {
                     headers: vec![
                         ("x-test".to_string(), "{{?test_value}}".to_string()),
                         ("x-api-key".to_string(), "{{!api_key}}".to_string()),
+                        ("x-provider".to_string(), "{{@provider}}".to_string()),
                     ],
                     body: Some("[1, 2, 3]\n\n".to_string())
                 },
-                4..103
+                4..129
             ),
             response: Some((
                 Response {
@@ -1236,7 +1330,7 @@ mod test {
                     headers: HashMap::new(),
                     body: Some("{{?expected_response_body}}\n\n".to_string())
                 },
-                107..153
+                133..179
             )),
             config: Some((
                 UnresolvedRequestFileConfig {
@@ -1255,17 +1349,19 @@ mod test {
                         ("test_value".to_string(), Some("".to_string())),
                         ("expected_response_body".to_string(), Some("".to_string()))
                     ])),
-                    secrets: Some(vec!["api_key".to_string()])
+                    secrets: Some(vec!["api_key".to_string()]),
+                    auth: None
                 },
-                157..342
+                183..368
             )),
             refs: vec![
-                (ReferenceType::Variable("query_value".to_string()), 4..103),
-                (ReferenceType::Prompt("test_value".to_string()), 4..103),
-                (ReferenceType::Secret("api_key".to_string()), 4..103),
+                (ReferenceType::Variable("query_value".to_string()), 4..129),
+                (ReferenceType::Prompt("test_value".to_string()), 4..129),
+                (ReferenceType::Secret("api_key".to_string()), 4..129),
+                (ReferenceType::Provider("provider".to_string()), 4..129),
                 (
                     ReferenceType::Prompt("expected_response_body".to_string()),
-                    107..153
+                    133..179
                 )
             ],
         })

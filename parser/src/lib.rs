@@ -12,7 +12,7 @@ mod parser;
 mod resolver;
 mod templater;
 
-pub const TEMPLATE_REFERENCE_PATTERN: &str = r"\{\{([:?!]{1})([a-zA-Z][_a-zA-Z]+)\}\}";
+pub const TEMPLATE_REFERENCE_PATTERN: &str = r"\{\{([:?!@]{1})([a-zA-Z][_a-zA-Z0-9.]+)\}\}";
 
 /// Parse a string in to a request, response, and config strings
 pub fn split(input: &str) -> Result<RequestFileSplitUp, Vec<Spanned<ReqlangError>>> {
@@ -161,7 +161,8 @@ mod parserlib {
                             ("test_value".to_string(), Some("".to_string())),
                             ("expected_response_body".to_string(), Some("".to_string()))
                         ])),
-                        secrets: Some(vec!["api_key".to_string()])
+                        secrets: Some(vec!["api_key".to_string()]),
+                        auth: None
                     },
                     157..342
                 )),
@@ -233,7 +234,8 @@ mod parserlib {
                         secrets: HashMap::from([(
                             "api_key".to_string(),
                             "api_key_value".to_string()
-                        )])
+                        )]),
+                        auth: None
                     },
                     157..342
                 ),
