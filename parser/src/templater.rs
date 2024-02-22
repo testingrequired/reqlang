@@ -74,6 +74,13 @@ impl RequestFileTemplater {
                         let client_secret = oauth2.get("client_secret").unwrap().to_owned();
                         let authorize_url = oauth2.get("authorize_url").unwrap().to_owned();
                         let access_token_url = oauth2.get("access_token_url").unwrap().to_owned();
+                        let scopes: Vec<Scope> = oauth2
+                            .get("scopes")
+                            .unwrap()
+                            .replace(',', " ")
+                            .split(' ')
+                            .map(|x| Scope::new(x.to_owned()))
+                            .collect();
 
                         let client = BasicClient::new(
                             ClientId::new(client_id),
@@ -84,7 +91,7 @@ impl RequestFileTemplater {
 
                         let token_result = client
                             .exchange_client_credentials()
-                            .add_scope(Scope::new("read".to_string()))
+                            .add_scopes(scopes)
                             .request(http_client)
                             .unwrap();
 
