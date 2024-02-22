@@ -8,10 +8,11 @@ use std::{
 
 use eframe::egui;
 use export::Format;
-use parser::{export, parse, template};
-use types::UnresolvedRequestFile;
+use parser::{parse, template};
+use types::{TemplatedRequestFile, UnresolvedRequestFile};
 
 #[allow(dead_code)]
+#[derive(Clone)]
 enum ClientState {
     Init(InitState),
     View(ViewState),
@@ -19,7 +20,7 @@ enum ClientState {
     Resolved(ResolvedState),
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 struct InitState {}
 
 impl InitState {
@@ -27,8 +28,8 @@ impl InitState {
         &mut self,
         egui_ctx: &egui::Context,
         client_ctx: &mut ClientContext,
-    ) -> Result<Option<ClientState>, &str> {
-        let mut next_state: Option<ClientState> = None;
+    ) -> Result<StateTransition, &str> {
+        let mut next_state: StateTransition = StateTransition::None;
 
         egui::CentralPanel::default().show(egui_ctx, |ui| {
             if ui.button("Open file…").clicked() {
@@ -52,7 +53,7 @@ impl InitState {
                 .map(|source| Box::new(parse(source).unwrap()));
 
             if client_ctx.reqfile.is_some() {
-                next_state = Some(ClientState::View(ViewState {}));
+                next_state = StateTransition::New(ClientState::View(ViewState {}));
             }
         });
 
@@ -68,8 +69,8 @@ impl ViewState {
         &mut self,
         egui_ctx: &egui::Context,
         client_ctx: &mut ClientContext,
-    ) -> Result<Option<ClientState>, &str> {
-        let mut next_state: Option<ClientState> = None;
+    ) -> Result<StateTransition, &str> {
+        let mut next_state: StateTransition = StateTransition::None;
 
         let request: Option<&types::Request> = match &client_ctx.reqfile {
             Some(reqfile) => Some(&reqfile.request.0),
@@ -104,20 +105,21 @@ impl ViewState {
         egui::CentralPanel::default().show(egui_ctx, |ui| {
             if ui.button("Back").clicked() {
                 client_ctx.path = None;
-                next_state = Some(ClientState::Init(InitState {}));
+                next_state = StateTransition::Back;
                 return;
             }
 
             if ui.button("Resolve").clicked() {
                 match &client_ctx.source {
                     Some(_) => {
-                        next_state = Some(ClientState::Resolving(ResolvingState::new(
-                            "".to_owned(),
-                            prompt_names.clone(),
-                            secret_names.clone(),
-                            HashMap::new(),
-                            HashMap::new(),
-                        )));
+                        next_state =
+                            StateTransition::New(ClientState::Resolving(ResolvingState::new(
+                                "".to_owned(),
+                                prompt_names.clone(),
+                                secret_names.clone(),
+                                HashMap::new(),
+                                HashMap::new(),
+                            )));
                     }
                     None => todo!(),
                 }
@@ -179,8 +181,8 @@ impl ResolvingState {
         &mut self,
         egui_ctx: &egui::Context,
         client_ctx: &ClientContext,
-    ) -> Result<Option<ClientState>, &str> {
-        let mut next_state: Option<ClientState> = None;
+    ) -> Result<StateTransition, &str> {
+        let mut next_state: StateTransition = StateTransition::None;
 
         // let reqfile = &client_ctx.reqfile.unwrap();
 
@@ -201,7 +203,7 @@ impl ResolvingState {
 
         egui::CentralPanel::default().show(egui_ctx, |ui| {
             if ui.button("Back").clicked() {
-                next_state = Some(ClientState::View(ViewState {}));
+                next_state = StateTransition::Back;
                 return;
             }
 
@@ -264,10 +266,16 @@ impl ResolvingState {
             ui.separator();
 
             if ui.button("Resolve").clicked() {
-                next_state = Some(ClientState::Resolved(ResolvedState::new(
-                    self.env.clone(),
-                    self.prompts.clone(),
-                    self.secrets.clone(),
+                let reqfile = template(
+                    &client_ctx.source.clone().unwrap(),
+                    &self.env,
+                    &self.prompts,
+                    &self.secrets,
+                )
+                .unwrap();
+
+                next_state = StateTransition::New(ClientState::Resolved(ResolvedState::new(
+                    Box::new(reqfile),
                 )));
             }
         });
@@ -278,22 +286,14 @@ impl ResolvingState {
 
 #[derive(Clone)]
 struct ResolvedState {
-    env: String,
-    prompts: HashMap<String, String>,
-    secrets: HashMap<String, String>,
+    reqfile: Box<TemplatedRequestFile>,
     download: Arc<Mutex<Download>>,
 }
 
 impl ResolvedState {
-    pub fn new(
-        env: String,
-        prompts: HashMap<String, String>,
-        secrets: HashMap<String, String>,
-    ) -> Self {
+    pub fn new(reqfile: Box<TemplatedRequestFile>) -> Self {
         Self {
-            env,
-            prompts,
-            secrets,
+            reqfile,
             download: Arc::new(Mutex::new(Download::None)),
         }
     }
@@ -301,34 +301,15 @@ impl ResolvedState {
     pub fn ui(
         &mut self,
         egui_ctx: &egui::Context,
-        client_ctx: &ClientContext,
-    ) -> Result<Option<ClientState>, &str> {
-        let mut next_state: Option<ClientState> = None;
+        _client_ctx: &ClientContext,
+    ) -> Result<StateTransition, &str> {
+        let mut next_state: StateTransition = StateTransition::None;
 
-        let reqfile = template(
-            client_ctx.source.as_ref().unwrap(),
-            &self.env,
-            &self.prompts,
-            &self.secrets,
-        )
-        .unwrap();
-
-        let request_string = export(
-            client_ctx.source.as_ref().unwrap(),
-            &self.env,
-            &self.prompts,
-            &self.secrets,
-            Format::Http,
-        )
-        .unwrap();
+        let request_string = export::export(&self.reqfile.request, Format::Http);
 
         egui::CentralPanel::default().show(egui_ctx, |ui| {
             if ui.button("Back").clicked() {
-                next_state = Some(ClientState::Resolving(ResolvingState {
-                    env: self.env.clone(),
-                    prompts: self.prompts.clone(),
-                    secrets: self.secrets.clone(),
-                }));
+                next_state = StateTransition::Back;
                 return;
             }
 
@@ -337,12 +318,12 @@ impl ResolvedState {
             selectable_text(ui, &request_string);
 
             if ui.button("Send Request").clicked() {
-                let request = match reqfile.request.verb.as_str() {
-                    "GET" => ehttp::Request::get(&reqfile.request.target),
-                    "HEAD" => ehttp::Request::head(&reqfile.request.target),
+                let request = match self.reqfile.request.verb.as_str() {
+                    "GET" => ehttp::Request::get(&self.reqfile.request.target),
+                    "HEAD" => ehttp::Request::head(&self.reqfile.request.target),
                     "POST" => ehttp::Request::post(
-                        &reqfile.request.target,
-                        reqfile
+                        &self.reqfile.request.target,
+                        self.reqfile
                             .request
                             .body
                             .clone()
@@ -446,8 +427,8 @@ struct ClientContext {
 #[allow(dead_code)]
 pub struct Client {
     streaming: bool,
-    state: Box<ClientState>,
     context: Box<ClientContext>,
+    states: Vec<Box<ClientState>>,
 }
 
 impl Client {}
@@ -456,28 +437,41 @@ impl Default for Client {
     fn default() -> Self {
         Self {
             streaming: true,
-            state: Box::new(ClientState::Init(InitState::default())),
             context: Box::<ClientContext>::default(),
+            states: vec![Box::new(ClientState::Init(InitState::default()))],
         }
     }
 }
 
+enum StateTransition {
+    None,
+    Back,
+    New(ClientState),
+}
+
 impl eframe::App for Client {
     fn update(&mut self, egui_ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        let next_state = match &mut *self.state {
-            ClientState::Init(state) => state.ui(egui_ctx, &mut self.context),
-            ClientState::View(state) => state.ui(egui_ctx, &mut self.context),
-            ClientState::Resolving(state) => state.ui(egui_ctx, &self.context),
-            ClientState::Resolved(state) => state.ui(egui_ctx, &self.context),
-        };
+        match self.states.last_mut() {
+            Some(latest_state) => {
+                let next_state = match &mut **latest_state {
+                    ClientState::Init(state) => state.ui(egui_ctx, &mut self.context),
+                    ClientState::View(state) => state.ui(egui_ctx, &mut self.context),
+                    ClientState::Resolving(state) => state.ui(egui_ctx, &self.context),
+                    ClientState::Resolved(state) => state.ui(egui_ctx, &self.context),
+                };
 
-        match next_state {
-            Ok(next_state) => {
-                if let Some(next_state) = next_state {
-                    self.state = Box::new(next_state);
-                }
+                match next_state {
+                    Ok(next_state) => match next_state {
+                        StateTransition::None => {}
+                        StateTransition::Back => {
+                            self.states.pop();
+                        }
+                        StateTransition::New(next_state) => self.states.push(Box::new(next_state)),
+                    },
+                    Err(err) => panic!("{err}"),
+                };
             }
-            Err(err) => panic!("{err}"),
+            None => panic!("Trying to pop non existant state from client"),
         };
     }
 }

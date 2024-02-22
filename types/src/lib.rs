@@ -101,6 +101,7 @@ pub enum ReferenceType {
     Variable(String),
     Prompt(String),
     Secret(String),
+    Provider(String),
     Unknown(String),
 }
 
@@ -113,6 +114,7 @@ impl Display for ReferenceType {
                 ReferenceType::Variable(name) => format!(":{name}"),
                 ReferenceType::Prompt(name) => format!("?{name}"),
                 ReferenceType::Secret(name) => format!("!{name}"),
+                ReferenceType::Provider(name) => format!("@{name}"),
                 ReferenceType::Unknown(name) => format!("???{name}???"),
             }
         )
@@ -183,6 +185,7 @@ pub struct UnresolvedRequestFileConfig {
     pub envs: Option<HashMap<String, HashMap<String, String>>>,
     pub prompts: Option<HashMap<String, Option<String>>>,
     pub secrets: Option<Vec<String>>,
+    pub auth: Option<HashMap<String, HashMap<String, String>>>,
 }
 
 /// A resolved request file with resolved environmental, prompts and secrets values.
@@ -201,6 +204,7 @@ pub struct ResolvedRequestFileConfig {
     pub vars: HashMap<String, String>,
     pub prompts: HashMap<String, String>,
     pub secrets: HashMap<String, String>,
+    pub auth: Option<HashMap<String, HashMap<String, String>>>,
 }
 
 /// A templated request file.
@@ -231,6 +235,7 @@ mod tests {
                             Some("value".to_owned()),
                         )])),
                         secrets: None,
+                        auth: None,
                     },
                     NO_SPAN,
                 )),
@@ -251,6 +256,7 @@ mod tests {
                         envs: None,
                         prompts: None,
                         secrets: None,
+                        auth: None,
                     },
                     NO_SPAN,
                 )),
@@ -287,6 +293,7 @@ mod tests {
                         envs: None,
                         prompts: None,
                         secrets: Some(vec!["secret_name".to_owned()]),
+                        auth: None,
                     },
                     NO_SPAN,
                 )),
@@ -307,6 +314,7 @@ mod tests {
                         envs: None,
                         prompts: None,
                         secrets: None,
+                        auth: None,
                     },
                     NO_SPAN,
                 )),
@@ -352,6 +360,7 @@ mod tests {
                         ])),
                         prompts: None,
                         secrets: None,
+                        auth: None,
                     },
                     NO_SPAN,
                 )),
@@ -376,6 +385,7 @@ mod tests {
                         envs: Some(HashMap::new()),
                         prompts: None,
                         secrets: None,
+                        auth: None,
                     },
                     NO_SPAN,
                 )),
@@ -398,6 +408,7 @@ mod tests {
                         envs: None,
                         prompts: None,
                         secrets: None,
+                        auth: None,
                     },
                     NO_SPAN,
                 )),

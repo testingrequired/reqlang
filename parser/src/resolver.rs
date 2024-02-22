@@ -87,6 +87,10 @@ impl RequestFileResolver {
                     vars: self.resolve_vars_from_envs(reqfile, env),
                     prompts: prompts.clone(),
                     secrets: secrets.clone(),
+                    auth: match &reqfile.config {
+                        Some((config, _)) => config.auth.clone(),
+                        None => None,
+                    },
                 },
                 reqfile.config.as_ref().map_or(NO_SPAN, |x| x.1.clone()),
             ),
@@ -278,7 +282,8 @@ mod test {
                             "expected_response_body_value".to_string()
                         )
                     ]),
-                    secrets: HashMap::from([("api_key".to_string(), "api_key_value".to_string())])
+                    secrets: HashMap::from([("api_key".to_string(), "api_key_value".to_string())]),
+                    auth: None
                 },
                 157..342
             ),
@@ -370,7 +375,8 @@ mod test {
                             "expected_response_body_value".to_string()
                         )
                     ]),
-                    secrets: HashMap::from([("api_key".to_string(), "api_key_value".to_string())])
+                    secrets: HashMap::from([("api_key".to_string(), "api_key_value".to_string())]),
+                    auth: None
                 },
                 157..342
             ),

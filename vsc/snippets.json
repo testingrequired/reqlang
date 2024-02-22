@@ -68,12 +68,12 @@
   },
   "Reference": {
     "prefix": "ref",
-    "body": ["{{${1|:?!|}${2:ref}}}$0"],
+    "body": ["{{${1|:?!@|}${2:ref}}}$0"],
     "description": "Create a template reference"
   },
   "Reference In A String": {
     "prefix": "sref",
-    "body": ["\"{{${1|:?!|}${2:ref}}}$3\"$0"],
+    "body": ["\"{{${1|:?!@|}${2:ref}}}$3\"$0"],
     "description": "Create a template reference wrapped in a double quotes"
   },
   "Header": {
