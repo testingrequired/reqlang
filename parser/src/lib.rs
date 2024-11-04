@@ -76,22 +76,11 @@ mod parserlib {
         TemplatedRequestFile, UnresolvedRequestFile, UnresolvedRequestFileConfig,
     };
 
+    use pretty_assertions::assert_eq;
+
     use crate::{parse, resolve, template};
 
     const REQFILE_STRING: &str = concat!(
-        "---\n",
-        "POST /?query={{:query_value}} HTTP/1.1\n",
-        "x-test: {{?test_value}}\n",
-        "x-api-key: {{!api_key}}\n",
-        "\n",
-        "[1, 2, 3]\n",
-        "\n",
-        "---\n",
-        "HTTP/1.1 200 OK\n",
-        "\n",
-        "{{?expected_response_body}}\n",
-        "\n",
-        "---\n",
         "vars = [\"query_value\"]\n",
         "secrets = [\"api_key\"]",
         "\n",
@@ -105,8 +94,19 @@ mod parserlib {
         "[prompts]\n",
         "test_value = \"\"\n",
         "expected_response_body = \"\"\n",
+        "---\n",
+        "POST /?query={{:query_value}} HTTP/1.1\n",
+        "x-test: {{?test_value}}\n",
+        "x-api-key: {{!api_key}}\n",
         "\n",
-        "---\n"
+        "[1, 2, 3]\n",
+        "\n",
+        "---\n",
+        "HTTP/1.1 200 OK\n",
+        "\n",
+        "{{?expected_response_body}}\n",
+        "\n",
+        "---\n",
     );
 
     #[test]
@@ -126,7 +126,7 @@ mod parserlib {
                         ],
                         body: Some("[1, 2, 3]\n\n".to_string())
                     },
-                    4..103
+                    188..287
                 ),
                 response: Some((
                     Response {
@@ -136,19 +136,12 @@ mod parserlib {
                         headers: HashMap::new(),
                         body: Some("{{?expected_response_body}}\n\n".to_string())
                     },
-                    107..153
+                    291..337
                 )),
                 config: Some((
                     UnresolvedRequestFileConfig {
                         vars: Some(vec!["query_value".to_string()]),
                         envs: Some(HashMap::from([
-                            (
-                                "dev".to_string(),
-                                HashMap::from([(
-                                    "query_value".to_string(),
-                                    "dev_value".to_string()
-                                )])
-                            ),
                             (
                                 "prod".to_string(),
                                 HashMap::from([(
@@ -156,23 +149,30 @@ mod parserlib {
                                     "prod_value".to_string()
                                 )])
                             ),
+                            (
+                                "dev".to_string(),
+                                HashMap::from([(
+                                    "query_value".to_string(),
+                                    "dev_value".to_string()
+                                )])
+                            ),
                         ])),
                         prompts: Some(HashMap::from([
+                            ("expected_response_body".to_string(), Some("".to_string())),
                             ("test_value".to_string(), Some("".to_string())),
-                            ("expected_response_body".to_string(), Some("".to_string()))
                         ])),
                         secrets: Some(vec!["api_key".to_string()]),
                         auth: None
                     },
-                    157..342
+                    0..184
                 )),
                 refs: vec![
-                    (ReferenceType::Variable("query_value".to_string()), 4..103),
-                    (ReferenceType::Prompt("test_value".to_string()), 4..103),
-                    (ReferenceType::Secret("api_key".to_string()), 4..103),
+                    (ReferenceType::Variable("query_value".to_string()), 188..287),
+                    (ReferenceType::Prompt("test_value".to_string()), 188..287),
+                    (ReferenceType::Secret("api_key".to_string()), 188..287),
                     (
                         ReferenceType::Prompt("expected_response_body".to_string()),
-                        107..153
+                        291..337
                     )
                 ],
             }),
@@ -208,7 +208,7 @@ mod parserlib {
                         ],
                         body: Some("[1, 2, 3]\n\n".to_string())
                     },
-                    4..103
+                    188..287
                 ),
                 response: Some((
                     Response {
@@ -218,18 +218,18 @@ mod parserlib {
                         headers: HashMap::new(),
                         body: Some("{{?expected_response_body}}\n\n".to_string())
                     },
-                    107..153
+                    291..337
                 )),
                 config: (
                     ResolvedRequestFileConfig {
                         env: "dev".to_string(),
                         vars: HashMap::from([("query_value".to_string(), "dev_value".to_string())]),
                         prompts: HashMap::from([
-                            ("test_value".to_string(), "test_value_value".to_string()),
                             (
                                 "expected_response_body".to_string(),
                                 "expected_response_body_value".to_string()
-                            )
+                            ),
+                            ("test_value".to_string(), "test_value_value".to_string()),
                         ]),
                         secrets: HashMap::from([(
                             "api_key".to_string(),
@@ -237,15 +237,15 @@ mod parserlib {
                         )]),
                         auth: None
                     },
-                    157..342
+                    0..184
                 ),
                 refs: vec![
-                    (ReferenceType::Variable("query_value".to_string()), 4..103),
-                    (ReferenceType::Prompt("test_value".to_string()), 4..103),
-                    (ReferenceType::Secret("api_key".to_string()), 4..103),
+                    (ReferenceType::Variable("query_value".to_string()), 188..287),
+                    (ReferenceType::Prompt("test_value".to_string()), 188..287),
+                    (ReferenceType::Secret("api_key".to_string()), 188..287),
                     (
                         ReferenceType::Prompt("expected_response_body".to_string()),
-                        107..153
+                        291..337
                     )
                 ],
             }),

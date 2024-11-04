@@ -1,8 +1,7 @@
 #!/usr/bin/env reqlang
+
+/123=123
 ---
 GET http://example.com HTTP/1.1
 ---
----
-/123=123
-
 ---

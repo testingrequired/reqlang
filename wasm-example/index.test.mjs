@@ -3,6 +3,14 @@ import * as reqlang from "@testingrequired/reqlang-wasm";
 
 const reqfile = `
 #!/usr/bin/env reqlang
+
+secrets = ["api_key"]
+
+[envs]
+[envs.dev]
+
+[prompts]
+id = ""
 ---
 GET /posts/{{?id}} HTTP/1.1
 foo: bar
@@ -15,6 +23,12 @@ HTTP/1.1 200 OK
   "id": "{{?id}}"
 }
 ---
+
+`;
+
+const reqfile_single_header = `
+#!/usr/bin/env reqlang
+
 secrets = ["api_key"]
 
 [envs]
@@ -22,13 +36,6 @@ secrets = ["api_key"]
 
 [prompts]
 id = ""
-
----
-
-`;
-
-const reqfile_single_header = `
-#!/usr/bin/env reqlang
 ---
 GET /posts/{{?id}} HTTP/1.1
 x-api-key: {{!api_key}}
@@ -39,15 +46,6 @@ HTTP/1.1 200 OK
 {
   "id": "{{?id}}"
 }
----
-secrets = ["api_key"]
-
-[envs]
-[envs.dev]
-
-[prompts]
-id = ""
-
 ---
 
 `;

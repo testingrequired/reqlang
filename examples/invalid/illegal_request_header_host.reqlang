@@ -1,4 +1,11 @@
 #!/usr/bin/env reqlang
+
+vars = []
+secrets = []
+
+[envs]
+
+[prompts]
 ---
 GET / HTTP/1.1
 host: https://example.com
@@ -6,11 +13,4 @@ host: https://example.com
 ---
 HTTP/1.1 200 OK
 
----
-vars = []
-secrets = []
-
-[envs]
-
-[prompts]
 ---

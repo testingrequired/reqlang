@@ -1,12 +1,5 @@
 #!/usr/bin/env reqlang
----
-POST https://httpbin.org/post HTTP/1.1
 
-{{:body}}
----
-HTTP/1.1 200 OK
-
----
 vars = ["body"]
 secrets = []
 
@@ -18,4 +11,11 @@ body = "test_value"
 body = "prod_value"
 
 [prompts]
+---
+POST https://httpbin.org/post HTTP/1.1
+
+{{:body}}
+---
+HTTP/1.1 200 OK
+
 ---

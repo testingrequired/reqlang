@@ -285,7 +285,7 @@ impl RequestFileParser {
             ));
         }
 
-        if documents.len() > 5 {
+        if documents.len() > 4 {
             parse_errors.push((
                 ReqlangError::ParseError(ParseError::TooManyDividersError),
                 0..input.len(),
@@ -328,9 +328,9 @@ impl RequestFileParser {
             .filter(|x| !x.is_empty())
             .map(|x| (x, response_start..response_end));
 
-        let config_start = response_end + 4;
+        let config_start = 0;
 
-        let config = documents.get(3);
+        let config = documents.get(0);
 
         let config_end = match config {
             Some(config) => config_start + config.len(),
@@ -538,7 +538,7 @@ mod test {
         ($test_name:ident, $reqfile:expr, $result:expr) => {
             #[test]
             fn $test_name() {
-                assert_eq!($result, RequestFileParser::parse_string(&$reqfile));
+                pretty_assertions::assert_eq!($result, RequestFileParser::parse_string(&$reqfile));
             }
         };
     }
@@ -709,31 +709,29 @@ mod test {
     parser_test!(
         unused_variable,
         concat!(
+            "vars = [\"base_url\"]\n",
             "---\n",
             "GET http://example.com HTTP/1.1\n\n",
             "---\n",
-            "---\n",
-            "vars = [\"base_url\"]\n",
             "---\n"
         ),
         Err(vec![(
             errors::ReqlangError::ParseError(ParseError::UnusedValueError(
                 ReferenceType::Variable("base_url".to_string())
             )),
-            45..65
+            0..20
         )])
     );
 
     parser_test!(
         template_reference_in_config,
         concat!(
-            "---\n",
-            "GET http://example.com?value={{:bar}} HTTP/1.1\n\n",
-            "---\n",
-            "---\n",
             "vars = [\"foo\", \"bar\"]\n",
             "envs.dev.foo = \"test!\"\n",
             "envs.dev.bar = \"{{:foo}}\"\n",
+            "---\n",
+            "GET http://example.com?value={{:bar}} HTTP/1.1\n\n",
+            "---\n",
             "---\n"
         ),
         Ok(UnresolvedRequestFile {
@@ -751,7 +749,7 @@ mod test {
                     secrets: None,
                     auth: None
                 },
-                60..131
+                0..71
             )),
             request: (
                 Request {
@@ -761,12 +759,12 @@ mod test {
                     headers: vec![],
                     body: Some("".to_string())
                 },
-                4..52
+                75..123
             ),
             response: None,
             refs: vec![
-                (ReferenceType::Variable("bar".to_string()), 4..52),
-                (ReferenceType::Variable("foo".to_string()), 60..131),
+                (ReferenceType::Variable("bar".to_string()), 75..123),
+                (ReferenceType::Variable("foo".to_string()), 0..71),
             ],
         })
     );
@@ -775,12 +773,7 @@ mod test {
         auth_in_config,
         concat!(
             "#!/usr/bin/env reqlang\n",
-            "---\n",
-            "POST https://httpbin.org/post HTTP/1.1\n",
-            "authenication: Bearer {{@auth.oauth2.access_token}}\n",
             "\n",
-            "---\n",
-            "---\n",
             "vars = [\"access_token_url\"]\n",
             "secrets = [\"client_secret\"]\n",
             "\n",
@@ -794,7 +787,11 @@ mod test {
             "client_id = \"{{?client_key}}\"\n",
             "client_secret = \"{{!client_secret}}\"\n",
             "scopes = \"profile\"\n",
+            "---\n",
+            "POST https://httpbin.org/post HTTP/1.1\n",
+            "authenication: Bearer {{@auth.oauth2.access_token}}\n",
             "\n",
+            "---\n",
             "---\n",
             "\n",
         ),
@@ -814,21 +811,21 @@ mod test {
                     auth: Some(HashMap::from([(
                         "oauth2".to_string(),
                         HashMap::from([
-                            ("grant".to_string(), "client".to_string()),
                             (
                                 "access_token_url".to_string(),
                                 "{{:access_token_url}}".to_string()
                             ),
+                            ("grant".to_string(), "client".to_string()),
+                            ("scopes".to_string(), "profile".to_string()),
                             ("client_id".to_string(), "{{?client_key}}".to_string()),
                             (
                                 "client_secret".to_string(),
                                 "{{!client_secret}}".to_string()
                             ),
-                            ("scopes".to_string(), "profile".to_string()),
                         ])
                     ),]))
                 },
-                127..402
+                0..298
             )),
             request: (
                 Request {
@@ -841,20 +838,20 @@ mod test {
                     )],
                     body: Some("".to_string())
                 },
-                27..119
+                302..394
             ),
             response: None,
             refs: vec![
                 (
                     ReferenceType::Provider("auth.oauth2.access_token".to_string()),
-                    27..119
+                    302..394
                 ),
                 (
                     ReferenceType::Variable("access_token_url".to_string()),
-                    127..402
+                    0..298
                 ),
-                (ReferenceType::Prompt("client_key".to_string()), 127..402),
-                (ReferenceType::Secret("client_secret".to_string()), 127..402),
+                (ReferenceType::Prompt("client_key".to_string()), 0..298),
+                (ReferenceType::Secret("client_secret".to_string()), 0..298),
             ],
         })
     );
@@ -862,37 +859,35 @@ mod test {
     parser_test!(
         unused_prompt,
         concat!(
+            "[prompts]\n",
+            "base_url = \"\"\n",
             "---\n",
             "GET http://example.com HTTP/1.1\n\n",
             "---\n",
-            "---\n",
-            "[prompts]\n",
-            "base_url = \"\"\n",
             "---\n"
         ),
         Err(vec![(
             errors::ReqlangError::ParseError(ParseError::UnusedValueError(ReferenceType::Prompt(
                 "base_url".to_string()
             ))),
-            45..69
+            0..24
         )])
     );
 
     parser_test!(
         unused_secret,
         concat!(
+            "secrets = [\"base_url\"]\n",
             "---\n",
             "GET http://example.com HTTP/1.1\n\n",
             "---\n",
-            "---\n",
-            "secrets = [\"base_url\"]\n",
             "---\n"
         ),
         Err(vec![(
             errors::ReqlangError::ParseError(ParseError::UnusedValueError(ReferenceType::Secret(
                 "base_url".to_string()
             ))),
-            45..68
+            0..23
         )])
     );
 
@@ -902,7 +897,6 @@ mod test {
             "---\n",
             "GET / HTTP/1.1\n",
             "host: example.com\n",
-            "---\n",
             "---\n",
             "---\n"
         ),
@@ -921,7 +915,6 @@ mod test {
             "GET / HTTP/1.1\n",
             "Host: example.com\n",
             "---\n",
-            "---\n",
             "---\n"
         ),
         Err(vec![(
@@ -938,7 +931,6 @@ mod test {
             "---\n",
             "GET / HTTP/1.1\n",
             "hOsT: example.com\n",
-            "---\n",
             "---\n",
             "---\n"
         ),
@@ -957,7 +949,6 @@ mod test {
             "GET / HTTP/1.1\n",
             "accept-charset: value\n",
             "---\n",
-            "---\n",
             "---\n"
         ),
         Err(vec![(
@@ -975,7 +966,6 @@ mod test {
             "GET / HTTP/1.1\n",
             "accept-encoding: value\n",
             "---\n",
-            "---\n",
             "---\n"
         ),
         Err(vec![(
@@ -990,9 +980,7 @@ mod test {
         forbidden_header_acr_headers,
         concat!(
             "---\n",
-            "GET / HTTP/1.1\n",
-            "access-control-request-headers: value\n",
-            "---\n",
+            "GET / HTTP/1.1\naccess-control-request-headers: value\n",
             "---\n",
             "---\n"
         ),
@@ -1011,7 +999,6 @@ mod test {
             "GET / HTTP/1.1\n",
             "access-control-request-method: value\n",
             "---\n",
-            "---\n",
             "---\n"
         ),
         Err(vec![(
@@ -1028,7 +1015,6 @@ mod test {
             "---\n",
             "GET / HTTP/1.1\n",
             "connection: value\n",
-            "---\n",
             "---\n",
             "---\n"
         ),
@@ -1047,7 +1033,6 @@ mod test {
             "GET / HTTP/1.1\n",
             "content-length: value\n",
             "---\n",
-            "---\n",
             "---\n"
         ),
         Err(vec![(
@@ -1064,7 +1049,6 @@ mod test {
             "---\n",
             "GET / HTTP/1.1\n",
             "cookie: value\n",
-            "---\n",
             "---\n",
             "---\n"
         ),
@@ -1083,7 +1067,6 @@ mod test {
             "GET / HTTP/1.1\n",
             "date: value\n",
             "---\n",
-            "---\n",
             "---\n"
         ),
         Err(vec![(
@@ -1100,7 +1083,6 @@ mod test {
             "---\n",
             "GET / HTTP/1.1\n",
             "dnt: value\n",
-            "---\n",
             "---\n",
             "---\n"
         ),
@@ -1119,7 +1101,6 @@ mod test {
             "GET / HTTP/1.1\n",
             "expect: value\n",
             "---\n",
-            "---\n",
             "---\n"
         ),
         Err(vec![(
@@ -1136,7 +1117,6 @@ mod test {
             "---\n",
             "GET / HTTP/1.1\n",
             "keep-alive: value\n",
-            "---\n",
             "---\n",
             "---\n"
         ),
@@ -1155,7 +1135,6 @@ mod test {
             "GET / HTTP/1.1\n",
             "origin: value\n",
             "---\n",
-            "---\n",
             "---\n"
         ),
         Err(vec![(
@@ -1173,7 +1152,6 @@ mod test {
             "GET / HTTP/1.1\n",
             "permission-policy: value\n",
             "---\n",
-            "---\n",
             "---\n"
         ),
         Err(vec![(
@@ -1186,14 +1164,7 @@ mod test {
 
     parser_test!(
         forbidden_header_te,
-        concat!(
-            "---\n",
-            "GET / HTTP/1.1\n",
-            "te: value\n",
-            "---\n",
-            "---\n",
-            "---\n"
-        ),
+        concat!("---\n", "GET / HTTP/1.1\n", "te: value\n", "---\n", "---\n"),
         Err(vec![(
             errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                 "te".to_string()
@@ -1208,7 +1179,6 @@ mod test {
             "---\n",
             "GET / HTTP/1.1\n",
             "trailer: value\n",
-            "---\n",
             "---\n",
             "---\n"
         ),
@@ -1227,7 +1197,6 @@ mod test {
             "GET / HTTP/1.1\n",
             "transfer-encoding: value\n",
             "---\n",
-            "---\n",
             "---\n"
         ),
         Err(vec![(
@@ -1244,7 +1213,6 @@ mod test {
             "---\n",
             "GET / HTTP/1.1\n",
             "upgrade: value\n",
-            "---\n",
             "---\n",
             "---\n"
         ),
@@ -1263,7 +1231,6 @@ mod test {
             "GET / HTTP/1.1\n",
             "via: value\n",
             "---\n",
-            "---\n",
             "---\n"
         ),
         Err(vec![(
@@ -1277,20 +1244,6 @@ mod test {
     parser_test!(
         full_request_file,
         concat!(
-            "---\n",
-            "POST /?query={{:query_value}} HTTP/1.1\n",
-            "x-test: {{?test_value}}\n",
-            "x-api-key: {{!api_key}}\n",
-            "x-provider: {{@provider}}\n",
-            "\n",
-            "[1, 2, 3]\n",
-            "\n",
-            "---\n",
-            "HTTP/1.1 200 OK\n",
-            "\n",
-            "{{?expected_response_body}}\n",
-            "\n",
-            "---\n",
             "vars = [\"query_value\"]\n",
             "secrets = [\"api_key\"]",
             "\n",
@@ -1304,6 +1257,19 @@ mod test {
             "[prompts]\n",
             "test_value = \"\"\n",
             "expected_response_body = \"\"\n",
+            "\n",
+            "---\n",
+            "POST /?query={{:query_value}} HTTP/1.1\n",
+            "x-test: {{?test_value}}\n",
+            "x-api-key: {{!api_key}}\n",
+            "x-provider: {{@provider}}\n",
+            "\n",
+            "[1, 2, 3]\n",
+            "\n",
+            "---\n",
+            "HTTP/1.1 200 OK\n",
+            "\n",
+            "{{?expected_response_body}}\n",
             "\n",
             "---\n"
         ),
@@ -1320,7 +1286,7 @@ mod test {
                     ],
                     body: Some("[1, 2, 3]\n\n".to_string())
                 },
-                4..129
+                189..314
             ),
             response: Some((
                 Response {
@@ -1330,7 +1296,7 @@ mod test {
                     headers: HashMap::new(),
                     body: Some("{{?expected_response_body}}\n\n".to_string())
                 },
-                133..179
+                318..364
             )),
             config: Some((
                 UnresolvedRequestFileConfig {
@@ -1352,16 +1318,16 @@ mod test {
                     secrets: Some(vec!["api_key".to_string()]),
                     auth: None
                 },
-                183..368
+                0..185
             )),
             refs: vec![
-                (ReferenceType::Variable("query_value".to_string()), 4..129),
-                (ReferenceType::Prompt("test_value".to_string()), 4..129),
-                (ReferenceType::Secret("api_key".to_string()), 4..129),
-                (ReferenceType::Provider("provider".to_string()), 4..129),
+                (ReferenceType::Variable("query_value".to_string()), 189..314),
+                (ReferenceType::Prompt("test_value".to_string()), 189..314),
+                (ReferenceType::Secret("api_key".to_string()), 189..314),
+                (ReferenceType::Provider("provider".to_string()), 189..314),
                 (
                     ReferenceType::Prompt("expected_response_body".to_string()),
-                    133..179
+                    318..364
                 )
             ],
         })

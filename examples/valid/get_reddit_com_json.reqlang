@@ -1,17 +1,16 @@
 #!/usr/bin/env reqlang
+
+vars = ["base_url"]
+secrets = []
+
+envs.prod.base_url = "https://www.reddit.com"
+
+[prompts]
+subreddit = ""
 ---
-GET https://www.reddit.com/.json HTTP/1.1
+GET {{:base_url}}/r/{{?subreddit}}.json HTTP/1.1
 accept: application/json
 ---
 HTTP/1.1 200 OK
-
----
-vars = []
-secrets = []
-
-[envs]
-
-[prompts]
-
 
 ---

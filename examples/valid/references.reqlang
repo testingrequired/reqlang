@@ -1,14 +1,5 @@
 #!/usr/bin/env reqlang
----
-GET {{:base_url}} HTTP/1.1
-example-header: {{?example_header_key}}
-prompt2-header: {{?promptt}}
-x-api-key: {{!api_key}}
 
----
-HTTP/1.1 200 OK
-
----
 vars = ["base_url"]
 secrets = ["api_key"]
 
@@ -21,5 +12,13 @@ base_url = "http://example.com"
 [prompts]
 example_header_key = ""
 promptt = ""
+---
+GET {{:base_url}} HTTP/1.1
+example-header: {{?example_header_key}}
+prompt2-header: {{?promptt}}
+x-api-key: {{!api_key}}
+
+---
+HTTP/1.1 200 OK
 
 ---

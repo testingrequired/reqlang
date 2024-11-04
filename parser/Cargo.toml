@@ -10,11 +10,14 @@ publish = false
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-types = { path = "../types"}
-export = { path = "../export"}
+types = { path = "../types" }
+export = { path = "../export" }
 span = { path = "../span" }
-errors = { path = "../errors"}
+errors = { path = "../errors" }
 httparse = "1.8.0"
 toml = "0.8.8"
 regex = "1.10.3"
-oauth2 = "4.4.2"
+oauth2 = { version = "4.4.2", features = ["reqwest"] }
+
+[dev-dependencies]
+pretty_assertions = "1.4.1"
