@@ -1256,7 +1256,7 @@ mod test {
             errors::ReqlangError::ParseError(ParseError::InvalidConfigError {
                 message: "invalid table header\nexpected `.`, `]`".to_string()
             }),
-            31..63
+            31..32
         )])
     );
 
