@@ -86,7 +86,7 @@
       },
       {
         "command": "reqlang.exportToFile",
-        "title": "Export request to file"
+        "title": "Reqlang: Export request to file"
       }
     ],
     "taskDefinitions": [
