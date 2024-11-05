@@ -1242,6 +1242,25 @@ mod test {
     );
 
     parser_test!(
+        invalid_config,
+        concat!(
+            "vars = [\"body\"]\n",
+            "[envs.dev.body = 123\n",
+            "---\n",
+            "GET / HTTP/1.1\n",
+            "\n",
+            "---\n",
+            "---\n"
+        ),
+        Err(vec![(
+            errors::ReqlangError::ParseError(ParseError::InvalidConfigError {
+                message: "invalid table header\nexpected `.`, `]`".to_string()
+            }),
+            31..63
+        )])
+    );
+
+    parser_test!(
         full_request_file,
         concat!(
             "vars = [\"query_value\"]\n",

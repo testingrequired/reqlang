@@ -54,13 +54,20 @@ impl Diagnoser {
     }
 
     pub fn get_position(source: &str, idx: usize) -> DiagnosisPosition {
-        let before = &source[..idx];
-        let line = before.lines().count().checked_sub(1).unwrap_or_default();
-        let character = before.lines().last().unwrap_or_default().len();
-        DiagnosisPosition {
-            line: line as _,
-            character: character as _,
-        }
+        source
+            .get(..idx)
+            .map(|before| {
+                let line = before.lines().count().checked_sub(1).unwrap_or_default();
+                let character = before.lines().last().unwrap_or_default().len();
+                DiagnosisPosition {
+                    line: line as _,
+                    character: character as _,
+                }
+            })
+            .unwrap_or(DiagnosisPosition {
+                line: 0,
+                character: 0,
+            })
     }
 }
 
