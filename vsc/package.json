@@ -83,6 +83,10 @@
       {
         "command": "reqlang.openMdnDocsHttpSpecs",
         "title": "Reqlang: Open MDN Docs (HTTP Specs)"
+      },
+      {
+        "command": "reqlang.exportToFile",
+        "title": "Export request to file"
       }
     ],
     "taskDefinitions": [

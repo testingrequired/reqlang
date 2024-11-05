@@ -82,6 +82,43 @@ export function activate(context: ExtensionContext) {
     terminal.sendText("; exit");
   };
 
+  const exportToFile = async () => {
+    const filename = await window.activeTextEditor?.document?.fileName!;
+
+    const state: ReqfileState | undefined =
+      context.workspaceState.get(filename);
+
+    let env = state?.env;
+
+    if (!env) {
+      env =
+        (await window.showInputBox({
+          title: "Set the env for request file resolver to use",
+          prompt: "Leave empty to clear the env",
+        })) ?? "";
+    }
+
+    const format =
+      (await window.showInputBox({
+        title: "Export to which format?",
+        prompt: "Choose: http, curl, curl_script",
+      })) ?? "http";
+
+    const filename_to_save =
+      (await window.showInputBox({
+        title: "Path",
+        prompt: "Enter a file path to save the curl script",
+      })) ?? "curl_script.sh";
+
+    const terminal = window.createTerminal(
+      `reqlang export ${filename} as ${format} to ${filename_to_save}`
+    );
+    terminal.show();
+    terminal.sendText(
+      `reqlang ${filename} -f ${format} -e ${env} > ${filename_to_save}`
+    );
+  };
+
   const setResolverEnv = async () => {
     const env =
       (await window.showInputBox({
@@ -169,7 +206,8 @@ export function activate(context: ExtensionContext) {
           "https://developer.mozilla.org/en-US/docs/Web/HTTP/Resources_and_specifications"
         )
       );
-    })
+    }),
+    commands.registerCommand("reqlang.exportToFile", exportToFile)
   );
 
   tasks.registerTaskProvider("reqlang", new ReqlangTaskProvider());
