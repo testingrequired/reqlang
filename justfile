@@ -22,7 +22,6 @@ move-bins:
 build:
     cargo build
     just build-vsc
-    just build-wasm-example
 
 install: build && move-bins
     echo 'Installed Bins (Debug)'
@@ -38,9 +37,6 @@ install-vsc:
 uninstall-vsc:
     cd vsc && just uninstall
 
-build-wasm-example:
-    cd wasm-example && just build
-
 lint *args:
     cargo clippy --workspace --all-targets --all-features -- {{args}}
 
@@ -52,7 +48,6 @@ format *args:
 
 verify:
     cargo check --workspace --all-targets
-    cargo check --workspace --all-features --lib --target wasm32-unknown-unknown
     just format --check
     just lint -D warnings -W clippy::all
     just test
@@ -60,7 +55,6 @@ verify:
 
 test:
     cargo test --workspace --all-targets --all-features
-    cd wasm-example && npm run test
 
 clean-git-branches:
     git branch -d $(git branch --merged=main | grep -v main) && git fetch --prune
