@@ -7,6 +7,7 @@ use types::Request;
 pub enum Format {
     Http,
     Curl,
+    CurlScript,
 }
 
 impl Display for Format {
@@ -14,6 +15,7 @@ impl Display for Format {
         match self {
             Format::Http => write!(f, "http"),
             Format::Curl => write!(f, "curl"),
+            Format::CurlScript => write!(f, "curl_script"),
         }
     }
 }
@@ -25,6 +27,7 @@ impl FromStr for Format {
         match s {
             "http" => Ok(Self::Http),
             "curl" => Ok(Self::Curl),
+            "curl_script" => Ok(Self::CurlScript),
             _ => Err(format!("Unknown format: {s}")),
         }
     }
@@ -78,6 +81,12 @@ pub fn export(request: &Request, format: Format) -> String {
                 "curl {}{} --http{}{}",
                 verb, target, request.http_version, the_rest
             )
+        }
+        Format::CurlScript => {
+            let shebang = "#!/usr/bin/env bash";
+            let curl = export(request, Format::Curl);
+
+            format!("{shebang}\n\n{curl}")
         }
     }
 }
@@ -155,5 +164,12 @@ mod test {
         Request::post("/", "1.1", vec![], Some("[1, 2, 3]\n")),
         crate::Format::Http,
         "POST / HTTP/1.1\n\n[1, 2, 3]\n"
+    );
+
+    export_test!(
+        format_to_curl_script_get_request,
+        Request::get("/", "1.1", vec![]),
+        crate::Format::CurlScript,
+        "#!/usr/bin/env bash\n\ncurl / --http1.1"
     );
 }

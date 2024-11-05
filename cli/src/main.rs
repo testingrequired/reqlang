@@ -33,7 +33,7 @@ struct Args {
         short,
         long,
         default_value_t = Format::Http,
-        value_parser = clap::builder::PossibleValuesParser::new(["http", "curl", "javascript", "powershell"])
+        value_parser = clap::builder::PossibleValuesParser::new(["http", "curl", "curl_script"])
             .map(|s| s.parse::<Format>().unwrap()),
     )]
     format: Format,
