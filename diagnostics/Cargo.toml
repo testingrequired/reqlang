@@ -15,3 +15,4 @@ serde = { version = "1.0.195", features = ["derive"] }
 errors = { path = "../errors" }
 span = { path = "../span" }
 parser = { path = "../parser" }
+str-idxpos = { path = "../str-idxpos" }

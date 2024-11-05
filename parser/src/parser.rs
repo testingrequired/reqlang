@@ -357,12 +357,12 @@ impl RequestFileParser {
 
             config.map(|x| (x, span.clone())).map_err(|x| {
                 let toml_span = x.span().unwrap_or(NO_SPAN);
-                vec![(
-                    ReqlangError::ParseError(ParseError::InvalidConfigError {
-                        message: x.message().to_string(),
-                    }),
-                    span.start + toml_span.start..span.start + toml_span.start + toml_span.end,
-                )]
+                let err = ReqlangError::ParseError(ParseError::InvalidConfigError {
+                    message: x.message().to_string(),
+                });
+                let err_span = span.start + toml_span.start..span.start + toml_span.end;
+
+                vec![(err, err_span)]
             })
         })
     }
@@ -1257,6 +1257,25 @@ mod test {
                 message: "invalid table header\nexpected `.`, `]`".to_string()
             }),
             31..63
+        )])
+    );
+
+    parser_test!(
+        invalid_config2,
+        concat!(
+            "#!/usr/bin/env reqlang\n",
+            "\n",
+            "/123=123\n",
+            "---\n",
+            "GET http://example.com HTTP/1.1\n",
+            "---\n",
+            "---\n"
+        ),
+        Err(vec![(
+            errors::ReqlangError::ParseError(ParseError::InvalidConfigError {
+                message: "invalid key".to_string()
+            }),
+            24..25
         )])
     );
 

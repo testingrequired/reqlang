@@ -4,6 +4,7 @@ use codespan_reporting::diagnostic::{Diagnostic, Label};
 use errors::{ParseError, ReqlangError, ResolverError};
 use serde::{Deserialize, Serialize};
 use span::Span;
+use str_idxpos::index_to_position;
 
 #[derive(Debug, Default)]
 pub struct Diagnoser {}
@@ -54,20 +55,12 @@ impl Diagnoser {
     }
 
     pub fn get_position(source: &str, idx: usize) -> DiagnosisPosition {
-        source
-            .get(..idx)
-            .map(|before| {
-                let line = before.lines().count().checked_sub(1).unwrap_or_default();
-                let character = before.lines().last().unwrap_or_default().len();
-                DiagnosisPosition {
-                    line: line as _,
-                    character: character as _,
-                }
-            })
-            .unwrap_or(DiagnosisPosition {
-                line: 0,
-                character: 0,
-            })
+        let (line, character) = index_to_position(source, idx);
+
+        DiagnosisPosition {
+            line: line as u32,
+            character: character as u32,
+        }
     }
 }
 
