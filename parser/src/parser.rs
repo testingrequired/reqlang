@@ -467,52 +467,58 @@ impl RequestFileParser {
 
         let parse_result = res.parse(response.as_bytes());
 
-        if let Err(error) = parse_result {
-            parse_errors.push((
-                ParseError::InvalidRequestError {
-                    message: format!("{error}"),
+        match parse_result {
+            Ok(result) => match result {
+                httparse::Status::Partial => {
+                    parse_errors.push((
+                        ParseError::InvalidRequestError {
+                            message: "Unable to parse a partial response".to_string(),
+                        }
+                        .into(),
+                        span.clone(),
+                    ));
+
+                    None
                 }
-                .into(),
-                span.clone(),
-            ));
-        }
+                httparse::Status::Complete(size_minus_body) => {
+                    let body = &response[size_minus_body..];
 
-        if let httparse::Status::Partial = parse_result.unwrap() {
-            parse_errors.push((
-                ParseError::InvalidRequestError {
-                    message: "Unable to parse a partial response".to_string(),
+                    let mut mapped_headers = HashMap::new();
+
+                    res.headers
+                        .iter_mut()
+                        .filter(|x| !x.name.is_empty())
+                        .for_each(|x| {
+                            mapped_headers.insert(
+                                x.name.to_string(),
+                                std::str::from_utf8(x.value).unwrap().to_string(),
+                            );
+                        });
+
+                    Some(Ok((
+                        Response {
+                            http_version: format!("1.{}", res.version.unwrap()),
+                            status_code: res.code.unwrap().to_string(),
+                            status_text: res.reason.unwrap().to_string(),
+                            headers: mapped_headers,
+                            body: Some(body.to_string()),
+                        },
+                        span.clone(),
+                    )))
                 }
-                .into(),
-                span.clone(),
-            ));
-        }
-
-        let size_minus_body = parse_result.unwrap().unwrap();
-
-        let body = &response[size_minus_body..];
-
-        let mut mapped_headers = HashMap::new();
-
-        res.headers
-            .iter_mut()
-            .filter(|x| !x.name.is_empty())
-            .for_each(|x| {
-                mapped_headers.insert(
-                    x.name.to_string(),
-                    std::str::from_utf8(x.value).unwrap().to_string(),
-                );
-            });
-
-        Some(Ok((
-            Response {
-                http_version: format!("1.{}", res.version.unwrap()),
-                status_code: res.code.unwrap().to_string(),
-                status_text: res.reason.unwrap().to_string(),
-                headers: mapped_headers,
-                body: Some(body.to_string()),
             },
-            span.clone(),
-        )))
+            Err(error) => {
+                parse_errors.push((
+                    ParseError::InvalidRequestError {
+                        message: format!("{error}"),
+                    }
+                    .into(),
+                    span.clone(),
+                ));
+
+                None
+            }
+        }
     }
 }
 
@@ -1276,6 +1282,17 @@ mod test {
                 message: "invalid key".to_string()
             }),
             24..25
+        )])
+    );
+
+    parser_test!(
+        partial_request,
+        concat!("---\n", "POST / HTTP/1.1\n", "---\n", "---\n"),
+        Err(vec![(
+            errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
+                "via".to_string()
+            )),
+            4..30
         )])
     );
 
