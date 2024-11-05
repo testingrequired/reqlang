@@ -39,14 +39,6 @@ Requests and responses support templating be declaring variables and defining en
 
 ```
 #!/usr/bin/env reqlang
----
-GET / HTTP/1.1
-host: {{:base_url}}
-
----
-HTTP/1.1 200 OK
-
----
 vars = ["base_url"]
 
 [envs]
@@ -57,6 +49,13 @@ base_url = "https://dev.example.com"
 [envs.prod]
 base_url = "https://example.com"
 ---
+GET / HTTP/1.1
+host: {{:base_url}}
+
+---
+HTTP/1.1 200 OK
+
+---
 ```
 
 ### Prompts
@@ -65,15 +64,6 @@ Prompts are input values to the request file and are supplied by the user.
 
 ```
 #!/usr/bin/env reqlang
----
-GET /?id={{?example_id}} HTTP/1.1
-host: {{:base_url}}
-
-
----
-HTTP/1.1 200 OK
-
----
 vars = ["base_url"]
 
 [envs]
@@ -87,6 +77,14 @@ base_url = "https://example.com"
 [prompts]
 example_id = ""
 ---
+GET /?id={{?example_id}} HTTP/1.1
+host: {{:base_url}}
+
+
+---
+HTTP/1.1 200 OK
+
+---
 ```
 
 ### Secrets
@@ -95,15 +93,6 @@ Secrets are declared but their values are supplied at template time.
 
 ```
 #!/usr/bin/env reqlang
----
-GET /?id={{?example_id}} HTTP/1.1
-host: {{:base_url}}
-x-api-key: {{!api_key}}
-
----
-HTTP/1.1 200 OK
-
----
 vars = ["base_url"]
 secrets = ["api_key"]
 
@@ -117,5 +106,13 @@ base_url = "https://example.com"
 
 [prompts]
 example_id = ""
+---
+GET /?id={{?example_id}} HTTP/1.1
+host: {{:base_url}}
+x-api-key: {{!api_key}}
+
+---
+HTTP/1.1 200 OK
+
 ---
 ```
