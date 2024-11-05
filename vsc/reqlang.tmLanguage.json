@@ -13,9 +13,29 @@
     },
     {
       "include": "#constants"
+    },
+    {
+      "include": "#toml"
     }
   ],
   "repository": {
+    "toml": {
+      "patterns": [
+        {
+          "name": "source.toml",
+          "begin": "^(?!---$).*$",
+          "end": "(?=^---$)",
+          "patterns": [
+            {
+              "include": "#ident"
+            },
+            {
+              "include": "source.toml"
+            }
+          ]
+        }
+      ]
+    },
     "keywords": {
       "patterns": [
         {
