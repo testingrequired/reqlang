@@ -7,7 +7,6 @@ default:
 [private]
 move-bins:
     cp target/debug/reqlang ~/.cargo/bin/reqlang
-    cp target/debug/reqlang-export ~/.cargo/bin/reqlang-export
     cp target/debug/reqlang-lsp ~/.cargo/bin/reqlang-lsp
     cp target/debug/reqlang-client ~/.cargo/bin/reqlang-client
 
@@ -15,7 +14,6 @@ move-bins:
 [private]
 move-bins:
     cp target/debug/reqlang.exe ~/.cargo/bin/reqlang.exe
-    cp target/debug/reqlang-export.exe ~/.cargo/bin/reqlang-export.exe
     cp target/debug/reqlang-lsp.exe ~/.cargo/bin/reqlang-lsp.exe
     cp target/debug/reqlang-client.exe ~/.cargo/bin/reqlang-client.exe
 

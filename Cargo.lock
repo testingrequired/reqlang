@@ -2676,16 +2676,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "reqlang-export"
-version = "0.1.0"
-dependencies = [
- "clap",
- "diagnostics",
- "export",
- "parser",
-]
-
-[[package]]
 name = "reqlang-lsp"
 version = "0.1.0"
 dependencies = [
