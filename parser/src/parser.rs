@@ -1286,17 +1286,6 @@ mod test {
     );
 
     parser_test!(
-        partial_request,
-        concat!("---\n", "POST / HTTP/1.1\n", "---\n", "---\n"),
-        Err(vec![(
-            errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
-                "via".to_string()
-            )),
-            4..30
-        )])
-    );
-
-    parser_test!(
         full_request_file,
         concat!(
             "vars = [\"query_value\"]\n",

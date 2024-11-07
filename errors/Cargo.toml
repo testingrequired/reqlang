@@ -12,5 +12,5 @@ publish = false
 [dependencies]
 types = { path = "../types" }
 span = { path = "../span" }
-thiserror = "1.0.56"
+thiserror = "2"
 serde = { version = "1.0.195", features = ["derive"] }
