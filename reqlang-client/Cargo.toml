@@ -7,9 +7,7 @@ edition = "2021"
 
 [dependencies]
 eframe = "0.25.0"
-ehttp = { version = "0.4.0", features = ["streaming"]}
+ehttp = { version = "0.4.0", features = ["streaming"] }
 poll-promise = { version = "0.3", default-features = false }
 rfd = "0.13.0"
-parser = { path = "../parser" }
-types = { path = "../types" }
-export = { path = "../export" }
+reqlang = { path = "../reqlang" }

@@ -2,10 +2,12 @@ use clap::builder::TypedValueParser;
 use clap::Parser;
 use std::{collections::HashMap, fs, process::exit};
 
-use diagnostics::Diagnoser;
-use errors::ReqlangError;
-use export::{export, Format};
-use span::Spanned;
+use reqlang::{
+    diagnostics::Diagnoser,
+    errors::ReqlangError,
+    export::{export, Format},
+    parse, template, Spanned,
+};
 
 use std::error::Error;
 
@@ -81,7 +83,7 @@ fn main() {
                 return;
             }
 
-            let reqfile = parser::template(&contents, &env, &prompts, &secrets);
+            let reqfile = template(&contents, &env, &prompts, &secrets);
 
             let reqfile = match reqfile {
                 Ok(reqfile) => reqfile,
@@ -104,7 +106,7 @@ fn main() {
                 return;
             }
 
-            let reqfile = parser::parse(&contents);
+            let reqfile = parse(&contents);
 
             let reqfile = match reqfile {
                 Ok(reqfile) => reqfile,

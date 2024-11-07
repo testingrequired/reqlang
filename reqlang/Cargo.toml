@@ -1,0 +1,15 @@
+[package]
+name = "reqlang"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+parser = { path = "../parser" }
+types = { path = "../types" }
+span = { path = "../span" }
+errors = { path = "../errors" }
+export = { path = "../export" }
+diagnostics = { path = "../diagnostics" }
+
+[dev-dependencies]
+pretty_assertions = "1.4.1"

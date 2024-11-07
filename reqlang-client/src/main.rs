@@ -7,9 +7,10 @@ use std::{
 };
 
 use eframe::egui;
-use export::Format;
-use parser::{parse, template};
-use types::{TemplatedRequestFile, UnresolvedRequestFile};
+use reqlang::{
+    export::{export, Format},
+    parse, template, Request, TemplatedRequestFile, UnresolvedRequestFile,
+};
 
 #[allow(dead_code)]
 #[derive(Clone)]
@@ -72,13 +73,13 @@ impl ViewState {
     ) -> Result<StateTransition, &str> {
         let mut next_state: StateTransition = StateTransition::None;
 
-        let request: Option<&types::Request> = match &client_ctx.reqfile {
+        let request: Option<&Request> = match &client_ctx.reqfile {
             Some(reqfile) => Some(&reqfile.request.0),
             None => None,
         };
 
         let request_string = match request {
-            Some(request) => export::export(request, Format::Http),
+            Some(request) => export(request, Format::Http),
             None => String::new(),
         };
 
@@ -305,7 +306,7 @@ impl ResolvedState {
     ) -> Result<StateTransition, &str> {
         let mut next_state: StateTransition = StateTransition::None;
 
-        let request_string = export::export(&self.reqfile.request, Format::Http);
+        let request_string = export(&self.reqfile.request, Format::Http);
 
         egui::CentralPanel::default().show(egui_ctx, |ui| {
             if ui.button("Back").clicked() {

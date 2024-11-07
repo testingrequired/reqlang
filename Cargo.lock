@@ -806,11 +806,7 @@ name = "cli"
 version = "0.1.0"
 dependencies = [
  "clap",
- "diagnostics",
- "errors",
- "export",
- "parser",
- "span",
+ "reqlang",
 ]
 
 [[package]]
@@ -2663,16 +2659,27 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c08c74e62047bb2de4ff487b251e4a92e24f48745648451635cec7d591162d9f"
 
 [[package]]
+name = "reqlang"
+version = "0.1.0"
+dependencies = [
+ "diagnostics",
+ "errors",
+ "export",
+ "parser",
+ "pretty_assertions",
+ "span",
+ "types",
+]
+
+[[package]]
 name = "reqlang-client"
 version = "0.1.0"
 dependencies = [
  "eframe",
  "ehttp",
- "export",
- "parser",
  "poll-promise",
+ "reqlang",
  "rfd",
- "types",
 ]
 
 [[package]]
@@ -2680,7 +2687,7 @@ name = "reqlang-lsp"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "diagnostics",
+ "reqlang",
  "tokio",
  "tower-lsp",
 ]

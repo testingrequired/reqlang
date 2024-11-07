@@ -1,7 +1,9 @@
 use std::ops::Deref;
 
 use anyhow::{Context, Result};
-use diagnostics::{Diagnoser, Diagnosis, DiagnosisPosition, DiagnosisRange, DiagnosisSeverity};
+use reqlang::diagnostics::{
+    Diagnoser, Diagnosis, DiagnosisPosition, DiagnosisRange, DiagnosisSeverity,
+};
 use tower_lsp::lsp_types::{
     Diagnostic, DiagnosticSeverity, DidChangeTextDocumentParams, DidOpenTextDocumentParams,
     InitializeParams, InitializeResult, MessageType, Position, Range, ServerCapabilities,
