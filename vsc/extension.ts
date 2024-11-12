@@ -12,7 +12,6 @@ import {
   StatusBarItem,
   StatusBarAlignment,
 } from "vscode";
-import { ReqlangTaskProvider } from "./reqlangTaskProvider";
 import {
   LanguageClient,
   LanguageClientOptions,
@@ -209,8 +208,6 @@ export function activate(context: ExtensionContext) {
     }),
     commands.registerCommand("reqlang.exportToFile", exportToFile)
   );
-
-  tasks.registerTaskProvider("reqlang", new ReqlangTaskProvider());
 
   function handleTextEditorChange() {
     if (!window.activeTextEditor) {
