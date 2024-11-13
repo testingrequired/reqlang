@@ -1,11 +1,11 @@
 import { build } from "esbuild";
 import { buildConfig } from "./esbuild-build.mjs";
 
-export const prepublishConfig = Object.assign(
-  {
-    minify: true,
-  },
-  buildConfig
-);
+/**
+ * @type {import("esbuild").BuildOptions}
+ */
+export const prepublishConfig = {
+  minify: true,
+};
 
-await build(prepublishConfig);
+await build(Object.assign({}, buildConfig, prepublishConfig));
