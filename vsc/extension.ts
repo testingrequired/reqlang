@@ -38,11 +38,20 @@ type ParseNotification = {
   result: ParseResult;
 };
 
+type ReqlangRequest = {
+  verb: string;
+  target: string;
+  http_version: string;
+  headers: [string, string][];
+  body: string | null;
+};
+
 type ParseResult = {
   vars: string[];
   envs: string[];
   prompts: string[];
   secrets: string[];
+  request: ReqlangRequest;
 };
 
 function initState(
@@ -274,6 +283,8 @@ export function activate(context: ExtensionContext) {
       return;
     }
 
+    let parseResult = getParseResults(uri, context)!;
+
     status.show();
 
     const state: ReqlangWorkspaceFileState | undefined =
@@ -281,7 +292,7 @@ export function activate(context: ExtensionContext) {
 
     const env = state?.env ?? "Select Environment";
 
-    status.text = `http $(globe) ${env}`;
+    status.text = `http ${parseResult.request.verb} $(globe) ${env}`;
   }
 
   context.subscriptions.push(

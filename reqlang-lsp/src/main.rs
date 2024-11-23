@@ -4,7 +4,7 @@ use anyhow::{Context, Result};
 use reqlang::diagnostics::{
     Diagnoser, Diagnosis, DiagnosisPosition, DiagnosisRange, DiagnosisSeverity,
 };
-use reqlang::{parse, UnresolvedRequestFile};
+use reqlang::{parse, Request, UnresolvedRequestFile};
 use serde::{Deserialize, Serialize};
 use tower_lsp::lsp_types::notification::Notification;
 use tower_lsp::lsp_types::{
@@ -174,6 +174,7 @@ impl From<UnresolvedRequestFile> for ParseResult {
             envs,
             prompts,
             secrets,
+            request: value.request.0,
         }
     }
 }
@@ -187,6 +188,7 @@ struct ParseResult {
     envs: Vec<String>,
     prompts: Vec<String>,
     secrets: Vec<String>,
+    request: Request,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
