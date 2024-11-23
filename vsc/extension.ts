@@ -20,6 +20,7 @@ import {
 let lc: LanguageClient;
 let status: StatusBarItem;
 let activeTextEditorHandler: Disposable;
+let visibleTextEditorHandler: Disposable;
 
 /**
  * State for an individual request file
@@ -139,8 +140,8 @@ export function activate(context: ExtensionContext) {
 
   status = window.createStatusBarItem(StatusBarAlignment.Left, 0);
   status.command = "reqlang.setResolverEnv";
-  status.text = "REQLANG";
-  status.show();
+
+  updateStatusText();
 
   const startLanguageServerHandler = () => {
     return lc.start();
@@ -216,10 +217,16 @@ export function activate(context: ExtensionContext) {
     let parseResult = getParseResults(uri, context);
 
     lc.outputChannel.appendLine(
-      `setResolverEnv envs ${JSON.stringify(parseResult?.envs)}`
+      `setResolverEnv for ${uri} envs ${JSON.stringify(parseResult?.envs)}`
     );
 
-    const env = (await window.showQuickPick(parseResult?.envs ?? [])) ?? "";
+    const envs = parseResult?.envs ?? [];
+
+    if (envs.length === 0) {
+      return clearResolverEnv();
+    }
+
+    const env = (await window.showQuickPick(envs)) ?? "";
 
     if (env.length === 0) {
       return clearResolverEnv();
@@ -242,18 +249,25 @@ export function activate(context: ExtensionContext) {
 
   function updateStatusText() {
     if (!window.activeTextEditor) {
+      status.hide();
       return;
     }
 
+    const uri = window.activeTextEditor.document.uri.toString();
+
+    if (!uri.endsWith(".reqlang")) {
+      status.hide();
+      return;
+    }
+
+    status.show();
+
     const state: ReqlangWorkspaceFileState | undefined =
-      context.workspaceState.get(
-        window.activeTextEditor.document.uri.toString()
-      );
+      context.workspaceState.get(uri);
 
-    const env = state?.env;
-    const text = env === null ? "REQLANG" : `REQLANG(${env})`;
+    const env = state?.env ?? "Select Environment";
 
-    status.text = text;
+    status.text = `http $(globe) ${env}`;
   }
 
   context.subscriptions.push(
@@ -294,12 +308,14 @@ export function activate(context: ExtensionContext) {
 
   function handleTextEditorChange() {
     if (!window.activeTextEditor) {
+      updateStatusText();
       return;
     }
 
     let filename = window.activeTextEditor.document.uri.toString();
 
     if (!filename.endsWith(".reqlang")) {
+      updateStatusText();
       return;
     }
 
@@ -311,10 +327,15 @@ export function activate(context: ExtensionContext) {
   activeTextEditorHandler = window.onDidChangeActiveTextEditor(
     handleTextEditorChange
   );
+
+  visibleTextEditorHandler = window.onDidChangeVisibleTextEditors(
+    handleTextEditorChange
+  );
 }
 
 export function deactivate() {
   activeTextEditorHandler?.dispose();
+  visibleTextEditorHandler?.dispose();
 
   if (!lc) {
     return undefined;
