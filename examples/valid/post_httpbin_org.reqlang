@@ -6,6 +6,9 @@ body = "test_value"
 
 [envs.prod]
 body = "prod_value"
+
+[envs.local]
+body = "local_value"
 ---
 POST https://httpbin.org/post HTTP/1.1
 
