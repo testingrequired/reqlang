@@ -4,10 +4,13 @@ use anyhow::{Context, Result};
 use reqlang::diagnostics::{
     Diagnoser, Diagnosis, DiagnosisPosition, DiagnosisRange, DiagnosisSeverity,
 };
+use reqlang::{parse, UnresolvedRequestFile};
+use serde::{Deserialize, Serialize};
+use tower_lsp::lsp_types::notification::Notification;
 use tower_lsp::lsp_types::{
     Diagnostic, DiagnosticSeverity, DidChangeTextDocumentParams, DidOpenTextDocumentParams,
-    InitializeParams, InitializeResult, MessageType, Position, Range, ServerCapabilities,
-    ServerInfo, TextDocumentSyncKind,
+    DidSaveTextDocumentParams, InitializeParams, InitializeResult, MessageType, Position, Range,
+    SaveOptions, ServerCapabilities, ServerInfo, TextDocumentSyncKind, TextDocumentSyncOptions,
 };
 use tower_lsp::{jsonrpc, Client, LanguageServer, LspService, Server};
 
@@ -35,7 +38,21 @@ impl LanguageServer for Backend {
 
         Ok(InitializeResult {
             capabilities: ServerCapabilities {
-                text_document_sync: Some(TextDocumentSyncKind::FULL.into()),
+                text_document_sync: Some(
+                    tower_lsp::lsp_types::TextDocumentSyncCapability::Options(
+                        TextDocumentSyncOptions {
+                            open_close: Some(true),
+                            change: TextDocumentSyncKind::FULL.into(),
+                            save: Some(
+                                SaveOptions {
+                                    include_text: Some(true),
+                                }
+                                .into(),
+                            ),
+                            ..Default::default()
+                        },
+                    ),
+                ),
                 ..Default::default()
             },
             server_info: Some(ServerInfo {
@@ -50,13 +67,26 @@ impl LanguageServer for Backend {
     }
 
     async fn did_open(&self, params: DidOpenTextDocumentParams) {
-        let source = &params.text_document.text;
         let uri = params.text_document.uri;
+        let source = params.text_document.text;
+
+        let result = {
+            let unresolved_reqfile = parse(&source).unwrap();
+            unresolved_reqfile.into()
+        };
+
+        self.client
+            .send_notification::<ParseNotification>(ParseNotificationParams::new(
+                uri.clone(),
+                result,
+            ))
+            .await;
+
         let version = Some(params.text_document.version);
-        let diagnostics = Diagnoser::get_diagnostics(source);
+        let diagnostics = Diagnoser::get_diagnostics(&source);
         self.client
             .publish_diagnostics(
-                uri,
+                uri.clone(),
                 diagnostics
                     .iter()
                     .map(|x| (LspDiagnosis((*x).clone())).into())
@@ -67,8 +97,9 @@ impl LanguageServer for Backend {
     }
 
     async fn did_change(&self, params: DidChangeTextDocumentParams) {
-        let source = &params.content_changes.first().unwrap().text;
         let uri = params.text_document.uri;
+        let source = &params.content_changes.first().unwrap().text;
+
         let version = Some(params.text_document.version);
         let diagnostics = Diagnoser::get_diagnostics(source);
         self.client
@@ -82,6 +113,103 @@ impl LanguageServer for Backend {
             )
             .await;
     }
+
+    async fn did_save(&self, params: DidSaveTextDocumentParams) {
+        let uri = params.text_document.uri;
+        let text = params.text.unwrap_or_default();
+
+        let result = {
+            let unresolved_reqfile = parse(&text).unwrap();
+            unresolved_reqfile.into()
+        };
+
+        self.client
+            .send_notification::<ParseNotification>(ParseNotificationParams::new(uri, result))
+            .await;
+    }
+}
+
+impl From<UnresolvedRequestFile> for ParseResult {
+    fn from(value: UnresolvedRequestFile) -> Self {
+        let vars = value
+            .config
+            .clone()
+            .unwrap_or_default()
+            .0
+            .vars
+            .unwrap_or_default();
+
+        let envs: Vec<String> = value
+            .config
+            .clone()
+            .unwrap_or_default()
+            .0
+            .envs
+            .unwrap_or_default()
+            .keys()
+            .cloned()
+            .collect();
+
+        let prompts: Vec<String> = value
+            .config
+            .clone()
+            .unwrap_or_default()
+            .0
+            .prompts
+            .unwrap_or_default()
+            .keys()
+            .cloned()
+            .collect();
+
+        let secrets = value
+            .config
+            .clone()
+            .unwrap_or_default()
+            .0
+            .secrets
+            .unwrap_or_default();
+
+        Self {
+            vars,
+            envs,
+            prompts,
+            secrets,
+        }
+    }
+}
+
+/// A simplified version of the parsed file
+///
+/// This is useful for language server clients
+#[derive(Debug, Deserialize, Serialize)]
+struct ParseResult {
+    vars: Vec<String>,
+    envs: Vec<String>,
+    prompts: Vec<String>,
+    secrets: Vec<String>,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+struct ParseNotificationParams {
+    file_id: String,
+    result: ParseResult,
+}
+
+impl ParseNotificationParams {
+    fn new(file_id: impl Into<String>, result: ParseResult) -> Self {
+        ParseNotificationParams {
+            file_id: file_id.into(),
+            result,
+        }
+    }
+}
+
+enum ParseNotification {}
+
+impl Notification for ParseNotification {
+    type Params = ParseNotificationParams;
+
+    const METHOD: &'static str = "reqlang/parse";
 }
 
 struct LspDiagnosis(Diagnosis);

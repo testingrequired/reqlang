@@ -3,7 +3,6 @@
 import {
   ExtensionContext,
   Disposable,
-  tasks,
   commands,
   env,
   Uri,
@@ -22,9 +21,85 @@ let lc: LanguageClient;
 let status: StatusBarItem;
 let activeTextEditorHandler: Disposable;
 
-type ReqfileState = {
-  env: string;
+/**
+ * State for an individual request file
+ */
+type ReqlangWorkspaceFileState = {
+  /**
+   * Current selected environment
+   */
+  env: string | null;
+  parseResult: ParseResult | null;
 };
+
+type ParseNotification = {
+  file_id: string;
+  result: ParseResult;
+};
+
+type ParseResult = {
+  vars: string[];
+  envs: string[];
+  prompts: string[];
+  secrets: string[];
+};
+
+function initState(
+  fileKey: string,
+  context: ExtensionContext
+): ReqlangWorkspaceFileState {
+  const state = context.workspaceState.get<ReqlangWorkspaceFileState>(fileKey);
+
+  if (typeof state === "undefined") {
+    const initState: ReqlangWorkspaceFileState = {
+      env: null,
+      parseResult: null,
+    };
+
+    context.workspaceState.update(fileKey, initState);
+
+    return initState;
+  }
+
+  return state;
+}
+
+function setEnv(
+  fileKey: string,
+  context: ExtensionContext,
+  env: string | null
+): ReqlangWorkspaceFileState {
+  const state = initState(fileKey, context);
+
+  state.env = env;
+
+  context.workspaceState.update(fileKey, state);
+
+  return state;
+}
+
+function getParseResults(
+  fileKey: string,
+  context: ExtensionContext
+): ParseResult | null {
+  const state = initState(fileKey, context);
+
+  return state.parseResult;
+}
+
+function setParseResult(
+  fileKey: string,
+  context: ExtensionContext,
+  result: ParseResult
+): ReqlangWorkspaceFileState {
+  const state = initState(fileKey, context);
+
+  state.parseResult = result;
+
+  context.workspaceState.update(fileKey, state);
+
+  return state;
+}
 
 export function activate(context: ExtensionContext) {
   const serverOptions: ServerOptions = {
@@ -48,6 +123,19 @@ export function activate(context: ExtensionContext) {
     serverOptions,
     clientOptions
   );
+
+  const parseNotifications = lc.onNotification(
+    "reqlang/parse",
+    async (params: ParseNotification) => {
+      const state = setParseResult(params.file_id, context, params.result);
+
+      lc.outputChannel.appendLine(params.file_id);
+      lc.outputChannel.appendLine(JSON.stringify(state.parseResult, null, 2));
+      lc.outputChannel.show();
+    }
+  );
+
+  context.subscriptions.push(parseNotifications);
 
   status = window.createStatusBarItem(StatusBarAlignment.Left, 0);
   status.command = "reqlang.setResolverEnv";
@@ -82,9 +170,9 @@ export function activate(context: ExtensionContext) {
   };
 
   const exportToFile = async () => {
-    const filename = await window.activeTextEditor?.document?.fileName!;
+    const filename = await window.activeTextEditor?.document?.uri.toString()!;
 
-    const state: ReqfileState | undefined =
+    const state: ReqlangWorkspaceFileState | undefined =
       context.workspaceState.get(filename);
 
     let env = state?.env;
@@ -119,28 +207,25 @@ export function activate(context: ExtensionContext) {
   };
 
   const setResolverEnv = async () => {
-    const env =
-      (await window.showInputBox({
-        title: "Set the env for request file resolver to use",
-        prompt: "Leave empty to clear the env",
-      })) ?? "";
+    if (!window.activeTextEditor) {
+      return;
+    }
+
+    let uri = window.activeTextEditor.document.uri.toString()!;
+
+    let parseResult = getParseResults(uri, context);
+
+    lc.outputChannel.appendLine(
+      `setResolverEnv envs ${JSON.stringify(parseResult?.envs)}`
+    );
+
+    const env = (await window.showQuickPick(parseResult?.envs ?? [])) ?? "";
 
     if (env.length === 0) {
       return clearResolverEnv();
     }
 
-    const state: ReqfileState = {
-      env,
-    };
-
-    if (!window.activeTextEditor) {
-      return;
-    }
-
-    context.workspaceState.update(
-      window.activeTextEditor.document.fileName,
-      state
-    );
+    setEnv(window.activeTextEditor.document.uri.toString(), context, env);
 
     updateStatusText();
   };
@@ -150,10 +235,7 @@ export function activate(context: ExtensionContext) {
       return;
     }
 
-    context.workspaceState.update(
-      window.activeTextEditor.document.fileName,
-      undefined
-    );
+    setEnv(window.activeTextEditor.document.uri.toString(), context, null);
 
     updateStatusText();
   };
@@ -163,12 +245,13 @@ export function activate(context: ExtensionContext) {
       return;
     }
 
-    const state: ReqfileState | undefined = context.workspaceState.get(
-      window.activeTextEditor.document.fileName
-    );
+    const state: ReqlangWorkspaceFileState | undefined =
+      context.workspaceState.get(
+        window.activeTextEditor.document.uri.toString()
+      );
 
     const env = state?.env;
-    const text = typeof env === "undefined" ? "REQLANG" : `REQLANG(${env})`;
+    const text = env === null ? "REQLANG" : `REQLANG(${env})`;
 
     status.text = text;
   }
@@ -214,30 +297,13 @@ export function activate(context: ExtensionContext) {
       return;
     }
 
-    let filename = window.activeTextEditor.document.fileName;
+    let filename = window.activeTextEditor.document.uri.toString();
 
     if (!filename.endsWith(".reqlang")) {
       return;
     }
 
-    let state: ReqfileState;
-
-    let existingState = context.workspaceState.get<ReqfileState>(
-      window.activeTextEditor.document.fileName
-    );
-
-    if (typeof existingState === "undefined") {
-      context.workspaceState.update(
-        window.activeTextEditor.document.fileName,
-        {}
-      );
-
-      state = context.workspaceState.get<ReqfileState>(
-        window.activeTextEditor.document.fileName
-      ) as ReqfileState;
-    } else {
-      state = existingState;
-    }
+    initState(window.activeTextEditor.document.uri.toString(), context);
 
     updateStatusText();
   }
