@@ -1,0 +1,8 @@
+{
+  "name": "reqlang-types",
+  "version": "1.0.0",
+  "description": "Typescript types for Reqlang",
+  "types": "types.d.ts",
+  "author": "Kylee Tilley <kyleetilley@gmail.com",
+  "license": "MIT"
+}

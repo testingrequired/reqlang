@@ -12,3 +12,4 @@ publish = false
 [dependencies]
 serde = { version = "1.0.195", features = ["derive"] }
 span = { path = "../span" }
+ts-rs = "10.0"

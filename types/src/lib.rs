@@ -2,9 +2,11 @@ use serde::{Deserialize, Serialize};
 use span::Spanned;
 use std::collections::HashMap;
 use std::fmt::Display;
+use ts_rs::TS;
 
 /// HTTP Request
-#[derive(Clone, Debug, PartialEq, Default, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Default, Serialize, Deserialize, TS)]
+#[ts(export)]
 pub struct Request {
     pub verb: String,
     pub target: String,
@@ -84,7 +86,8 @@ impl Display for Request {
 }
 
 /// HTTP Response
-#[derive(Clone, Debug, PartialEq, Default, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Default, Serialize, Deserialize, TS)]
+#[ts(export)]
 pub struct Response {
     pub http_version: String,
     pub status_code: String,
@@ -96,7 +99,8 @@ pub struct Response {
 /// Template reference in a request file
 ///
 /// Syntax: `{{:variable}}`, `{{?prompt}}`, `{{!secret}}`
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
+#[ts(export)]
 pub enum ReferenceType {
     Variable(String),
     Prompt(String),
@@ -124,7 +128,8 @@ impl Display for ReferenceType {
 /// An unresolved request file represents the raw parsed request file without and resolving environmental, prompts or secrets.
 ///
 /// This is before templating has been applied as well.
-#[derive(Clone, Debug, PartialEq, Default, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Default, Serialize, Deserialize, TS)]
+#[ts(export)]
 pub struct UnresolvedRequestFile {
     pub config: Option<Spanned<UnresolvedRequestFileConfig>>,
     pub request: Spanned<Request>,
@@ -179,7 +184,8 @@ impl UnresolvedRequestFile {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Default, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Default, Serialize, Deserialize, TS)]
+#[ts(export)]
 pub struct UnresolvedRequestFileConfig {
     pub vars: Option<Vec<String>>,
     pub envs: Option<HashMap<String, HashMap<String, String>>>,
@@ -189,7 +195,8 @@ pub struct UnresolvedRequestFileConfig {
 }
 
 /// A resolved request file with resolved environmental, prompts and secrets values.
-#[derive(Clone, Debug, PartialEq, Default, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Default, Serialize, Deserialize, TS)]
+#[ts(export)]
 pub struct ResolvedRequestFile {
     pub request: Spanned<Request>,
     pub response: Option<Spanned<Response>>,
@@ -198,7 +205,8 @@ pub struct ResolvedRequestFile {
     pub refs: Vec<Spanned<ReferenceType>>,
 }
 
-#[derive(Clone, Debug, PartialEq, Default, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Default, Serialize, Deserialize, TS)]
+#[ts(export)]
 pub struct ResolvedRequestFileConfig {
     pub env: String,
     pub vars: HashMap<String, String>,
@@ -208,7 +216,8 @@ pub struct ResolvedRequestFileConfig {
 }
 
 /// A templated request file.
-#[derive(Clone, Debug, PartialEq, Default, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Default, Serialize, Deserialize, TS)]
+#[ts(export)]
 pub struct TemplatedRequestFile {
     pub request: Request,
     pub response: Option<Response>,

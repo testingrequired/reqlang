@@ -17,6 +17,8 @@ import {
   ServerOptions,
 } from "vscode-languageclient/node";
 
+import type { Request } from "reqlang-types";
+
 let lc: LanguageClient;
 let status: StatusBarItem;
 let activeTextEditorHandler: Disposable;
@@ -38,20 +40,12 @@ type ParseNotification = {
   result: ParseResult;
 };
 
-type ReqlangRequest = {
-  verb: string;
-  target: string;
-  http_version: string;
-  headers: [string, string][];
-  body: string | null;
-};
-
 type ParseResult = {
   vars: string[];
   envs: string[];
   prompts: string[];
   secrets: string[];
-  request: ReqlangRequest;
+  request: Request;
 };
 
 function initState(

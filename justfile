@@ -19,6 +19,7 @@ move-bins:
 
 build:
     cargo build
+    cd types && just build
     just build-vsc
 
 install: build && move-bins

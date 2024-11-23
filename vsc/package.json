@@ -104,6 +104,7 @@
     "@vscode/test-electron": "2.3.6",
     "@vscode/vsce": "3.2.1",
     "esbuild": "^0.19.5",
+    "reqlang-types": "file:../types",
     "typescript": "^4.6.4"
   },
   "dependencies": {
