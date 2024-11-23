@@ -79,6 +79,12 @@ function setEnv(
   return state;
 }
 
+function getEnv(fileKey: string, context: ExtensionContext): string | null {
+  const state = initState(fileKey, context);
+
+  return state.env;
+}
+
 function getParseResults(
   fileKey: string,
   context: ExtensionContext
@@ -226,7 +232,15 @@ export function activate(context: ExtensionContext) {
       return clearResolverEnv();
     }
 
-    const env = (await window.showQuickPick(envs)) ?? "";
+    const currentEnv = getEnv(uri, context);
+
+    const env =
+      (await window.showQuickPick(envs, {
+        title: "Select environment for request",
+        placeHolder: currentEnv ?? envs[0],
+      })) ??
+      currentEnv ??
+      envs[0];
 
     if (env.length === 0) {
       return clearResolverEnv();
