@@ -17,87 +17,17 @@ import {
   ServerOptions,
 } from "vscode-languageclient/node";
 
-import type { Request } from "reqlang-types";
-
-type Ok<T> = { Ok: T };
-type Err<E = unknown> = { Err: E };
-type Result<T, E = unknown> = Ok<T> | Err<E>;
-
-function isOk<T>(value: unknown): value is Ok<T> {
-  const keys = Object.keys(value as object);
-
-  return keys.includes("Ok") && keys.length === 1;
-}
-
-function isErr<E = unknown>(value: unknown): value is Err<E> {
-  const keys = Object.keys(value as object);
-
-  return keys.includes("Err") && keys.length === 1;
-}
-
-function ifOk<T, F extends (value: T) => void | Promise<void>>(
-  value: Result<T>,
-  fn: F
-): ReturnType<F> | void {
-  if (isOk(value)) {
-    return fn(value.Ok) as ReturnType<F>;
-  }
-
-  return undefined as ReturnType<F>; // Explicitly cast `undefined` to match the type
-}
-
-function ifOkOr<
-  T,
-  F extends (value: T) => void | Promise<void>,
-  E extends (value: unknown) => void | Promise<void>
->(value: Result<T>, okFn: F, errFn: E) {
-  if (isOk(value)) {
-    lc.outputChannel.appendLine("OK");
-    return okFn(value.Ok);
-  } else {
-    lc.outputChannel.appendLine(`ERR: ${value.Err}`);
-    return errFn(value.Err);
-  }
-}
-
-function mapResult<T, U, E = unknown>(
-  result: Result<T, E>,
-  fn: (value: T) => U
-): Result<U, E> {
-  if (isOk(result)) {
-    return { Ok: fn(result.Ok) };
-  }
-  return result;
-}
+import type {
+  ParseNotification,
+  ParseResult,
+  ReqlangWorkspaceFileState,
+} from "./src/types";
+import { ifOk, ifOkOr, mapResult, type Result } from "./src/result";
 
 let lc: LanguageClient;
 let status: StatusBarItem;
 let activeTextEditorHandler: Disposable;
 let visibleTextEditorHandler: Disposable;
-
-/**
- * State for an individual request file
- */
-type ReqlangWorkspaceFileState = {
-  /**
-   * Current selected environment
-   */
-  env: string | null;
-  parseResult: Result<ParseResult> | null;
-};
-
-type ParseNotification = {
-  file_id: string;
-  result: Result<ParseResult>;
-};
-
-type ParseResult = {
-  vars: string[];
-  envs: string[];
-  prompts: string[];
-  secrets: string[];
-  request: Request;
-};
 
 function initState(
   fileKey: string,
