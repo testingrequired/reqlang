@@ -4,7 +4,8 @@ use anyhow::{Context, Result};
 use reqlang::diagnostics::{
     Diagnoser, Diagnosis, DiagnosisPosition, DiagnosisRange, DiagnosisSeverity,
 };
-use reqlang::{parse, Request, UnresolvedRequestFile};
+use reqlang::errors::ReqlangError;
+use reqlang::{parse, Request, Spanned, UnresolvedRequestFile};
 use serde::{Deserialize, Serialize};
 use tower_lsp::lsp_types::notification::Notification;
 use tower_lsp::lsp_types::{
@@ -70,10 +71,12 @@ impl LanguageServer for Backend {
         let uri = params.text_document.uri;
         let source = params.text_document.text;
 
-        let result = {
-            let unresolved_reqfile = parse(&source).unwrap();
-            unresolved_reqfile.into()
-        };
+        let result: Result<ParseResult, Vec<Spanned<ReqlangError>>> =
+            parse(&source).map(|unresolved_reqfile| {
+                let result: ParseResult = unresolved_reqfile.into();
+
+                result
+            });
 
         self.client
             .send_notification::<ParseNotification>(ParseNotificationParams::new(
@@ -118,10 +121,12 @@ impl LanguageServer for Backend {
         let uri = params.text_document.uri;
         let text = params.text.unwrap_or_default();
 
-        let result = {
-            let unresolved_reqfile = parse(&text).unwrap();
-            unresolved_reqfile.into()
-        };
+        let result: Result<ParseResult, Vec<Spanned<ReqlangError>>> =
+            parse(&text).map(|unresolved_reqfile| {
+                let result: ParseResult = unresolved_reqfile.into();
+
+                result
+            });
 
         self.client
             .send_notification::<ParseNotification>(ParseNotificationParams::new(uri, result))
@@ -194,11 +199,14 @@ struct ParseResult {
 #[derive(Debug, Deserialize, Serialize)]
 struct ParseNotificationParams {
     file_id: String,
-    result: ParseResult,
+    result: Result<ParseResult, Vec<Spanned<ReqlangError>>>,
 }
 
 impl ParseNotificationParams {
-    fn new(file_id: impl Into<String>, result: ParseResult) -> Self {
+    fn new(
+        file_id: impl Into<String>,
+        result: Result<ParseResult, Vec<Spanned<ReqlangError>>>,
+    ) -> Self {
         ParseNotificationParams {
             file_id: file_id.into(),
             result,

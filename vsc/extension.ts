@@ -19,6 +19,57 @@ import {
 
 import type { Request } from "reqlang-types";
 
+type Ok<T> = { Ok: T };
+type Err<E = unknown> = { Err: E };
+type Result<T, E = unknown> = Ok<T> | Err<E>;
+
+function isOk<T>(value: unknown): value is Ok<T> {
+  const keys = Object.keys(value as object);
+
+  return keys.includes("Ok") && keys.length === 1;
+}
+
+function isErr<E = unknown>(value: unknown): value is Err<E> {
+  const keys = Object.keys(value as object);
+
+  return keys.includes("Err") && keys.length === 1;
+}
+
+function ifOk<T, F extends (value: T) => void | Promise<void>>(
+  value: Result<T>,
+  fn: F
+): ReturnType<F> | void {
+  if (isOk(value)) {
+    return fn(value.Ok) as ReturnType<F>;
+  }
+
+  return undefined as ReturnType<F>; // Explicitly cast `undefined` to match the type
+}
+
+function ifOkOr<
+  T,
+  F extends (value: T) => void | Promise<void>,
+  E extends (value: unknown) => void | Promise<void>
+>(value: Result<T>, okFn: F, errFn: E) {
+  if (isOk(value)) {
+    lc.outputChannel.appendLine("OK");
+    return okFn(value.Ok);
+  } else {
+    lc.outputChannel.appendLine(`ERR: ${value.Err}`);
+    return errFn(value.Err);
+  }
+}
+
+function mapResult<T, U, E = unknown>(
+  result: Result<T, E>,
+  fn: (value: T) => U
+): Result<U, E> {
+  if (isOk(result)) {
+    return { Ok: fn(result.Ok) };
+  }
+  return result;
+}
+
 let lc: LanguageClient;
 let status: StatusBarItem;
 let activeTextEditorHandler: Disposable;
@@ -32,12 +83,12 @@ type ReqlangWorkspaceFileState = {
    * Current selected environment
    */
   env: string | null;
-  parseResult: ParseResult | null;
+  parseResult: Result<ParseResult> | null;
 };
 
 type ParseNotification = {
   file_id: string;
-  result: ParseResult;
+  result: Result<ParseResult>;
 };
 
 type ParseResult = {
@@ -91,7 +142,7 @@ function getEnv(fileKey: string, context: ExtensionContext): string | null {
 function getParseResults(
   fileKey: string,
   context: ExtensionContext
-): ParseResult | null {
+): Result<ParseResult> | null {
   const state = initState(fileKey, context);
 
   return state.parseResult;
@@ -100,7 +151,7 @@ function getParseResults(
 function setParseResult(
   fileKey: string,
   context: ExtensionContext,
-  result: ParseResult
+  result: Result<ParseResult>
 ): ReqlangWorkspaceFileState {
   const state = initState(fileKey, context);
 
@@ -225,33 +276,40 @@ export function activate(context: ExtensionContext) {
 
     let parseResult = getParseResults(uri, context);
 
-    lc.outputChannel.appendLine(
-      `setResolverEnv for ${uri} envs ${JSON.stringify(parseResult?.envs)}`
+    if (parseResult === null) {
+      return;
+    }
+
+    await ifOk(
+      mapResult(parseResult, (parsed) => parsed.envs),
+      async (envs) => {
+        if (!window.activeTextEditor) {
+          return;
+        }
+
+        if (envs.length === 0) {
+          return clearResolverEnv();
+        }
+
+        const currentEnv = getEnv(uri, context);
+
+        const env =
+          (await window.showQuickPick(envs, {
+            title: "Select environment for request",
+            placeHolder: currentEnv ?? envs[0],
+          })) ??
+          currentEnv ??
+          envs[0];
+
+        if (env.length === 0) {
+          return clearResolverEnv();
+        }
+
+        setEnv(window.activeTextEditor.document.uri.toString(), context, env);
+
+        updateStatusText();
+      }
     );
-
-    const envs = parseResult?.envs ?? [];
-
-    if (envs.length === 0) {
-      return clearResolverEnv();
-    }
-
-    const currentEnv = getEnv(uri, context);
-
-    const env =
-      (await window.showQuickPick(envs, {
-        title: "Select environment for request",
-        placeHolder: currentEnv ?? envs[0],
-      })) ??
-      currentEnv ??
-      envs[0];
-
-    if (env.length === 0) {
-      return clearResolverEnv();
-    }
-
-    setEnv(window.activeTextEditor.document.uri.toString(), context, env);
-
-    updateStatusText();
   };
 
   const clearResolverEnv = async () => {
@@ -277,16 +335,30 @@ export function activate(context: ExtensionContext) {
       return;
     }
 
-    let parseResult = getParseResults(uri, context)!;
+    let parseResult = getParseResults(uri, context);
 
-    status.show();
+    if (parseResult === null) {
+      lc.outputChannel.appendLine("NULL");
+      return;
+    }
 
-    const state: ReqlangWorkspaceFileState | undefined =
-      context.workspaceState.get(uri);
+    ifOkOr(
+      mapResult(parseResult, (x) => x.request),
+      (request) => {
+        status.show();
 
-    const env = state?.env ?? "Select Environment";
+        const state: ReqlangWorkspaceFileState | undefined =
+          context.workspaceState.get(uri);
 
-    status.text = `http ${parseResult.request.verb} $(globe) ${env}`;
+        const env = state?.env ?? "Select Environment";
+
+        status.text = `http ${request.verb} $(globe) ${env}`;
+      },
+      () => {
+        status.show();
+        status.text = `http $(error) Error Parsing`;
+      }
+    );
   }
 
   context.subscriptions.push(
