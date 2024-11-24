@@ -129,7 +129,7 @@ export function activate(context: ExtensionContext) {
   context.subscriptions.push(parseNotifications);
 
   status = window.createStatusBarItem(StatusBarAlignment.Left, 0);
-  status.command = "reqlang.setResolverEnv";
+  status.command = "reqlang.pickEnv";
 
   updateStatusText();
 
@@ -197,7 +197,7 @@ export function activate(context: ExtensionContext) {
     );
   };
 
-  const setResolverEnv = async () => {
+  const pickCurrentEnv = async () => {
     if (!window.activeTextEditor) {
       return;
     }
@@ -218,7 +218,7 @@ export function activate(context: ExtensionContext) {
         }
 
         if (envs.length === 0) {
-          return clearResolverEnv();
+          return clearCurrentEnv();
         }
 
         const currentEnv = getEnv(uri, context);
@@ -232,7 +232,7 @@ export function activate(context: ExtensionContext) {
           envs[0];
 
         if (env.length === 0) {
-          return clearResolverEnv();
+          return clearCurrentEnv();
         }
 
         setEnv(window.activeTextEditor.document.uri.toString(), context, env);
@@ -242,7 +242,7 @@ export function activate(context: ExtensionContext) {
     );
   };
 
-  const clearResolverEnv = async () => {
+  const clearCurrentEnv = async () => {
     if (!window.activeTextEditor) {
       return;
     }
@@ -304,8 +304,8 @@ export function activate(context: ExtensionContext) {
       "reqlang.restartLanguageServer",
       restartLanguageServerHandler
     ),
-    commands.registerCommand("reqlang.setResolverEnv", setResolverEnv),
-    commands.registerCommand("reqlang.clearResolverEnv", clearResolverEnv),
+    commands.registerCommand("reqlang.pickEnv", pickCurrentEnv),
+    commands.registerCommand("reqlang.clearEnv", clearCurrentEnv),
     commands.registerCommand("reqlang.install", installHandler),
     commands.registerCommand("reqlang.openMdnDocsHttp", () => {
       env.openExternal(
