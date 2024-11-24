@@ -24,7 +24,7 @@ import type {
 } from "./src/types";
 import { ifOk, ifOkOr, mapResult, type Result } from "./src/result";
 
-let lc: LanguageClient;
+let client: LanguageClient;
 let status: StatusBarItem;
 let activeTextEditorHandler: Disposable;
 let visibleTextEditorHandler: Disposable;
@@ -109,20 +109,22 @@ export function activate(context: ExtensionContext) {
     outputChannelName: "reqlang",
   };
 
-  lc = new LanguageClient(
+  client = new LanguageClient(
     "reqlang-language-server",
     serverOptions,
     clientOptions
   );
 
-  const parseNotifications = lc.onNotification(
+  const parseNotifications = client.onNotification(
     "reqlang/parse",
     async (params: ParseNotification) => {
       const state = setParseResult(params.file_id, context, params.result);
 
-      lc.outputChannel.appendLine(params.file_id);
-      lc.outputChannel.appendLine(JSON.stringify(state.parseResult, null, 2));
-      lc.outputChannel.show();
+      client.outputChannel.appendLine(params.file_id);
+      client.outputChannel.appendLine(
+        JSON.stringify(state.parseResult, null, 2)
+      );
+      client.outputChannel.show();
     }
   );
 
@@ -134,15 +136,15 @@ export function activate(context: ExtensionContext) {
   updateStatusText();
 
   const startLanguageServerHandler = () => {
-    return lc.start();
+    return client.start();
   };
 
   const stopLanguageServerHandler = () => {
-    if (!lc) {
+    if (!client) {
       return undefined;
     }
 
-    return lc.stop();
+    return client.stop();
   };
 
   const restartLanguageServerHandler = async () => {
@@ -268,7 +270,7 @@ export function activate(context: ExtensionContext) {
     let parseResult = getParseResults(uri, context);
 
     if (parseResult === null) {
-      lc.outputChannel.appendLine("NULL");
+      client.outputChannel.appendLine("NULL");
       return;
     }
 
@@ -358,9 +360,9 @@ export function deactivate() {
   activeTextEditorHandler?.dispose();
   visibleTextEditorHandler?.dispose();
 
-  if (!lc) {
+  if (!client) {
     return undefined;
   }
 
-  return lc.stop();
+  return client.stop();
 }
