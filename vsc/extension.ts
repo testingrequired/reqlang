@@ -343,8 +343,8 @@ export function activate(context: ExtensionContext) {
     }
 
     ifOkOr(
-      mapResult(parseResult, (x) => x.request),
-      (request) => {
+      parseResult,
+      (parseResult) => {
         status.show();
 
         const state: ReqlangWorkspaceFileState | undefined =
@@ -352,7 +352,7 @@ export function activate(context: ExtensionContext) {
 
         const env = state?.env ?? "Select Environment";
 
-        status.text = `http ${request.verb} $(globe) ${env}`;
+        status.text = `http ${parseResult.request.verb} $(globe) ${env}`;
       },
       () => {
         status.show();
