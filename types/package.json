@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Typescript types for Reqlang",
   "types": "dist/index.d.ts",
-  "author": "Kylee Tilley <kyleetilley@gmail.com",
+  "author": "Kylee Tilley <kyleetilley@gmail.com>",
   "license": "MIT",
   "scripts": {
     "build": "tsc"
