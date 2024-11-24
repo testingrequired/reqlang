@@ -131,7 +131,7 @@ export function activate(context: ExtensionContext) {
   context.subscriptions.push(parseNotifications);
 
   status = window.createStatusBarItem(StatusBarAlignment.Left, 0);
-  status.command = "reqlang.pickEnv";
+  status.command = "reqlang.menu";
 
   updateStatusText();
 
@@ -306,6 +306,23 @@ export function activate(context: ExtensionContext) {
       "reqlang.restartLanguageServer",
       restartLanguageServerHandler
     ),
+    commands.registerCommand("reqlang.menu", async () => {
+      const choice = await window.showQuickPick(
+        ["Pick an environment", "Cancel"],
+        {
+          title: "Reqlang Menu",
+        }
+      );
+
+      switch (choice) {
+        case "Pick an environment":
+          await commands.executeCommand("reqlang.pickEnv");
+          break;
+
+        default:
+          break;
+      }
+    }),
     commands.registerCommand("reqlang.pickEnv", pickCurrentEnv),
     commands.registerCommand("reqlang.clearEnv", clearCurrentEnv),
     commands.registerCommand("reqlang.install", installHandler),

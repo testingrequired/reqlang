@@ -49,6 +49,10 @@
     "configuration": {},
     "commands": [
       {
+        "command": "reqlang.menu",
+        "title": "Reqlang: Main Menu"
+      },
+      {
         "command": "reqlang.startLanguageServer",
         "title": "Reqlang: Start Language Server"
       },
