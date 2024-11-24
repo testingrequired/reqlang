@@ -111,6 +111,7 @@ impl DiagnosisRange {
     }
 }
 
+#[allow(dead_code)]
 trait AsDiagnostic {
     fn as_diagnostic(&self, span: &Span) -> Diagnostic<()>;
 }
