@@ -13,3 +13,11 @@ publish = false
 serde = { version = "1.0.195", features = ["derive"] }
 span = { path = "../span" }
 ts-rs = "10.0"
+
+[[bin]]
+name = "bundle_types"
+path = "src/bundle.rs"
+required-features = ["bundle_types"]
+
+[features]
+bundle_types = []

@@ -2,7 +2,13 @@
   "name": "reqlang-types",
   "version": "1.0.0",
   "description": "Typescript types for Reqlang",
-  "types": "types.d.ts",
+  "types": "dist/index.d.ts",
   "author": "Kylee Tilley <kyleetilley@gmail.com",
-  "license": "MIT"
+  "license": "MIT",
+  "scripts": {
+    "build": "tsc"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2"
+  }
 }

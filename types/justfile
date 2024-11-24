@@ -1,5 +1,9 @@
 default:
     @just --list
 
-build:
-    rm -rf bindings && rm -rf dist && cargo test && npm run build
+clean:
+    rm -rf bindings
+    rm -rf dist
+
+build: clean
+    cargo test export_bindings && cargo run --bin bundle_types --features bundle_types && npm run build

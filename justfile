@@ -17,9 +17,11 @@ move-bins:
     cp target/debug/reqlang-lsp.exe ~/.cargo/bin/reqlang-lsp.exe
     cp target/debug/reqlang-client.exe ~/.cargo/bin/reqlang-client.exe
 
-build:
-    cargo build
+build_types:
     cd types && just build
+
+build: build_types
+    cargo build
     just build-vsc
 
 install: build && move-bins
