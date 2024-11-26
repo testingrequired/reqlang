@@ -7,13 +7,16 @@ use reqlang::diagnostics::{
 use reqlang::errors::ReqlangError;
 use reqlang::{http::HttpRequest, parse, Spanned, UnresolvedRequestFile};
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
+use tower_lsp::jsonrpc::Result as RpcResult;
 use tower_lsp::lsp_types::notification::Notification;
 use tower_lsp::lsp_types::{
     Diagnostic, DiagnosticSeverity, DidChangeTextDocumentParams, DidOpenTextDocumentParams,
-    DidSaveTextDocumentParams, InitializeParams, InitializeResult, MessageType, Position, Range,
-    SaveOptions, ServerCapabilities, ServerInfo, TextDocumentSyncKind, TextDocumentSyncOptions,
+    DidSaveTextDocumentParams, ExecuteCommandOptions, ExecuteCommandParams, InitializeParams,
+    InitializeResult, MessageType, Position, Range, SaveOptions, ServerCapabilities, ServerInfo,
+    TextDocumentSyncKind, TextDocumentSyncOptions,
 };
-use tower_lsp::{jsonrpc, Client, LanguageServer, LspService, Server};
+use tower_lsp::{Client, LanguageServer, LspService, Server};
 
 struct Backend {
     client: Client,
@@ -27,7 +30,7 @@ impl Backend {
 
 #[tower_lsp::async_trait]
 impl LanguageServer for Backend {
-    async fn initialize(&self, _: InitializeParams) -> jsonrpc::Result<InitializeResult> {
+    async fn initialize(&self, _: InitializeParams) -> RpcResult<InitializeResult> {
         let version = env!("CARGO_PKG_VERSION").to_string();
 
         self.client
@@ -39,6 +42,10 @@ impl LanguageServer for Backend {
 
         Ok(InitializeResult {
             capabilities: ServerCapabilities {
+                execute_command_provider: Some(ExecuteCommandOptions {
+                    commands: vec!["reqlang.executeRequest".to_string()],
+                    work_done_progress_options: Default::default(),
+                }),
                 text_document_sync: Some(
                     tower_lsp::lsp_types::TextDocumentSyncCapability::Options(
                         TextDocumentSyncOptions {
@@ -63,7 +70,7 @@ impl LanguageServer for Backend {
         })
     }
 
-    async fn shutdown(&self) -> jsonrpc::Result<()> {
+    async fn shutdown(&self) -> RpcResult<()> {
         Ok(())
     }
 
@@ -131,6 +138,21 @@ impl LanguageServer for Backend {
         self.client
             .send_notification::<ParseNotification>(ParseNotificationParams::new(uri, result))
             .await;
+    }
+
+    async fn execute_command(&self, params: ExecuteCommandParams) -> RpcResult<Option<Value>> {
+        match params.command.as_str() {
+            "reqlang.executeRequest" => {
+                // TODO: Execute the request
+            }
+            _ => {}
+        };
+
+        self.client
+            .log_message(MessageType::INFO, "command executed!")
+            .await;
+
+        Ok(Some(Value::String("DONE!".to_string())))
     }
 }
 

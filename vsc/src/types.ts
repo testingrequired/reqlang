@@ -24,3 +24,21 @@ export type ParseResult = {
   secrets: string[];
   request: Request;
 };
+
+/**
+ * The possible choices for the Reqlang Menu in the VSC extension
+ */
+export enum MenuChoices {
+  PickEnv = "Pick an environment",
+  RunRequest = "Run request",
+}
+
+/**
+ * The possible choices for the Reqlang Menu in the VSC extension
+ */
+export enum Commands {
+  PickEnv = "reqlang.pickEnv",
+  RunRequest = "reqlang.run",
+  Menu = "reqlang.menu",
+  Execute = "reqlang.executeRequest",
+}

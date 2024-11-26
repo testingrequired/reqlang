@@ -91,6 +91,10 @@
         "title": "Reqlang: Build & Install Binaries"
       },
       {
+        "command": "reqlang.run",
+        "title": "Reqlang: Run Request"
+      },
+      {
         "command": "reqlang.openMdnDocsHttp",
         "title": "Reqlang: Open MDN Docs (HTTP)"
       },

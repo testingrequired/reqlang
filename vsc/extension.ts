@@ -19,10 +19,12 @@ import {
 
 import * as RsResult from "rsresult";
 
-import type {
-  ParseNotification,
-  ParseResult,
-  ReqlangWorkspaceFileState,
+import {
+  Commands,
+  MenuChoices,
+  type ParseNotification,
+  type ParseResult,
+  type ReqlangWorkspaceFileState,
 } from "./src/types";
 
 let client: LanguageClient;
@@ -304,25 +306,84 @@ export function activate(context: ExtensionContext) {
       "reqlang.restartLanguageServer",
       restartLanguageServerHandler
     ),
-    commands.registerCommand("reqlang.menu", async () => {
+    commands.registerCommand(Commands.Menu, async () => {
       const choice = await window.showQuickPick(
-        ["Pick an environment", "Cancel"],
+        [MenuChoices.PickEnv, MenuChoices.RunRequest, "Cancel"],
         {
           title: "Reqlang Menu",
         }
       );
 
       switch (choice) {
-        case "Pick an environment":
-          await commands.executeCommand("reqlang.pickEnv");
+        case MenuChoices.PickEnv:
+          await commands.executeCommand(Commands.PickEnv);
+          break;
+
+        case MenuChoices.RunRequest:
+          await commands.executeCommand(Commands.RunRequest);
           break;
 
         default:
           break;
       }
     }),
-    commands.registerCommand("reqlang.pickEnv", pickCurrentEnv),
+    commands.registerCommand(Commands.PickEnv, pickCurrentEnv),
     commands.registerCommand("reqlang.clearEnv", clearCurrentEnv),
+    commands.registerCommand(Commands.RunRequest, async () => {
+      if (!window.activeTextEditor) {
+        return;
+      }
+
+      let uri = window.activeTextEditor.document.uri.toString()!;
+
+      let parseResult = getParseResults(uri, context);
+
+      if (parseResult === null) {
+        return;
+      }
+
+      await ifOk(parseResult, async ({ prompts, secrets }) => {
+        if (!window.activeTextEditor) {
+          return;
+        }
+
+        const promptValues: (string | null)[] = [];
+        const secretValues: (string | null)[] = [];
+        const providerValues: (string | null)[] = [];
+
+        for (const prompt of prompts) {
+          const promptValue = await window.showInputBox({
+            title: `Prompt: ${prompt}`,
+          });
+
+          promptValues.push(promptValue ?? null);
+        }
+
+        for (const secret of secrets) {
+          const secretValue = await window.showInputBox({
+            title: `Secret: ${secret}`,
+          });
+
+          secretValues.push(secretValue ?? null);
+        }
+
+        client.outputChannel.appendLine(
+          JSON.stringify({
+            prompts,
+            promptValues,
+            secrets,
+            secretValues,
+            providerValues,
+          })
+        );
+
+        const response = await commands.executeCommand<string>(
+          Commands.Execute
+        );
+
+        client.outputChannel.appendLine(response);
+      });
+    }),
     commands.registerCommand("reqlang.install", installHandler),
     commands.registerCommand("reqlang.openMdnDocsHttp", () => {
       env.openExternal(
