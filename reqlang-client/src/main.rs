@@ -353,7 +353,13 @@ impl ExecutingRequestState {
         let prompts = &self.reqfile.config.0.prompts;
         let secrets = &self.reqfile.config.0.secrets;
 
-        let provider_values = HashMap::new();
+        let provider_values = {
+            let mut values = HashMap::new();
+
+            values.insert("env".to_string(), env.to_string());
+
+            values
+        };
 
         let input = client_ctx.source.as_ref().unwrap().as_str();
 
