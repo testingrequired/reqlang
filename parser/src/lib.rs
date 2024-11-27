@@ -42,12 +42,13 @@ pub fn template(
     env: &str,
     prompts: &HashMap<String, String>,
     secrets: &HashMap<String, String>,
+    provider_values: HashMap<String, String>,
 ) -> Result<TemplatedRequestFile, Vec<Spanned<ReqlangError>>> {
     let reqfile = RequestFileParser::parse_string(input);
 
     let reqfile = RequestFileResolver::resolve_request_file(&reqfile?, env, prompts, secrets);
 
-    RequestFileTemplater::template_reqfile(input, &reqfile?)
+    RequestFileTemplater::template_reqfile(input, &reqfile?, provider_values)
 }
 
 /// Export a request file in to another format
@@ -56,13 +57,15 @@ pub fn export(
     env: &str,
     prompts: &HashMap<String, String>,
     secrets: &HashMap<String, String>,
+    provider_values: HashMap<String, String>,
     format: Format,
 ) -> Result<String, Vec<Spanned<ReqlangError>>> {
     let reqfile = RequestFileParser::parse_string(input);
 
     let reqfile = RequestFileResolver::resolve_request_file(&reqfile?, env, prompts, secrets);
 
-    let reqfile = RequestFileTemplater::template_reqfile(input, &reqfile?).unwrap();
+    let reqfile =
+        RequestFileTemplater::template_reqfile(input, &reqfile?, provider_values).unwrap();
 
     Ok(export::export(&reqfile.request, format))
 }
@@ -266,6 +269,7 @@ mod parserlib {
                 ),
             ]),
             &HashMap::from([("api_key".to_string(), "api_key_value".to_string())]),
+            HashMap::default(),
         );
 
         assert_eq!(

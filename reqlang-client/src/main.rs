@@ -9,7 +9,7 @@ use std::{
 use eframe::egui;
 use reqlang::{
     export::{export, Format},
-    parse, template, Request, TemplatedRequestFile, UnresolvedRequestFile,
+    parse, resolve, template, Request, ResolvedRequestFile, UnresolvedRequestFile,
 };
 
 #[allow(dead_code)]
@@ -19,6 +19,7 @@ enum ClientState {
     View(ViewState),
     Resolving(ResolvingState),
     Resolved(ResolvedState),
+    ExecutingRequest(ExecutingRequestState),
 }
 
 #[derive(Debug, Default, Clone)]
@@ -267,7 +268,7 @@ impl ResolvingState {
             ui.separator();
 
             if ui.button("Resolve").clicked() {
-                let reqfile = template(
+                let reqfile = resolve(
                     &client_ctx.source.clone().unwrap(),
                     &self.env,
                     &self.prompts,
@@ -287,16 +288,12 @@ impl ResolvingState {
 
 #[derive(Clone)]
 struct ResolvedState {
-    reqfile: Box<TemplatedRequestFile>,
-    download: Arc<Mutex<Download>>,
+    reqfile: Box<ResolvedRequestFile>,
 }
 
 impl ResolvedState {
-    pub fn new(reqfile: Box<TemplatedRequestFile>) -> Self {
-        Self {
-            reqfile,
-            download: Arc::new(Mutex::new(Download::None)),
-        }
+    pub fn new(reqfile: Box<ResolvedRequestFile>) -> Self {
+        Self { reqfile }
     }
 
     pub fn ui(
@@ -306,7 +303,9 @@ impl ResolvedState {
     ) -> Result<StateTransition, &str> {
         let mut next_state: StateTransition = StateTransition::None;
 
-        let request_string = export(&self.reqfile.request, Format::Http);
+        let request = &self.reqfile.request.0;
+
+        let request_string = export(request, Format::Http);
 
         egui::CentralPanel::default().show(egui_ctx, |ui| {
             if ui.button("Back").clicked() {
@@ -319,43 +318,94 @@ impl ResolvedState {
             selectable_text(ui, &request_string);
 
             if ui.button("Send Request").clicked() {
-                let request = match self.reqfile.request.verb.as_str() {
-                    "GET" => ehttp::Request::get(&self.reqfile.request.target),
-                    "HEAD" => ehttp::Request::head(&self.reqfile.request.target),
-                    "POST" => ehttp::Request::post(
-                        &self.reqfile.request.target,
-                        self.reqfile
-                            .request
-                            .body
-                            .clone()
-                            .unwrap_or_default()
-                            .as_bytes()
-                            .to_vec(),
-                    ),
-                    _ => unreachable!(),
-                };
+                next_state = StateTransition::New(ClientState::ExecutingRequest(
+                    ExecutingRequestState::new(self.reqfile.clone()),
+                ));
+            }
+        });
+
+        Ok(next_state)
+    }
+}
+
+#[derive(Clone)]
+struct ExecutingRequestState {
+    reqfile: Box<ResolvedRequestFile>,
+    download: Arc<Mutex<Download>>,
+}
+
+impl ExecutingRequestState {
+    pub fn new(reqfile: Box<ResolvedRequestFile>) -> Self {
+        Self {
+            reqfile,
+            download: Arc::new(Mutex::new(Download::None)),
+        }
+    }
+
+    pub fn ui(
+        &mut self,
+        egui_ctx: &egui::Context,
+        client_ctx: &ClientContext,
+    ) -> Result<StateTransition, &str> {
+        let mut next_state: StateTransition = StateTransition::None;
+
+        let env = self.reqfile.config.0.env.as_str();
+        let prompts = &self.reqfile.config.0.prompts;
+        let secrets = &self.reqfile.config.0.secrets;
+
+        let provider_values = HashMap::new();
+
+        let input = client_ctx.source.as_ref().unwrap().as_str();
+
+        let templated_reqfile = template(input, env, prompts, secrets, provider_values)
+            .expect("Should be a valid reqfile");
+
+        let request = &templated_reqfile.request;
+        let request_string = export(request, Format::Http);
+
+        egui::CentralPanel::default().show(egui_ctx, |ui| {
+            ui.heading("Request");
+
+            selectable_text(ui, &request_string);
+
+            if ui.button("Execute").clicked() {
+                eprintln!("CLICKED EXECUTE");
+                let verb = request.verb.as_str();
+                let target = request.target.as_str();
                 let download_store = self.download.clone();
                 *download_store.lock().unwrap() = Download::InProgress;
                 let egui_ctx = egui_ctx.clone();
 
+                let request = match verb {
+                    "GET" => ehttp::Request::get(target),
+                    "HEAD" => ehttp::Request::head(target),
+                    "POST" => ehttp::Request::post(
+                        target,
+                        request.body.clone().unwrap_or_default().as_bytes().to_vec(),
+                    ),
+                    _ => unreachable!(),
+                };
+
                 let streaming = true;
 
                 if streaming {
+                    eprintln!("STREAMING REQUEST");
                     // The more complicated streaming API:
                     ehttp::streaming::fetch(request, move |part| {
                         egui_ctx.request_repaint(); // Wake up UI thread
                         on_fetch_part(part, &mut download_store.lock().unwrap())
                     });
                 } else {
+                    eprintln!("NON STREAMING REQUEST");
                     // The simple non-streaming API:
                     ehttp::fetch(request, move |response| {
                         *download_store.lock().unwrap() = Download::Done(response);
                         egui_ctx.request_repaint(); // Wake up UI thread
                     });
                 }
-            }
 
-            ui.separator();
+                ui.separator();
+            }
 
             let download: &Download = &self.download.lock().unwrap();
             match download {
@@ -371,14 +421,23 @@ impl ResolvedState {
                         ui.label(format!("{:.1} MB", num_bytes as f32 / 1e6));
                     }
                 }
-                Download::Done(response) => match response {
-                    Err(err) => {
-                        ui.label(err);
+                Download::Done(response) => {
+                    if ui.button("Back").clicked() {
+                        next_state = StateTransition::Back;
+                        return;
                     }
-                    Ok(response) => {
-                        response_ui(ui, response);
+
+                    ui.separator();
+
+                    match response {
+                        Err(err) => {
+                            ui.label(err);
+                        }
+                        Ok(response) => {
+                            response_ui(ui, response);
+                        }
                     }
-                },
+                }
             }
         });
 
@@ -459,6 +518,7 @@ impl eframe::App for Client {
                     ClientState::View(state) => state.ui(egui_ctx, &mut self.context),
                     ClientState::Resolving(state) => state.ui(egui_ctx, &self.context),
                     ClientState::Resolved(state) => state.ui(egui_ctx, &self.context),
+                    ClientState::ExecutingRequest(state) => state.ui(egui_ctx, &self.context),
                 };
 
                 match next_state {

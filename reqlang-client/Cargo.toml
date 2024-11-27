@@ -11,3 +11,4 @@ ehttp = { version = "0.4.0", features = ["streaming"] }
 poll-promise = { version = "0.3", default-features = false }
 rfd = "0.13.0"
 reqlang = { path = "../reqlang" }
+oauth2 = { version = "4.4.2", features = ["reqwest"] }

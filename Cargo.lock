@@ -2683,6 +2683,7 @@ version = "0.1.0"
 dependencies = [
  "eframe",
  "ehttp",
+ "oauth2",
  "poll-promise",
  "reqlang",
  "rfd",

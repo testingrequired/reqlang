@@ -1,12 +1,10 @@
 #!/usr/bin/env reqlang
 
-vars = ["base_url", "test", "foo"]
+vars = ["base_url"]
 
 envs.dev.base_url = "http://example.com"
-envs.dev.test = "{{:base_url}}"
-envs.dev.foo = "{{:test}}"
 ---
-GET {{:foo}} HTTP/1.1
+GET {{:base_url}} HTTP/1.1
 
 ---
 ---

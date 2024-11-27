@@ -83,7 +83,7 @@ fn main() {
                 return;
             }
 
-            let reqfile = template(&contents, &env, &prompts, &secrets);
+            let reqfile = template(&contents, &env, &prompts, &secrets, HashMap::default());
 
             let reqfile = match reqfile {
                 Ok(reqfile) => reqfile,

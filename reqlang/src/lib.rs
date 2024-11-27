@@ -206,6 +206,7 @@ mod tests {
                 ),
             ]),
             &HashMap::from([("api_key".to_string(), "api_key_value".to_string())]),
+            HashMap::default(),
         );
 
         assert_eq!(

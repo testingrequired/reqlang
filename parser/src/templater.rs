@@ -1,13 +1,10 @@
+use std::collections::HashMap;
+
 use errors::ReqlangError;
 use span::Spanned;
 use types::{ReferenceType, ResolvedRequestFile, TemplatedRequestFile};
 
 use crate::parser::RequestFileParser;
-use crate::split;
-
-use oauth2::basic::BasicClient;
-use oauth2::reqwest::http_client;
-use oauth2::{AuthUrl, ClientId, ClientSecret, Scope, TokenResponse, TokenUrl};
 
 pub struct RequestFileTemplater {}
 
@@ -20,10 +17,11 @@ impl RequestFileTemplater {
     pub fn template_reqfile(
         input: &str,
         reqfile: &ResolvedRequestFile,
+        provider_values: HashMap<String, String>,
     ) -> Result<TemplatedRequestFile, Vec<Spanned<ReqlangError>>> {
         let templater = RequestFileTemplater::new();
 
-        templater.template(input, reqfile)
+        templater.template(input, reqfile, provider_values)
     }
 
     /// Template a request file with the resolved values
@@ -31,6 +29,7 @@ impl RequestFileTemplater {
         &self,
         input: &str,
         reqfile: &ResolvedRequestFile,
+        provider_values: HashMap<String, String>,
     ) -> Result<TemplatedRequestFile, Vec<Spanned<ReqlangError>>> {
         let template_refs_to_replace: Vec<(String, ReferenceType)> = reqfile
             .refs
@@ -41,6 +40,7 @@ impl RequestFileTemplater {
 
         let mut input = input.to_string();
 
+        // Swap out variable, prompt, and secret references
         for (template_ref, ref_type) in &template_refs_to_replace {
             let value: Option<String> = match ref_type {
                 ReferenceType::Variable(name) => {
@@ -52,55 +52,7 @@ impl RequestFileTemplater {
                 ReferenceType::Secret(name) => {
                     Some(reqfile.config.0.secrets.get(name).unwrap().to_owned())
                 }
-                _ => None,
-            };
-
-            input = input.replace(template_ref, &value.unwrap_or(template_ref.clone()));
-        }
-
-        let reqfile = &split(&input).unwrap();
-
-        for (template_ref, ref_type) in &template_refs_to_replace {
-            let value: Option<String> = match ref_type {
-                ReferenceType::Provider(name) => match name.as_str() {
-                    "auth.oauth2.access_token" => {
-                        let (config, _) = RequestFileParser::parse_config(&reqfile.config)
-                            .unwrap()
-                            .unwrap();
-                        let auth = &config.auth.clone().unwrap();
-                        let oauth2 = &auth.get("oauth2").unwrap();
-
-                        let client_id = oauth2.get("client_id").unwrap().to_owned();
-                        let client_secret = oauth2.get("client_secret").unwrap().to_owned();
-                        let authorize_url = oauth2.get("authorize_url").unwrap().to_owned();
-                        let access_token_url = oauth2.get("access_token_url").unwrap().to_owned();
-                        let scopes: Vec<Scope> = oauth2
-                            .get("scopes")
-                            .unwrap()
-                            .replace(',', " ")
-                            .split(' ')
-                            .map(|x| Scope::new(x.to_owned()))
-                            .collect();
-
-                        let client = BasicClient::new(
-                            ClientId::new(client_id),
-                            Some(ClientSecret::new(client_secret)),
-                            AuthUrl::new(authorize_url).unwrap(),
-                            Some(TokenUrl::new(access_token_url).unwrap()),
-                        );
-
-                        let token_result = client
-                            .exchange_client_credentials()
-                            .add_scopes(scopes)
-                            .request(http_client)
-                            .unwrap();
-
-                        let access_token = token_result.access_token().secret().to_owned();
-
-                        Some(access_token)
-                    }
-                    _ => None,
-                },
+                ReferenceType::Provider(name) => provider_values.get(name).cloned(),
                 _ => None,
             };
 
@@ -132,7 +84,7 @@ mod test {
     };
 
     macro_rules! templater_test {
-        ($test_name:ident, $reqfile:expr, $env:expr, $prompts:expr, $secrets:expr, $result:expr) => {
+        ($test_name:ident, $reqfile:expr, $env:expr, $prompts:expr, $secrets:expr, $provider_values: expr, $result:expr) => {
             #[test]
             fn $test_name() {
                 let unresolved_reqfile = RequestFileParser::parse_string(&$reqfile);
@@ -152,8 +104,11 @@ mod test {
 
                 let resolved_reqfile = resolved_reqfile.unwrap();
 
-                let templated_reqfile =
-                    RequestFileTemplater::template_reqfile(&$reqfile, &resolved_reqfile);
+                let templated_reqfile = RequestFileTemplater::template_reqfile(
+                    &$reqfile,
+                    &resolved_reqfile,
+                    $provider_values,
+                );
 
                 assert_eq!(templated_reqfile, $result);
             }
@@ -200,6 +155,7 @@ mod test {
             )
         ]),
         HashMap::from([("api_key".to_string(), "api_key_value".to_string())]),
+        HashMap::default(),
         Ok(TemplatedRequestFile {
             request: Request {
                 verb: "POST".to_string(),
@@ -238,6 +194,7 @@ mod test {
         "dev",
         HashMap::new(),
         HashMap::from([("api_key".to_string(), "api_key_value".to_string())]),
+        HashMap::default(),
         Ok(TemplatedRequestFile {
             request: Request {
                 verb: "GET".to_string(),
