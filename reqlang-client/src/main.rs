@@ -7,9 +7,14 @@ use std::{
 };
 
 use eframe::egui;
+use oauth2::{
+    basic::BasicClient, reqwest::http_client, AuthUrl, ClientId, ClientSecret, Scope,
+    TokenResponse, TokenUrl,
+};
 use reqlang::{
     export::{export, Format},
-    parse, resolve, template, Request, ResolvedRequestFile, UnresolvedRequestFile,
+    parse, parse_config, resolve, split_reqfile, template, Request, ResolvedRequestFile,
+    UnresolvedRequestFile,
 };
 
 #[allow(dead_code)]
@@ -353,10 +358,59 @@ impl ExecutingRequestState {
         let prompts = &self.reqfile.config.0.prompts;
         let secrets = &self.reqfile.config.0.secrets;
 
+        let input = client_ctx.source.as_ref().unwrap().as_str();
+        let (templated_reqfile, templated_input) =
+            template(input, env, prompts, secrets, HashMap::new())
+                .expect("Should be a valid reqfile");
+
         let provider_values = {
             let mut values = HashMap::new();
 
             values.insert("env".to_string(), env.to_string());
+
+            if let Some(auth) = &self.reqfile.config.0.auth {
+                match auth.get("oauth2") {
+                    Some(_) => {
+                        let split_reqfile =
+                            &split_reqfile(&client_ctx.source.as_ref().unwrap()).unwrap();
+                        let (config, _) = parse_config(&split_reqfile.config).unwrap().unwrap();
+                        let auth = &config.auth.clone().unwrap();
+                        let oauth2 = &auth.get("oauth2").unwrap();
+
+                        let client_id = oauth2.get("client_id").unwrap().to_owned();
+                        let client_secret = oauth2.get("client_secret").unwrap().to_owned();
+                        let authorize_url = oauth2.get("authorize_url").unwrap().to_owned();
+                        let access_token_url = oauth2.get("access_token_url").unwrap().to_owned();
+                        let scopes: Vec<Scope> = oauth2
+                            .get("scopes")
+                            .unwrap()
+                            .replace(',', " ")
+                            .split(' ')
+                            .map(|x| Scope::new(x.to_owned()))
+                            .collect();
+
+                        let client = BasicClient::new(
+                            ClientId::new(client_id),
+                            Some(ClientSecret::new(client_secret)),
+                            AuthUrl::new(authorize_url.clone()).expect(
+                                format!("Should be a absolute url: {}", authorize_url).as_str(),
+                            ),
+                            Some(TokenUrl::new(access_token_url).unwrap()),
+                        );
+
+                        let token_result = client
+                            .exchange_client_credentials()
+                            .add_scopes(scopes)
+                            .request(http_client)
+                            .unwrap();
+
+                        let access_token = token_result.access_token().secret().to_owned();
+
+                        values.insert("auth.oauth2.access_token".to_owned(), access_token);
+                    }
+                    None => {}
+                }
+            }
 
             values
         };
@@ -366,7 +420,7 @@ impl ExecutingRequestState {
         let templated_reqfile = template(input, env, prompts, secrets, provider_values)
             .expect("Should be a valid reqfile");
 
-        let request = &templated_reqfile.request;
+        let request = &templated_reqfile.0.request;
         let request_string = export(request, Format::Http);
 
         egui::CentralPanel::default().show(egui_ctx, |ui| {

@@ -1,17 +1,16 @@
 #!/usr/bin/env reqlang
 
-vars = ["access_token_url", "authorize_url"]
+vars = ["oauth2_base_url"]
 secrets = ["client_secret"]
 
-envs.dev.access_token_url = "http://localhost:8080/default/token"
-envs.dev.authorize_url = "http://localhost:8080/default/authorize"
+envs.dev.oauth2_base_url = "http://localhost:8080/default"
 
 prompts.client_key = ""
 
 [auth.oauth2]
 grant = "client"
-access_token_url = "{{:access_token_url}}"
-authorize_url = "{{:authorize_url}}"
+access_token_url = "{{:oauth2_base_url}}/token"
+authorize_url = "{{:oauth2_base_url}}/authorize"
 client_id = "{{?client_key}}"
 client_secret = "{{!client_secret}}"
 scopes = "profile"

@@ -70,4 +70,4 @@ run-docker *args:
     docker run --rm --read-only -v "/$PWD/examples":/app/examples:ro {{docker_image}} {{args}}
 
 run-mock-oauth:
-    docker run --rm -p 8080:8080 -h localhost ghcr.io/navikt/mock-oauth2-server:2.1.2
+    docker run --rm -p 8080:8080 -h localhost ghcr.io/navikt/mock-oauth2-server:2.1.10

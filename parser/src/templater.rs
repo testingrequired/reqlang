@@ -18,7 +18,7 @@ impl RequestFileTemplater {
         input: &str,
         reqfile: &ResolvedRequestFile,
         provider_values: HashMap<String, String>,
-    ) -> Result<TemplatedRequestFile, Vec<Spanned<ReqlangError>>> {
+    ) -> Result<(TemplatedRequestFile, String), Vec<Spanned<ReqlangError>>> {
         let templater = RequestFileTemplater::new();
 
         templater.template(input, reqfile, provider_values)
@@ -30,7 +30,7 @@ impl RequestFileTemplater {
         input: &str,
         reqfile: &ResolvedRequestFile,
         provider_values: HashMap<String, String>,
-    ) -> Result<TemplatedRequestFile, Vec<Spanned<ReqlangError>>> {
+    ) -> Result<(TemplatedRequestFile, String), Vec<Spanned<ReqlangError>>> {
         let template_refs_to_replace: Vec<(String, ReferenceType)> = reqfile
             .refs
             .clone()
@@ -66,10 +66,13 @@ impl RequestFileTemplater {
                 .unwrap();
         let response = RequestFileParser::parse_response(&split.response).map(|x| x.unwrap().0);
 
-        Ok(TemplatedRequestFile {
-            request: request.0,
-            response,
-        })
+        Ok((
+            TemplatedRequestFile {
+                request: request.0,
+                response,
+            },
+            input,
+        ))
     }
 }
 
@@ -156,25 +159,28 @@ mod test {
         ]),
         HashMap::from([("api_key".to_string(), "api_key_value".to_string())]),
         HashMap::default(),
-        Ok(TemplatedRequestFile {
-            request: Request {
-                verb: "POST".to_string(),
-                target: "/?query=test_value_value".to_string(),
-                http_version: "1.1".to_string(),
-                headers: vec![
-                    ("x-test".to_string(), "test_value_value".to_string()),
-                    ("x-api-key".to_string(), "api_key_value".to_string()),
-                ],
-                body: Some("[1, 2, 3]\n\n".to_string())
+        Ok((
+            TemplatedRequestFile {
+                request: Request {
+                    verb: "POST".to_string(),
+                    target: "/?query=test_value_value".to_string(),
+                    http_version: "1.1".to_string(),
+                    headers: vec![
+                        ("x-test".to_string(), "test_value_value".to_string()),
+                        ("x-api-key".to_string(), "api_key_value".to_string()),
+                    ],
+                    body: Some("[1, 2, 3]\n\n".to_string())
+                },
+                response: Some(Response {
+                    http_version: "1.1".to_string(),
+                    status_code: "200".to_string(),
+                    status_text: "OK".to_string(),
+                    headers: HashMap::new(),
+                    body: Some("expected_response_body_value\n\n".to_string())
+                }),
             },
-            response: Some(Response {
-                http_version: "1.1".to_string(),
-                status_code: "200".to_string(),
-                status_text: "OK".to_string(),
-                headers: HashMap::new(),
-                body: Some("expected_response_body_value\n\n".to_string())
-            }),
-        })
+            "".to_string()
+        ))
     );
 
     templater_test!(
@@ -195,15 +201,18 @@ mod test {
         HashMap::new(),
         HashMap::from([("api_key".to_string(), "api_key_value".to_string())]),
         HashMap::default(),
-        Ok(TemplatedRequestFile {
-            request: Request {
-                verb: "GET".to_string(),
-                target: "/?query={{!api_key}}".to_string(),
-                http_version: "1.1".to_string(),
-                headers: vec![],
-                body: Some("".to_string())
+        Ok((
+            TemplatedRequestFile {
+                request: Request {
+                    verb: "GET".to_string(),
+                    target: "/?query={{!api_key}}".to_string(),
+                    http_version: "1.1".to_string(),
+                    headers: vec![],
+                    body: Some("".to_string())
+                },
+                response: None,
             },
-            response: None,
-        })
+            "".to_string()
+        ))
     );
 }

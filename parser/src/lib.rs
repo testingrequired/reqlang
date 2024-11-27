@@ -6,7 +6,9 @@ use parser::{RequestFileParser, RequestFileSplitUp};
 use resolver::RequestFileResolver;
 use span::Spanned;
 use templater::RequestFileTemplater;
-use types::{ResolvedRequestFile, TemplatedRequestFile, UnresolvedRequestFile};
+use types::{
+    ResolvedRequestFile, TemplatedRequestFile, UnresolvedRequestFile, UnresolvedRequestFileConfig,
+};
 
 mod parser;
 mod resolver;
@@ -22,6 +24,13 @@ pub fn split(input: &str) -> Result<RequestFileSplitUp, Vec<Spanned<ReqlangError
 /// Parse a string in to a request file
 pub fn parse(input: &str) -> Result<UnresolvedRequestFile, Vec<Spanned<ReqlangError>>> {
     RequestFileParser::parse_string(input)
+}
+
+/// Parse a string in to a request file
+pub fn parse_config(
+    config: &Option<Spanned<String>>,
+) -> Option<Result<Spanned<UnresolvedRequestFileConfig>, Vec<Spanned<ReqlangError>>>> {
+    RequestFileParser::parse_config(config)
 }
 
 /// Parse a string in to a request file and resolve template values
@@ -43,7 +52,7 @@ pub fn template(
     prompts: &HashMap<String, String>,
     secrets: &HashMap<String, String>,
     provider_values: HashMap<String, String>,
-) -> Result<TemplatedRequestFile, Vec<Spanned<ReqlangError>>> {
+) -> Result<(TemplatedRequestFile, String), Vec<Spanned<ReqlangError>>> {
     let reqfile = RequestFileParser::parse_string(input);
 
     let reqfile = RequestFileResolver::resolve_request_file(&reqfile?, env, prompts, secrets);
@@ -67,7 +76,7 @@ pub fn export(
     let reqfile =
         RequestFileTemplater::template_reqfile(input, &reqfile?, provider_values).unwrap();
 
-    Ok(export::export(&reqfile.request, format))
+    Ok(export::export(&reqfile.0.request, format))
 }
 
 #[cfg(test)]
@@ -273,25 +282,28 @@ mod parserlib {
         );
 
         assert_eq!(
-            Ok(TemplatedRequestFile {
-                request: Request {
-                    verb: "POST".to_string(),
-                    target: "/?query=dev_value".to_string(),
-                    http_version: "1.1".to_string(),
-                    headers: vec![
-                        ("x-test".to_string(), "test_value_value".to_string()),
-                        ("x-api-key".to_string(), "api_key_value".to_string()),
-                    ],
-                    body: Some("[1, 2, 3]\n\n".to_string())
+            Ok((
+                TemplatedRequestFile {
+                    request: Request {
+                        verb: "POST".to_string(),
+                        target: "/?query=dev_value".to_string(),
+                        http_version: "1.1".to_string(),
+                        headers: vec![
+                            ("x-test".to_string(), "test_value_value".to_string()),
+                            ("x-api-key".to_string(), "api_key_value".to_string()),
+                        ],
+                        body: Some("[1, 2, 3]\n\n".to_string())
+                    },
+                    response: Some(Response {
+                        http_version: "1.1".to_string(),
+                        status_code: "200".to_string(),
+                        status_text: "OK".to_string(),
+                        headers: HashMap::new(),
+                        body: Some("expected_response_body_value\n\n".to_string())
+                    }),
                 },
-                response: Some(Response {
-                    http_version: "1.1".to_string(),
-                    status_code: "200".to_string(),
-                    status_text: "OK".to_string(),
-                    headers: HashMap::new(),
-                    body: Some("expected_response_body_value\n\n".to_string())
-                }),
-            }),
+                "".to_string()
+            )),
             templated_reqfile
         );
     }

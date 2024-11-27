@@ -1,9 +1,9 @@
 pub use diagnostics;
 pub use errors;
 pub use export;
-pub use parser::parse;
 pub use parser::resolve;
 pub use parser::template;
+pub use parser::{parse, parse_config, split as split_reqfile};
 pub use span::*;
 pub use types::*;
 
@@ -210,25 +210,28 @@ mod tests {
         );
 
         assert_eq!(
-            Ok(TemplatedRequestFile {
-                request: Request {
-                    verb: "POST".to_string(),
-                    target: "/?query=dev_value".to_string(),
-                    http_version: "1.1".to_string(),
-                    headers: vec![
-                        ("x-test".to_string(), "test_value_value".to_string()),
-                        ("x-api-key".to_string(), "api_key_value".to_string()),
-                    ],
-                    body: Some("[1, 2, 3]\n\n".to_string())
+            Ok((
+                TemplatedRequestFile {
+                    request: Request {
+                        verb: "POST".to_string(),
+                        target: "/?query=dev_value".to_string(),
+                        http_version: "1.1".to_string(),
+                        headers: vec![
+                            ("x-test".to_string(), "test_value_value".to_string()),
+                            ("x-api-key".to_string(), "api_key_value".to_string()),
+                        ],
+                        body: Some("[1, 2, 3]\n\n".to_string())
+                    },
+                    response: Some(Response {
+                        http_version: "1.1".to_string(),
+                        status_code: "200".to_string(),
+                        status_text: "OK".to_string(),
+                        headers: HashMap::new(),
+                        body: Some("expected_response_body_value\n\n".to_string())
+                    }),
                 },
-                response: Some(Response {
-                    http_version: "1.1".to_string(),
-                    status_code: "200".to_string(),
-                    status_text: "OK".to_string(),
-                    headers: HashMap::new(),
-                    body: Some("expected_response_body_value\n\n".to_string())
-                }),
-            }),
+                "".to_string()
+            )),
             templated_reqfile
         );
     }
