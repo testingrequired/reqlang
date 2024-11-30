@@ -5,7 +5,7 @@ use reqlang::diagnostics::{
     Diagnoser, Diagnosis, DiagnosisPosition, DiagnosisRange, DiagnosisSeverity,
 };
 use reqlang::errors::ReqlangError;
-use reqlang::{parse, Request, Spanned, UnresolvedRequestFile};
+use reqlang::{http::HttpRequest, parse, Spanned, UnresolvedRequestFile};
 use serde::{Deserialize, Serialize};
 use tower_lsp::lsp_types::notification::Notification;
 use tower_lsp::lsp_types::{
@@ -193,7 +193,7 @@ struct ParseResult {
     envs: Vec<String>,
     prompts: Vec<String>,
     secrets: Vec<String>,
-    request: Request,
+    request: HttpRequest,
 }
 
 #[derive(Debug, Deserialize, Serialize)]

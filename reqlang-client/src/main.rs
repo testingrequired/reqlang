@@ -9,7 +9,8 @@ use std::{
 use eframe::egui;
 use reqlang::{
     export::{export, Format},
-    parse, resolve, template, Request, ResolvedRequestFile, UnresolvedRequestFile,
+    http::HttpRequest,
+    parse, resolve, template, ResolvedRequestFile, UnresolvedRequestFile,
 };
 
 #[allow(dead_code)]
@@ -74,7 +75,7 @@ impl ViewState {
     ) -> Result<StateTransition, &str> {
         let mut next_state: StateTransition = StateTransition::None;
 
-        let request: Option<&Request> = match &client_ctx.reqfile {
+        let request: Option<&HttpRequest> = match &client_ctx.reqfile {
             Some(reqfile) => Some(&reqfile.request.0),
             None => None,
         };
@@ -376,13 +377,13 @@ impl ExecutingRequestState {
 
             if ui.button("Execute").clicked() {
                 eprintln!("CLICKED EXECUTE");
-                let verb = request.verb.as_str();
+                let verb = &request.verb;
                 let target = request.target.as_str();
                 let download_store = self.download.clone();
                 *download_store.lock().unwrap() = Download::InProgress;
                 let egui_ctx = egui_ctx.clone();
 
-                let request = match verb {
+                let request = match verb.to_string().as_str() {
                     "GET" => ehttp::Request::get(target),
                     "HEAD" => ehttp::Request::head(target),
                     "POST" => ehttp::Request::post(

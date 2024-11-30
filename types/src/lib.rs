@@ -1,100 +1,11 @@
+use http::{HttpRequest, HttpResponse};
 use serde::{Deserialize, Serialize};
 use span::Spanned;
 use std::collections::HashMap;
 use std::fmt::Display;
 use ts_rs::TS;
 
-/// HTTP Request
-#[derive(Clone, Debug, PartialEq, Default, Serialize, Deserialize, TS)]
-#[ts(export)]
-pub struct Request {
-    pub verb: String,
-    pub target: String,
-    pub http_version: String,
-    pub headers: Vec<(String, String)>,
-    pub body: Option<String>,
-}
-
-impl Request {
-    pub fn get(target: &str, http_version: &str, headers: Vec<(String, String)>) -> Self {
-        Request {
-            verb: "GET".to_string(),
-            target: target.to_string(),
-            http_version: http_version.to_string(),
-            headers,
-            body: Some("".to_string()),
-        }
-    }
-
-    pub fn post(
-        target: &str,
-        http_version: &str,
-        headers: Vec<(String, String)>,
-        body: Option<&str>,
-    ) -> Self {
-        Request {
-            verb: "POST".to_string(),
-            target: target.to_string(),
-            http_version: http_version.to_string(),
-            headers,
-            body: body.map(|x| x.to_string()),
-        }
-    }
-
-    pub fn with_header(&mut self, key: &str, value: &str) -> &mut Self {
-        self.headers.push((key.to_string(), value.to_string()));
-
-        self
-    }
-}
-
-impl Display for Request {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let headers = if self.headers.is_empty() {
-            None
-        } else {
-            Some(format!(
-                "{}\n",
-                self.headers
-                    .clone()
-                    .into_iter()
-                    .map(|x| format!("{}: {}", x.0, x.1))
-                    .collect::<Vec<String>>()
-                    .join("\n")
-                    .trim_end()
-            ))
-        };
-
-        let body = self
-            .body
-            .clone()
-            .and_then(|x| if x.is_empty() { None } else { Some(x) });
-
-        let the_rest = match (&headers, &body) {
-            (Some(headers), Some(body)) => format!("{headers}\n{body}"),
-            (Some(headers), None) => headers.to_string(),
-            (None, Some(body)) => format!("\n{body}"),
-            (None, None) => String::new(),
-        };
-
-        write!(
-            f,
-            "{} {} HTTP/{}\n{}",
-            self.verb, self.target, self.http_version, the_rest
-        )
-    }
-}
-
-/// HTTP Response
-#[derive(Clone, Debug, PartialEq, Default, Serialize, Deserialize, TS)]
-#[ts(export)]
-pub struct Response {
-    pub http_version: String,
-    pub status_code: String,
-    pub status_text: String,
-    pub headers: HashMap<String, String>,
-    pub body: Option<String>,
-}
+pub mod http;
 
 /// Template reference in a request file
 ///
@@ -132,8 +43,8 @@ impl Display for ReferenceType {
 #[ts(export)]
 pub struct UnresolvedRequestFile {
     pub config: Option<Spanned<UnresolvedRequestFileConfig>>,
-    pub request: Spanned<Request>,
-    pub response: Option<Spanned<Response>>,
+    pub request: Spanned<HttpRequest>,
+    pub response: Option<Spanned<HttpResponse>>,
 
     pub refs: Vec<Spanned<ReferenceType>>,
 }
@@ -198,8 +109,8 @@ pub struct UnresolvedRequestFileConfig {
 #[derive(Clone, Debug, PartialEq, Default, Serialize, Deserialize, TS)]
 #[ts(export)]
 pub struct ResolvedRequestFile {
-    pub request: Spanned<Request>,
-    pub response: Option<Spanned<Response>>,
+    pub request: Spanned<HttpRequest>,
+    pub response: Option<Spanned<HttpResponse>>,
     pub config: Spanned<ResolvedRequestFileConfig>,
 
     pub refs: Vec<Spanned<ReferenceType>>,
@@ -219,8 +130,8 @@ pub struct ResolvedRequestFileConfig {
 #[derive(Clone, Debug, PartialEq, Default, Serialize, Deserialize, TS)]
 #[ts(export)]
 pub struct TemplatedRequestFile {
-    pub request: Request,
-    pub response: Option<Response>,
+    pub request: HttpRequest,
+    pub response: Option<HttpResponse>,
 }
 
 #[cfg(test)]
@@ -230,7 +141,7 @@ mod tests {
 
         use span::NO_SPAN;
 
-        use crate::{Request, UnresolvedRequestFile, UnresolvedRequestFileConfig};
+        use crate::{HttpRequest, UnresolvedRequestFile, UnresolvedRequestFileConfig};
 
         #[test]
         fn get_prompt_names_when_defined() {
@@ -248,7 +159,7 @@ mod tests {
                     },
                     NO_SPAN,
                 )),
-                request: (Request::get("/", "1.1", vec![]), NO_SPAN),
+                request: (HttpRequest::get("/", "1.1", vec![]), NO_SPAN),
                 response: None,
                 refs: vec![],
             };
@@ -269,7 +180,7 @@ mod tests {
                     },
                     NO_SPAN,
                 )),
-                request: (Request::get("/", "1.1", vec![]), NO_SPAN),
+                request: (HttpRequest::get("/", "1.1", vec![]), NO_SPAN),
                 response: None,
                 refs: vec![],
             };
@@ -283,7 +194,7 @@ mod tests {
         fn get_prompt_names_when_config_undefined() {
             let reqfile = UnresolvedRequestFile {
                 config: None,
-                request: (Request::get("/", "1.1", vec![]), NO_SPAN),
+                request: (HttpRequest::get("/", "1.1", vec![]), NO_SPAN),
                 response: None,
                 refs: vec![],
             };
@@ -306,7 +217,7 @@ mod tests {
                     },
                     NO_SPAN,
                 )),
-                request: (Request::get("/", "1.1", vec![]), NO_SPAN),
+                request: (HttpRequest::get("/", "1.1", vec![]), NO_SPAN),
                 response: None,
                 refs: vec![],
             };
@@ -327,7 +238,7 @@ mod tests {
                     },
                     NO_SPAN,
                 )),
-                request: (Request::get("/", "1.1", vec![]), NO_SPAN),
+                request: (HttpRequest::get("/", "1.1", vec![]), NO_SPAN),
                 response: None,
                 refs: vec![],
             };
@@ -341,7 +252,7 @@ mod tests {
         fn get_secret_names_when_config_undefined() {
             let reqfile = UnresolvedRequestFile {
                 config: None,
-                request: (Request::get("/", "1.1", vec![]), NO_SPAN),
+                request: (HttpRequest::get("/", "1.1", vec![]), NO_SPAN),
                 response: None,
                 refs: vec![],
             };
@@ -373,7 +284,7 @@ mod tests {
                     },
                     NO_SPAN,
                 )),
-                request: (Request::get("/", "1.1", vec![]), NO_SPAN),
+                request: (HttpRequest::get("/", "1.1", vec![]), NO_SPAN),
                 response: None,
                 refs: vec![],
             };
@@ -398,7 +309,7 @@ mod tests {
                     },
                     NO_SPAN,
                 )),
-                request: (Request::get("/", "1.1", vec![]), NO_SPAN),
+                request: (HttpRequest::get("/", "1.1", vec![]), NO_SPAN),
                 response: None,
                 refs: vec![],
             };
@@ -421,7 +332,7 @@ mod tests {
                     },
                     NO_SPAN,
                 )),
-                request: (Request::get("/", "1.1", vec![]), NO_SPAN),
+                request: (HttpRequest::get("/", "1.1", vec![]), NO_SPAN),
                 response: None,
                 refs: vec![],
             };
@@ -435,7 +346,7 @@ mod tests {
         fn get_envs_when_config_is_missing() {
             let reqfile = UnresolvedRequestFile {
                 config: None,
-                request: (Request::get("/", "1.1", vec![]), NO_SPAN),
+                request: (HttpRequest::get("/", "1.1", vec![]), NO_SPAN),
                 response: None,
                 refs: vec![],
             };
@@ -447,11 +358,11 @@ mod tests {
     }
 
     mod request_display {
-        use crate::Request;
+        use crate::HttpRequest;
 
         #[test]
         fn post_request() {
-            let req = Request::post(
+            let req = HttpRequest::post(
                 "/",
                 "1.1",
                 vec![("host".to_string(), "https://example.com".to_string())],
@@ -470,7 +381,7 @@ mod tests {
 
         #[test]
         fn get_request() {
-            let req = Request::get(
+            let req = HttpRequest::get(
                 "/",
                 "1.1",
                 vec![("host".to_string(), "https://example.com".to_string())],
@@ -484,13 +395,7 @@ mod tests {
 
         #[test]
         fn get_request_no_headers() {
-            let req = Request {
-                verb: "GET".to_string(),
-                target: "/".to_string(),
-                http_version: "1.1".to_string(),
-                headers: vec![],
-                body: None,
-            };
+            let req = HttpRequest::get("/", "1.1", Vec::default());
 
             assert_eq!(concat!("GET / HTTP/1.1\n"), format!("{req}"));
         }

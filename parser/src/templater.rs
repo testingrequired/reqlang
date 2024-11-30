@@ -77,7 +77,10 @@ impl RequestFileTemplater {
 mod test {
     use std::collections::HashMap;
 
-    use types::{Request, Response, TemplatedRequestFile};
+    use types::{
+        http::{HttpRequest, HttpResponse},
+        TemplatedRequestFile,
+    };
 
     use crate::{
         parser::RequestFileParser, resolver::RequestFileResolver, templater::RequestFileTemplater,
@@ -157,18 +160,18 @@ mod test {
         HashMap::from([("api_key".to_string(), "api_key_value".to_string())]),
         HashMap::default(),
         Ok(TemplatedRequestFile {
-            request: Request {
-                verb: "POST".to_string(),
+            request: HttpRequest {
+                verb: "POST".into(),
                 target: "/?query=test_value_value".to_string(),
-                http_version: "1.1".to_string(),
+                http_version: "1.1".into(),
                 headers: vec![
                     ("x-test".to_string(), "test_value_value".to_string()),
                     ("x-api-key".to_string(), "api_key_value".to_string()),
                 ],
                 body: Some("[1, 2, 3]\n\n".to_string())
             },
-            response: Some(Response {
-                http_version: "1.1".to_string(),
+            response: Some(HttpResponse {
+                http_version: "1.1".into(),
                 status_code: "200".to_string(),
                 status_text: "OK".to_string(),
                 headers: HashMap::new(),
@@ -196,10 +199,10 @@ mod test {
         HashMap::from([("api_key".to_string(), "api_key_value".to_string())]),
         HashMap::default(),
         Ok(TemplatedRequestFile {
-            request: Request {
-                verb: "GET".to_string(),
+            request: HttpRequest {
+                verb: "GET".into(),
                 target: "/?query={{!api_key}}".to_string(),
-                http_version: "1.1".to_string(),
+                http_version: "1.1".into(),
                 headers: vec![],
                 body: Some("".to_string())
             },

@@ -12,8 +12,9 @@ mod tests {
     use std::collections::HashMap;
 
     use types::{
-        ReferenceType, Request, ResolvedRequestFile, ResolvedRequestFileConfig, Response,
-        TemplatedRequestFile, UnresolvedRequestFile, UnresolvedRequestFileConfig,
+        http::{HttpRequest, HttpResponse},
+        ReferenceType, ResolvedRequestFile, ResolvedRequestFileConfig, TemplatedRequestFile,
+        UnresolvedRequestFile, UnresolvedRequestFileConfig,
     };
 
     use pretty_assertions::assert_eq;
@@ -56,10 +57,10 @@ mod tests {
         assert_eq!(
             Ok(UnresolvedRequestFile {
                 request: (
-                    Request {
-                        verb: "POST".to_string(),
+                    HttpRequest {
+                        verb: "POST".into(),
                         target: "/?query={{:query_value}}".to_string(),
-                        http_version: "1.1".to_string(),
+                        http_version: "1.1".into(),
                         headers: vec![
                             ("x-test".to_string(), "{{?test_value}}".to_string()),
                             ("x-api-key".to_string(), "{{!api_key}}".to_string()),
@@ -69,8 +70,8 @@ mod tests {
                     188..287
                 ),
                 response: Some((
-                    Response {
-                        http_version: "1.1".to_string(),
+                    HttpResponse {
+                        http_version: "1.1".into(),
                         status_code: "200".to_string(),
                         status_text: "OK".to_string(),
                         headers: HashMap::new(),
@@ -138,10 +139,10 @@ mod tests {
         assert_eq!(
             Ok(ResolvedRequestFile {
                 request: (
-                    Request {
-                        verb: "POST".to_string(),
+                    HttpRequest {
+                        verb: "POST".into(),
                         target: "/?query={{:query_value}}".to_string(),
-                        http_version: "1.1".to_string(),
+                        http_version: "1.1".into(),
                         headers: vec![
                             ("x-test".to_string(), "{{?test_value}}".to_string()),
                             ("x-api-key".to_string(), "{{!api_key}}".to_string()),
@@ -151,8 +152,8 @@ mod tests {
                     188..287
                 ),
                 response: Some((
-                    Response {
-                        http_version: "1.1".to_string(),
+                    HttpResponse {
+                        http_version: "1.1".into(),
                         status_code: "200".to_string(),
                         status_text: "OK".to_string(),
                         headers: HashMap::new(),
@@ -211,18 +212,18 @@ mod tests {
 
         assert_eq!(
             Ok(TemplatedRequestFile {
-                request: Request {
-                    verb: "POST".to_string(),
+                request: HttpRequest {
+                    verb: "POST".into(),
                     target: "/?query=dev_value".to_string(),
-                    http_version: "1.1".to_string(),
+                    http_version: "1.1".into(),
                     headers: vec![
                         ("x-test".to_string(), "test_value_value".to_string()),
                         ("x-api-key".to_string(), "api_key_value".to_string()),
                     ],
                     body: Some("[1, 2, 3]\n\n".to_string())
                 },
-                response: Some(Response {
-                    http_version: "1.1".to_string(),
+                response: Some(HttpResponse {
+                    http_version: "1.1".into(),
                     status_code: "200".to_string(),
                     status_text: "OK".to_string(),
                     headers: HashMap::new(),

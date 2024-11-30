@@ -127,7 +127,10 @@ mod test {
 
     use errors::ReqlangError;
     use span::NO_SPAN;
-    use types::{ReferenceType, Request, ResolvedRequestFile, ResolvedRequestFileConfig, Response};
+    use types::{
+        http::{HttpRequest, HttpResponse},
+        ReferenceType, ResolvedRequestFile, ResolvedRequestFileConfig,
+    };
 
     use crate::{parser::RequestFileParser, resolver::RequestFileResolver};
 
@@ -246,10 +249,10 @@ mod test {
         HashMap::from([("api_key".to_string(), "api_key_value".to_string())]),
         Ok(ResolvedRequestFile {
             request: (
-                Request {
-                    verb: "POST".to_string(),
+                HttpRequest {
+                    verb: "POST".into(),
                     target: "/?query={{:query_value}}".to_string(),
-                    http_version: "1.1".to_string(),
+                    http_version: "1.1".into(),
                     headers: vec![
                         ("x-test".to_string(), "{{?test_value}}".to_string()),
                         ("x-api-key".to_string(), "{{!api_key}}".to_string()),
@@ -259,8 +262,8 @@ mod test {
                 189..288
             ),
             response: Some((
-                Response {
-                    http_version: "1.1".to_string(),
+                HttpResponse {
+                    http_version: "1.1".into(),
                     status_code: "200".to_string(),
                     status_text: "OK".to_string(),
                     headers: HashMap::new(),
@@ -338,10 +341,10 @@ mod test {
         HashMap::from([("api_key".to_string(), "api_key_value".to_string())]),
         Ok(ResolvedRequestFile {
             request: (
-                Request {
-                    verb: "POST".to_string(),
+                HttpRequest {
+                    verb: "POST".into(),
                     target: "/?query={{:query_value}}".to_string(),
-                    http_version: "1.1".to_string(),
+                    http_version: "1.1".into(),
                     headers: vec![
                         ("x-test".to_string(), "{{?test_value}}".to_string()),
                         ("x-api-key".to_string(), "{{!api_key}}".to_string()),
@@ -351,8 +354,8 @@ mod test {
                 189..288
             ),
             response: Some((
-                Response {
-                    http_version: "1.1".to_string(),
+                HttpResponse {
+                    http_version: "1.1".into(),
                     status_code: "200".to_string(),
                     status_text: "OK".to_string(),
                     headers: HashMap::new(),

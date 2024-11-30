@@ -1,7 +1,7 @@
 use std::{fmt::Display, str::FromStr};
 
 use serde::{Deserialize, Serialize};
-use types::Request;
+use types::http::{HttpRequest, HttpVerb};
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
 pub enum Format {
@@ -33,13 +33,13 @@ impl FromStr for Format {
     }
 }
 
-pub fn export(request: &Request, format: Format) -> String {
+pub fn export(request: &HttpRequest, format: Format) -> String {
     match format {
         Format::Http => {
             format!("{}", request)
         }
         Format::Curl => {
-            let verb = if request.verb == "GET" {
+            let verb = if request.verb == HttpVerb::get() {
                 "".to_string()
             } else {
                 format!("-X {} ", request.verb)
@@ -93,7 +93,7 @@ pub fn export(request: &Request, format: Format) -> String {
 
 #[cfg(test)]
 mod test {
-    use types::Request;
+    use types::http::HttpRequest;
 
     use crate::export;
 
@@ -109,28 +109,28 @@ mod test {
 
     export_test!(
         format_to_curl_get_request,
-        Request::get("/", "1.1", vec![]),
+        HttpRequest::get("/", "1.1", vec![]),
         crate::Format::Curl,
         "curl / --http1.1"
     );
 
     export_test!(
         format_to_curl_get_request_with_single_header,
-        Request::get("/", "1.1", vec![("test".to_string(), "value".to_string())]),
+        HttpRequest::get("/", "1.1", vec![("test".to_string(), "value".to_string())]),
         crate::Format::Curl,
         "curl / --http1.1 -H \"test: value\""
     );
 
     export_test!(
         format_to_curl_post_request,
-        Request::post("/", "1.1", vec![], Some("")),
+        HttpRequest::post("/", "1.1", vec![], Some("")),
         crate::Format::Curl,
         "curl -X POST / --http1.1"
     );
 
     export_test!(
         format_to_curl_post_request_with_single_header,
-        Request::post(
+        HttpRequest::post(
             "/",
             "1.1",
             vec![("test".to_string(), "value".to_string())],
@@ -142,7 +142,7 @@ mod test {
 
     export_test!(
         format_to_curl_post_request_with_single_header_and_body,
-        Request::post(
+        HttpRequest::post(
             "/",
             "1.1",
             vec![("test".to_string(), "value".to_string())],
@@ -154,21 +154,21 @@ mod test {
 
     export_test!(
         format_to_http_get_request,
-        Request::get("/", "1.1", vec![]),
+        HttpRequest::get("/", "1.1", vec![]),
         crate::Format::Http,
         "GET / HTTP/1.1\n"
     );
 
     export_test!(
         format_to_http_post_request,
-        Request::post("/", "1.1", vec![], Some("[1, 2, 3]\n")),
+        HttpRequest::post("/", "1.1", vec![], Some("[1, 2, 3]\n")),
         crate::Format::Http,
         "POST / HTTP/1.1\n\n[1, 2, 3]\n"
     );
 
     export_test!(
         format_to_curl_script_get_request,
-        Request::get("/", "1.1", vec![]),
+        HttpRequest::get("/", "1.1", vec![]),
         crate::Format::CurlScript,
         "#!/usr/bin/env bash\n\ncurl / --http1.1"
     );

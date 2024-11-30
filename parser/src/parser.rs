@@ -2,7 +2,10 @@ use errors::{ParseError, ReqlangError};
 use regex::Regex;
 use span::{Spanned, NO_SPAN};
 use std::{collections::HashMap, vec};
-use types::{ReferenceType, Request, Response, UnresolvedRequestFile, UnresolvedRequestFileConfig};
+use types::{
+    http::{HttpRequest, HttpResponse},
+    ReferenceType, UnresolvedRequestFile, UnresolvedRequestFileConfig,
+};
 
 use crate::TEMPLATE_REFERENCE_PATTERN;
 
@@ -388,7 +391,7 @@ impl RequestFileParser {
 
     pub fn parse_request(
         (request, span): &Spanned<String>,
-    ) -> Result<Spanned<Request>, Vec<Spanned<ReqlangError>>> {
+    ) -> Result<Spanned<HttpRequest>, Vec<Spanned<ReqlangError>>> {
         let mut parse_errors: Vec<Spanned<ReqlangError>> = vec![];
 
         let mut headers = [httparse::EMPTY_HEADER; 64];
@@ -441,10 +444,10 @@ impl RequestFileParser {
             });
 
         Ok((
-            Request {
-                verb: req.method.unwrap().to_string(),
+            HttpRequest {
+                verb: req.method.unwrap().into(),
                 target: req.path.unwrap().to_string(),
-                http_version: format!("1.{}", req.version.unwrap()),
+                http_version: format!("1.{}", req.version.unwrap()).into(),
                 headers: mapped_headers,
                 body: Some(body.to_string()),
             },
@@ -454,7 +457,7 @@ impl RequestFileParser {
 
     pub fn parse_response(
         response: &Option<Spanned<String>>,
-    ) -> Option<Result<Spanned<Response>, Vec<Spanned<ReqlangError>>>> {
+    ) -> Option<Result<Spanned<HttpResponse>, Vec<Spanned<ReqlangError>>>> {
         let mut parse_errors: Vec<Spanned<ReqlangError>> = vec![];
 
         let mut headers = [httparse::EMPTY_HEADER; 64];
@@ -496,8 +499,8 @@ impl RequestFileParser {
                         });
 
                     Some(Ok((
-                        Response {
-                            http_version: format!("1.{}", res.version.unwrap()),
+                        HttpResponse {
+                            http_version: format!("1.{}", res.version.unwrap()).into(),
                             status_code: res.code.unwrap().to_string(),
                             status_text: res.reason.unwrap().to_string(),
                             headers: mapped_headers,
@@ -535,7 +538,8 @@ mod test {
     use errors::ParseError;
     use span::NO_SPAN;
     use types::{
-        ReferenceType, Request, Response, UnresolvedRequestFile, UnresolvedRequestFileConfig,
+        http::{HttpRequest, HttpResponse, HttpVerb},
+        ReferenceType, UnresolvedRequestFile, UnresolvedRequestFileConfig,
     };
 
     use crate::parser::RequestFileParser;
@@ -579,7 +583,7 @@ mod test {
         concat!("---\n", "GET http://example.com HTTP/1.1", "---\n"),
         Ok(UnresolvedRequestFile {
             config: None,
-            request: (Request::get("http://example.com", "1.1", vec![]), 4..35),
+            request: (HttpRequest::get("http://example.com", "1.1", vec![]), 4..35),
             response: None,
             refs: vec![],
         })
@@ -678,10 +682,10 @@ mod test {
         Ok(UnresolvedRequestFile {
             config: None,
             request: (
-                Request {
-                    verb: "GET".to_string(),
+                HttpRequest {
+                    verb: HttpVerb::get(),
                     target: "http://example.com".to_string(),
-                    http_version: "1.1".to_string(),
+                    http_version: "1.1".into(),
                     headers: vec![],
                     body: Some("".to_string())
                 },
@@ -698,10 +702,10 @@ mod test {
         Ok(UnresolvedRequestFile {
             config: None,
             request: (
-                Request {
-                    verb: "GET".to_string(),
+                HttpRequest {
+                    verb: HttpVerb::get(),
                     target: "http://example.com".to_string(),
-                    http_version: "1.1".to_string(),
+                    http_version: "1.1".into(),
                     headers: vec![],
                     body: Some("".to_string())
                 },
@@ -758,10 +762,10 @@ mod test {
                 0..71
             )),
             request: (
-                Request {
-                    verb: "GET".to_string(),
+                HttpRequest {
+                    verb: HttpVerb::get(),
                     target: "http://example.com?value={{:bar}}".to_string(),
-                    http_version: "1.1".to_string(),
+                    http_version: "1.1".into(),
                     headers: vec![],
                     body: Some("".to_string())
                 },
@@ -834,10 +838,10 @@ mod test {
                 0..298
             )),
             request: (
-                Request {
-                    verb: "POST".to_string(),
+                HttpRequest {
+                    verb: HttpVerb::post(),
                     target: "https://httpbin.org/post".to_string(),
-                    http_version: "1.1".to_string(),
+                    http_version: "1.1".into(),
                     headers: vec![(
                         "authenication".to_string(),
                         "Bearer {{@auth.oauth2.access_token}}".to_string()
@@ -1319,10 +1323,10 @@ mod test {
         ),
         Ok(UnresolvedRequestFile {
             request: (
-                Request {
-                    verb: "POST".to_string(),
+                HttpRequest {
+                    verb: HttpVerb::post(),
                     target: "/?query={{:query_value}}".to_string(),
-                    http_version: "1.1".to_string(),
+                    http_version: "1.1".into(),
                     headers: vec![
                         ("x-test".to_string(), "{{?test_value}}".to_string()),
                         ("x-api-key".to_string(), "{{!api_key}}".to_string()),
@@ -1333,8 +1337,8 @@ mod test {
                 189..314
             ),
             response: Some((
-                Response {
-                    http_version: "1.1".to_string(),
+                HttpResponse {
+                    http_version: "1.1".into(),
                     status_code: "200".to_string(),
                     status_text: "OK".to_string(),
                     headers: HashMap::new(),
