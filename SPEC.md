@@ -1,428 +1,240 @@
 # Request Language Specification
 
-## Requests Collection
+## Objectives
 
-A collection or project is a directory with a `reqlang.json` and a collection of `*.reqlang` request files in the same directory.
+Request Language (Reqlang/reqlang) aims to be an easy to read and write document format for encoding an HTTP request, its associated variables, prompts & secrets as well as an optional expected HTTP response.
 
-### reqlang.json
+HTTP requests and responses are written as [HTTP Messages](https://developer.mozilla.org/en-US/docs/Web/HTTP/Messages) outside of templated values.
 
-```json
-{
-  "name": "blogapi"
-  "description": "An example collection for a fake blog api",
-  "version": "0.1.0",
-  "envs": ["local", "dev", "qa", "prod"],
-  "vars": [
-    "base_url"
-  ],
-  "env": {
-    "local": {
-      "base_url": ""
-    },
-    "dev": {
-      "base_url": ""
-    },
-    "qa": {
-      "base_url": ""
-    },
-    "prod": {
-      "base_url": ""
-    },
-  }
-}
+Secret values are declared let individual implementations handle how secret values are obtained.
+
+## Example
+
+```reqlang
+
+[envs.default]
+
+---
+GET https://example.com HTTP/1.1
+
 ```
 
-### reqlang.toml
+## Structure
 
-```toml
-name = "blogapi"
-description = "An example collection for a fake blog api"
-version = "0.1.0"
-envs = ["local", "dev", "qa", "prod"]
+Reqlang is a multi-document file format. A config document where variables, prompts, and secrets are declared. Then a request document containing a templated HTTP Request message. Then an optional response document containing an assertion HTTP Response message.
+
+Documents are delimited using the regex pattern: `^---\n$`.
+
+## Configuration Document
+
+The configuration document is where environment names, variables, prompts, and secrets are declared. The configuration itself is written in [TOML](https://toml.io/en/).
+
+### Environments
+
+Environments are names used to define enviroment specific variable values.
+
+```reqlang
+
+[envs.dev]
+base_url = "https://dev.example.com"
+
+[envs.prod]
+base_url = "https://dev.example.com"
+
+---
+GET {{:base_url}}/api/path/to/endpoint HTTP/1.1
+
+```
+
+#### Requirement
+
+A reqlang file must have at least one environment name declared regardless if any variables are defined. This `default` environment will be provided automatically in the future.
+
+```reqlang
+
+[envs.default]
+
+---
+GET https://example.com HTTP/1.1
+
+```
+
+### Variables
+
+Environment based values that are declared in the `vars` array and defined in the `[envs.ENV]` tables. They are referenced using the `{{:variable_name}}` format.
+
+```reqlang
+
 vars = ["base_url"]
 
-[env]
+[envs.dev]
+base_url = "https://dev.example.com"
 
-[env.local]
-base_url = ""
+[envs.prod]
+base_url = "https://dev.example.com"
 
-[env.dev]
-base_url = ""
+---
+GET {{:base_url}}/api/path/to/endpoint HTTP/1.1
 
-[env.qa]
-base_url = ""
-
-[env.prod]
-base_url = ""
 ```
 
-#### name
+#### Specs
 
-The name of the request collection. Must conform the this pattern: `[a-z]+[_a-zA-Z0-9]*`.
+- Declared variables must have a value defined in all environments
+- Declared variables must used/referenced in either the config, request, or response documents.
+- Referenced variables must be declared.
 
-## Request File
+### Prompts
 
-Request files define several things about a request:
+User provided values at time of request execution with an optional default value. They are defined in the `[prompts]` table and referenced using the `{{?prompt_name}}` format.
 
-- The HTTP request message itself with templated values
-- An optional HTTP response message assertions with templated values & wildcards
-- Declarations and definitions of the variables, prompts, and secrets used in the request file
-- Environment names and environmental values for variables
-- Output values extracted from the response
+```reqlang
 
-### Request Id/File Name
+[envs.default]
 
-Each request in reqlang is defined in a file: `:id.reqlang` where `:id` becomes the `id` of the request. The filename/`id` must conform the this pattern: `[a-z]+[_a-zA-Z0-9]*`.
+[prompts]
+prompt_value = ""
 
-#### Fully Qualified Id
-
-Within a collection a request's fully qualified name is a combination of the collection's `name` and the request file's file name. e.g. `blogapi::get_user_posts_by_tag`
-
-### Format
-
-The request file is split in to several documents using `---`:
-
-- Head (shebang, description)
-- Config (variables, envs, prompts, secrets, auth, output)
-- Request Message
-- Response Message Assertion
-- Empty
+---
+GET https://example.com/?value={{?prompt_value}} HTTP/1.1
 
 ```
-#!/usr/bin/env reqlang
-/// get_user_posts_by_tag.reqlang
 
-Get a users posts by tag/s
+#### Specs
+
+- Declared prompts must used/referenced in either the config, request, or response documents.
+- Referenced prompts must be defined.
+
+### Secrets
+
+Secret values that are declared in the `secrets` array. How their values are pulled are outside of reqlang file's scope. They are referenced using the `{{!secret_name}}` format.
+
+```reqlang
+
+[envs.default]
+
+secrets = ["secret_value"]
+
 ---
-/// Variables store default and environment based values
-/// Template syntax: `{{var:var_name}}`
-/// Shortcut syntax: `{{:var_name}}`
-vars {
-  client_id,
-  access_token_uri
-}
+GET https://example.com/?value={{!secret_value}} HTTP/1.1
 
-/// Environment names are declared here.
-/// Environmental data is also defined here.
-envs {
-  local {
-    client_id = "ba44...",
-    access_token_uri = "http://dev.example.com/token"
-  },
-  dev {
-    client_id = "ba44...",
-    access_token_uri = "http://dev.example.com/token"
-  },
-  qa {
-    client_id = "ff12...",
-    access_token_uri = "https://qa.example.com/token"
-  },
-  prod {
-    client_id = "012b...",
-    access_token_uri = "https://example.com/token"
-  }
-}
+```
 
-/// Prompts are values provided by the user at request time
-/// Template syntax: `{{prompt:prompt_name}}`
-/// Shortcut syntax: `{{!prompt_name}}`
-prompts {
-  user_id,
-  tagged_with
-}
+#### Specs
 
-/// Secrets are declared in the request
-/// The values are provided at request time by the runtime
-/// Template syntax: `{{secret:secret_name}}`
-/// Shortcut syntax: `{{$secret_name}}`
-secrets {
-  client_secret
-}
+- Declared secrets must used/referenced in either the config, request, or response documents.
+- Referenced secrets must be declared.
 
-auth {
-  oauth2 {
-    grant = "client",
-    access_token_uri = {{:access_token_uri}},
-    client_id = {{:client_id}}
-    client_secret = {{$client_secret}}
-    scopes = "profile"
-  }
-}
+## Request Document
 
-/// Extract values from the response
-outputs {
-  ids: body {
-    json_path($[*].id)
-  }
-}
+The request document contains an [HTTP Request Message](https://developer.mozilla.org/en-US/docs/Web/HTTP/Messages#http_requests) with possible references to variables, prompts, secrets, or provided values.
+
+```reqlang
+
+vars = ["test_value"]
+secrets = ["super_secret_value"]
+
+[prompts]
+prompt_value = ""
+
+[envs.test]
+test_value = "test_value"
+
+[envs.prod]
+test_value = "prod_value"
+
+[envs.local]
+test_value = "local_value"
+
 ---
-/// Define requests using http request messages and templating
-GET {{:base_url}}/users/{{!user_id}}/posts?tags={{!tagged_with}} HTTP/1.1
-{{@auth.header}}
+POST https://httpbin.org/post HTTP/1.1
+
+{
+  "env": "{{@env}}",
+  "value": "{{:test_value}}",
+  "prompted_value": "{{?prompt_value}}",
+  "secret_value": "{{!super_secret_value}}"
+}
+```
+
+### Specs
+
+- An untemplated request document must still be a valid HTTP Request Message
+
+## Provided Values
+
+In addition to variables, prompts, and secrets there are also provided values that are "provided" by the implementation/client.
+
+One example is `{{@env}}` provider value. It templates in the environment name selected at the time of request execution.
+
+## Response Document
+
+The response document contains an [HTTP Response Message](https://developer.mozilla.org/en-US/docs/Web/HTTP/Messages#http_responses) with possible references to variables, prompts, secrets, or provided values. This response message defined the expected response from the request.
+
+This document is optional.
+
+```reqlang
+
+vars = ["test_value"]
+secrets = ["super_secret_value"]
+
+[prompts]
+prompt_value = ""
+
+[envs.test]
+test_value = "test_value"
+
+[envs.prod]
+test_value = "prod_value"
+
+[envs.local]
+test_value = "local_value"
+
+---
+POST https://httpbin.org/post HTTP/1.1
 content-type: application/json
+accept: application/json
 
+{
+  "env": "{{@env}}",
+  "value": "{{:test_value}}",
+  "prompted_value": "{{?prompt_value}}",
+  "secret_value": "{{!super_secret_value}}"
+}
 ---
-/// Assert against the response
-200 OK
+HTTP/1.1 200 OK
+access-control-allow-credentials: true
+access-control-allow-origin: https://httpbin.org
+content-length: {{@wildcard}}
 content-type: application/json
-{{*}} // Exclude the rest of the headers
+date: {{@wildcard}}
+server: gunicorn/19.9.0
 
-[
-  {
-    "id": {{*}}
-    "title": {{*}}
+{
+  "args": {},
+  "data": "",
+  "files": {},
+  "form": {},
+  "headers": {
+    "content-type": "application/json",
+    "accept": "application/json",
   },
-  {
-    "id": {{*}}
-    "title": {{*}}
-  }
-]
----
+  "json": null,
+  "origin": {{@wildcard}},
+  "url": "https://httpbin.org/post"
+}
 ```
 
-### Shebang
+### Specs
 
-The (optional) shebang that should be used in the Head document is `#!/usr/bin/env reqlang`.
+- An untemplated response document must still be a valid HTTP Request Message
 
-### Validation
+## Matching
 
-#### Minimum Documents
+### What You See Is What You Match (WYSIWYM)
 
-- Head
-- Config
-- Request Message
-- Empty
+Only the headers present in the response document are matched against. The response body can also be partially matched.
 
-#### All referenced variables are declared and defined.
+### Wildcard
 
-All `{{:var_name}}` references must be declared in `Config.vars` and be defined in `Config.vars` or `Config.envs[env]`.
-
-#### Warning: Variables defined in one env should be defined in all envs unless variable has a default value in it's declaration
-
-Defining an enviromental value for a variable in one env should be defined in all envs unless the variable was declared with a default value. Will produce an warning if not.
-
-#### Environment names must match template and collection
-
-The env names declared in `Config.envs` must match the envs in `Config.template` (if defined) and the collection's env names in `reqlang.json`.
-
-#### Defined environmental values must have a variable declaration
-
-All `Config.envs[env][var_name]` must be declared in `Config.vars[var_name]`.
-
-#### All referenced prompts are declared.
-
-All `{{!prompt_name}}` references must be declared in `Config.prompts`.
-
-#### All referenced secrets are declared.
-
-All `{{$secret_name}}` references must be declared in `Config.secrets`.
-
-#### Warning: All declared variables, prompts, and secrets should be referenced
-
-All `{{:var_name}}`, `{{!prompt_name}}`, `{{$secret_name}}` should be referenced/used. Will produce a warning if not.
-
-#### Must end with `---\n`
-
-The request file must end with `---\n` leaving the Empty document at the end of the file.
-
-#### Warning: Non standard shebang
-
-If a shebang is present in the Head document is should be `#!/usr/bin/env reqlang`. Will produce a warning if not.
-
-## Template Request Files
-
-Template request files are very similar to request files with a few key differences:
-
-- No shebang
-- No request message
-- No response message assertion
-
-### Request Id/File Name
-
-Each request template in reqlang is defined in a file: `:id.template.reqlang` where `:id` becomes the `id` of the request template. The filename/`id` must conform the this pattern: `[a-z]+[_a-zA-Z0-9]*`
-
-### Format
-
-The request template file is split in to several documents using `---`:
-
-- Empty
-- Config (variables, envs, prompts, secrets, auth)
-- Empty
-
-```
-/// ./base.template.reqlang
----
-vars {
-  client_id,
-  access_token_uri
-}
-
-envs {
-  local {
-    client_id = "ba44...",
-    access_token_uri = "http://dev.example.com/token"
-  },
-  dev {
-    client_id = "ff33...",
-    access_token_uri = "http://dev.example.com/token"
-  },
-  qa {
-    client_id = "12da...",
-    access_token_uri = "https://qa.example.com/token"
-  },
-  prod {
-    client_id = "d32f...",
-    access_token_uri = "https://example.com/token"
-  }
-}
-
-secrets {
-  client_secret
-}
-
-auth {
-  oauth2 {
-    grant = "client",
-    access_token_uri = {{:access_token_uri}},
-    client_id = {{:client_id}}
-    client_secret = {{$client_secret}}
-    scopes = "profile"
-  }
-}
-
-headers {
-  authentication = "Bearer {{@auth.oauth2.access_token}}"
-}
----
-```
-
-### Shebang
-
-No shebang should be included in template request files since they don't include a request message.
-
-### Validation
-
-#### Minimum Documents
-
-- Empty
-- Config
-- Empty
-
-#### All referenced variables are declared and defined.
-
-All `{{:var_name}}` references must be declared in `Config.vars` and be defined in `Config.vars` or `Config.envs[env]`.
-
-#### Warning: Variables defined in one env should be defined in all envs unless variable has a default value in it's declaration
-
-Defining an enviromental value for a variable in one env should be defined in all envs unless the variable was declared with a default value. Will produce an warning if not.
-
-#### Defined environmental values must have a variable declaration
-
-All `Config.envs[env][var_name]` must be declared in `Config.vars[var_name]`.
-
-#### All referenced prompts are declared.
-
-All `{{!prompt_name}}` references must be declared in `Config.prompts`.
-
-#### All referenced secrets are declared.
-
-All `{{$secret_name}}` references must be declared in `Config.secrets`.
-
-#### Warning: All declared variables, prompts, and secrets should be referenced
-
-All `{{:var_name}}`, `{{!prompt_name}}`, `{{$secret_name}}` should be referenced/used. Will produce a warning if not.
-
-#### Must end with `---\n`
-
-The template request file must end with `---\n` leaving the Empty document at the end of the file.
-
-#### No shebang
-
-Template files don't include a request message or aren't actionable. They should not include a shebang to reflect this.
-
-#### Multiple `Config.auth` entries
-
-Only one `Config.auth` entry can be present in a request at a time.
-
-#### Tempate must be a template
-
-`Config.template/s` must be a template file. Will produce an error if it's a request or invalid file.
-
-### Merging
-
-Request files should declare their (optional) template using `Config.template/s`. When `Config.template/s` is defined the `Config` document of both requests are merged.
-
-#### Config.templates/Config.template
-
-Template files can extend other template files. The extendee's `Config.template/s` is not overridden when merging.
-
-#### Config.vars
-
-`Config.vars` are merged by applying the request file's `Config.vars` on top of the template's `Config.vars`. An error is produced if the keys collide.
-
-#### Config.envs
-
-`Config.envs` env name keys should match each other and the var names should collide already.
-
-#### Config.secrets
-
-`Config.secrets` are merged by applying the request file's `Config.secrets` on top of the template's `Config.secrets`.
-
-#### Config.prompts
-
-`Config.prompts` are merged by applying the request file's `Config.prompts` on top of the template's `Config.prompts`. An error is produced if the keys collide.
-
-#### Config.auth
-
-???
-
-#### Config.outputs
-
-???
-
-#### Config.headers
-
-Request templates can define headers that will be appended to the extendee's request message. Extendee's that override template header's will generate a warning for visibility.
-
-### Extendee Request
-
-`template "blogapi::base.template"` is sugar for `templates ["blogapi::base.template"]`
-
-```
-#!/usr/bin/env reqlang
-/// get_user_posts_by_tag.reqlang
-
-Get a users posts by tag/s
----
-template "blogapi::base.template"
-
-prompts {
-  user_id,
-  tagged_with
-}
-
-outputs {
-  ids = body {
-    json_path($[*].id)
-  }
-}
----
-GET {{:base_url}}/users/{{!user_id}}/posts?tags={{!tagged_with}} HTTP/1.1
-content-type: application/json
-
----
-200 OK
-content-type: application/json
-
-[
-  {
-    "id": {{*}}
-    "title": {{*}}
-  },
-  {
-    "id": {{*}}
-    "title": {{*}}
-  }
-]
----
-```
+The `{{@wildcard}}` provider reference will match anything from it's start to end.
