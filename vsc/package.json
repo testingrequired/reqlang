@@ -31,6 +31,9 @@
           ".reqlang"
         ],
         "configuration": "./language-configuration.json"
+      },
+      {
+        "id": "reqlang-injection"
       }
     ],
     "grammars": [
@@ -38,6 +41,17 @@
         "language": "reqlang",
         "scopeName": "source.reqlang",
         "path": "./reqlang.tmLanguage.json"
+      },
+      {
+        "language": "reqlang-injection",
+        "scopeName": "markdown.reqlang.codeblock",
+        "path": "./syntaxes/codeblock.json",
+        "injectTo": [
+          "text.html.markdown"
+        ],
+        "embeddedLanguages": {
+          "meta.embedded.block.reqlang": "reqlang"
+        }
       }
     ],
     "snippets": [

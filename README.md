@@ -8,8 +8,10 @@ A format for defining http/s requests.
 
 Requests are written as an HTTP request messages.
 
-```
+```reqlang
 #!/usr/bin/env reqlang
+
+[envs.default]
 ---
 GET / HTTP/1.1
 host: https://example.com
@@ -21,8 +23,10 @@ host: https://example.com
 
 Responses are treated as an assertion and are written as an HTTP response message.
 
-```
+```reqlang
 #!/usr/bin/env reqlang
+
+[envs.default]
 ---
 GET / HTTP/1.1
 host: https://example.com
@@ -37,11 +41,10 @@ HTTP/1.1 200 OK
 
 Requests and responses support templating be declaring variables and defining environment specific values.
 
-```
+```reqlang
 #!/usr/bin/env reqlang
-vars = ["base_url"]
 
-[envs]
+vars = ["base_url"]
 
 [envs.dev]
 base_url = "https://dev.example.com"
@@ -62,11 +65,10 @@ HTTP/1.1 200 OK
 
 Prompts are input values to the request file and are supplied by the user.
 
-```
+```reqlang
 #!/usr/bin/env reqlang
-vars = ["base_url"]
 
-[envs]
+vars = ["base_url"]
 
 [envs.dev]
 base_url = "https://dev.example.com"
@@ -91,12 +93,11 @@ HTTP/1.1 200 OK
 
 Secrets are declared but their values are supplied at template time.
 
-```
+```reqlang
 #!/usr/bin/env reqlang
+
 vars = ["base_url"]
 secrets = ["api_key"]
-
-[envs]
 
 [envs.dev]
 base_url = "https://dev.example.com"
