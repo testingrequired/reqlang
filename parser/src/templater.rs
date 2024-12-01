@@ -1,10 +1,14 @@
 use std::collections::HashMap;
 
 use errors::ReqlangError;
+use oauth2::{
+    basic::BasicClient, reqwest::http_client, AuthUrl, ClientId, ClientSecret, Scope,
+    TokenResponse, TokenUrl,
+};
 use span::Spanned;
 use types::{ReferenceType, ResolvedRequestFile, TemplatedRequestFile};
 
-use crate::parser::RequestFileParser;
+use crate::{parser::RequestFileParser, split};
 
 pub struct RequestFileTemplater {}
 

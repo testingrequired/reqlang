@@ -342,7 +342,7 @@ export function activate(context: ExtensionContext) {
         return;
       }
 
-      await ifOk(parseResult, async ({ prompts, secrets }) => {
+      await RsResult.ifOk(parseResult, async ({ prompts, secrets }) => {
         if (!window.activeTextEditor) {
           return;
         }

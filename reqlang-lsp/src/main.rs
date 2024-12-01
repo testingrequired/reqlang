@@ -141,11 +141,8 @@ impl LanguageServer for Backend {
     }
 
     async fn execute_command(&self, params: ExecuteCommandParams) -> RpcResult<Option<Value>> {
-        match params.command.as_str() {
-            "reqlang.executeRequest" => {
-                // TODO: Execute the request
-            }
-            _ => {}
+        if params.command.as_str() == "reqlang.executeRequest" {
+            // TODO: Execute the request
         };
 
         self.client
