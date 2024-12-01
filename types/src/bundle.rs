@@ -18,8 +18,7 @@ fn main() {
             .filter_map(|p| {
                 p.path()
                     .file_stem()
-                    .map(OsStr::to_str)
-                    .flatten()
+                    .and_then(OsStr::to_str)
                     .map(str::to_owned)
             })
             .filter(|f| f != "index")

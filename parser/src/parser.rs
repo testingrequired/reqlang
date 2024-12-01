@@ -333,7 +333,7 @@ impl RequestFileParser {
 
         let config_start = 0;
 
-        let config = documents.get(0);
+        let config = documents.first();
 
         let config_end = match config {
             Some(config) => config_start + config.len(),

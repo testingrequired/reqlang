@@ -101,7 +101,13 @@ impl HttpRequest {
         http_version: impl Into<HttpVersion>,
         headers: Vec<(String, String)>,
     ) -> Self {
-        HttpRequest::new(HttpVerb::get(), target, http_version, headers, None)
+        HttpRequest::new(
+            HttpVerb::get(),
+            target,
+            http_version,
+            headers,
+            Some("".to_owned()),
+        )
     }
 
     pub fn post(

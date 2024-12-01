@@ -495,7 +495,7 @@ struct ClientContext {
 pub struct Client {
     streaming: bool,
     context: Box<ClientContext>,
-    states: Vec<Box<ClientState>>,
+    states: Vec<ClientState>,
 }
 
 impl Client {}
@@ -505,7 +505,7 @@ impl Default for Client {
         Self {
             streaming: true,
             context: Box::<ClientContext>::default(),
-            states: vec![Box::new(ClientState::Init(InitState::default()))],
+            states: vec![ClientState::Init(InitState::default())],
         }
     }
 }
@@ -520,7 +520,7 @@ impl eframe::App for Client {
     fn update(&mut self, egui_ctx: &egui::Context, _frame: &mut eframe::Frame) {
         match self.states.last_mut() {
             Some(latest_state) => {
-                let next_state = match &mut **latest_state {
+                let next_state = match &mut *latest_state {
                     ClientState::Init(state) => state.ui(egui_ctx, &mut self.context),
                     ClientState::View(state) => state.ui(egui_ctx, &mut self.context),
                     ClientState::Resolving(state) => state.ui(egui_ctx, &self.context),
@@ -534,7 +534,7 @@ impl eframe::App for Client {
                         StateTransition::Back => {
                             self.states.pop();
                         }
-                        StateTransition::New(next_state) => self.states.push(Box::new(next_state)),
+                        StateTransition::New(next_state) => self.states.push(next_state),
                     },
                     Err(err) => panic!("{err}"),
                 };
@@ -623,7 +623,7 @@ fn response_ui(ui: &mut egui::Ui, response: &ehttp::Response) {
         if let Some(text) = response.text() {
             let tooltip = "Click to copy the response body";
             if ui.button("📋").on_hover_text(tooltip).clicked() {
-                ui.output_mut(|o| o.copied_text = text.to_owned());
+                ui.output_mut(|o| text.clone_into(&mut o.copied_text));
             }
             ui.separator();
         }
