@@ -2,6 +2,6 @@
 
 vars = ["base_url"]
 
-envs.dev.base_url = "http://example.com"
+envs.default.base_url = "http://example.com"
 ---
 GET {{:base_url}}?env={{@env}} HTTP/1.1

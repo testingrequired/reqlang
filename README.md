@@ -13,9 +13,7 @@ Requests are written as an HTTP request messages.
 
 [envs.default]
 ---
-GET / HTTP/1.1
-host: https://example.com
-
+GET https://example.com HTTP/1.1
 ---
 ```
 
@@ -28,9 +26,7 @@ Responses are treated as an assertion and are written as an HTTP response messag
 
 [envs.default]
 ---
-GET / HTTP/1.1
-host: https://example.com
-
+GET https://example.com HTTP/1.1
 ---
 HTTP/1.1 200 OK
 
@@ -52,9 +48,7 @@ base_url = "https://dev.example.com"
 [envs.prod]
 base_url = "https://example.com"
 ---
-GET / HTTP/1.1
-host: {{:base_url}}
-
+GET {{:base_url}} HTTP/1.1
 ---
 HTTP/1.1 200 OK
 
@@ -79,10 +73,7 @@ base_url = "https://example.com"
 [prompts]
 example_id = ""
 ---
-GET /?id={{?example_id}} HTTP/1.1
-host: {{:base_url}}
-
-
+GET {{:base_url}}/?id={{?example_id}} HTTP/1.1
 ---
 HTTP/1.1 200 OK
 
@@ -108,8 +99,7 @@ base_url = "https://example.com"
 [prompts]
 example_id = ""
 ---
-GET /?id={{?example_id}} HTTP/1.1
-host: {{:base_url}}
+GET {{:base_url}}/?id={{?example_id}} HTTP/1.1
 x-api-key: {{!api_key}}
 
 ---
