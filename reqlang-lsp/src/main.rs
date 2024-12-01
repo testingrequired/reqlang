@@ -156,99 +156,50 @@ impl LanguageServer for Backend {
 
     async fn execute_command(&self, params: ExecuteCommandParams) -> RpcResult<Option<Value>> {
         if params.command.as_str() == "reqlang.executeRequest" {
-            let from_client_execute_params = params
-                .arguments
-                .first()
-                .expect("Should be present")
-                .as_object()
-                .expect("Should be an object");
+            let from_client_params_value = params.arguments.first().expect("Should be present");
 
             self.client
-                .log_message(
-                    MessageType::INFO,
-                    format!("{:?}", from_client_execute_params),
-                )
+                .log_message(MessageType::INFO, format!("{:?}", from_client_params_value))
                 .await;
 
-            let url = from_client_execute_params
-                .get("uri")
-                .expect("uri should be present")
-                .as_str()
-                .expect("uri value should be string");
-            let url = Url::parse(url).expect("Should be a valid url");
+            // Get parsed params from JSON `Value`
+            let from_client_params: FromClientExecuteRequestParams =
+                from_client_params_value.clone().into();
 
+            // Setup provider values
+            let env = from_client_params.env.as_str();
+            let mut provider = HashMap::new();
+            provider.insert("env".to_string(), env.to_string());
+
+            // Get reqfile text content
+            let url = Url::parse(&from_client_params.uri).expect("Should be a valid url");
             let file_texts = self.file_texts.lock().await;
             let text = file_texts.get(&url).expect("Should be present");
 
-            let env = from_client_execute_params
-                .get("env")
-                .expect("Should be present")
-                .as_str()
-                .expect("Should be a string");
-
-            let vars_from_params = from_client_execute_params
-                .get("vars")
-                .map(|v| v.as_object().expect("Should be there"))
-                .expect("Should be there");
-
-            let mut vars: HashMap<String, String> = HashMap::default();
-
-            for (key, value) in vars_from_params {
-                vars.insert(
-                    key.to_string(),
-                    value.as_str().expect("Should be a string").to_string(),
-                );
-            }
-
-            let prompts_from_params = from_client_execute_params
-                .get("prompts")
-                .map(|v| v.as_object().expect("Should be there"))
-                .expect("Should be there");
-
-            let mut prompts: HashMap<String, String> = HashMap::default();
-
-            for (key, value) in prompts_from_params {
-                prompts.insert(
-                    key.to_string(),
-                    value.as_str().expect("Should be a string").to_string(),
-                );
-            }
-
-            let secrets_from_params = from_client_execute_params
-                .get("secrets")
-                .map(|v| v.as_object().expect("Should be there"))
-                .expect("Should be there");
-
-            let mut secrets: HashMap<String, String> = HashMap::default();
-
-            for (key, value) in secrets_from_params {
-                secrets.insert(
-                    key.to_string(),
-                    value.as_str().expect("Should be a string").to_string(),
-                );
-            }
-
-            let mut provider = HashMap::new();
-
-            provider.insert("env".to_string(), env.to_string());
-
-            let t =
-                template(&text, env, &prompts, &secrets, provider).expect("Should have templated");
+            // Template the reqfile
+            let templated_reqfile = template(
+                text,
+                env,
+                &from_client_params.prompts,
+                &from_client_params.secrets,
+                provider,
+            )
+            .expect("Should have templated");
 
             let http_client = reqwest::Client::new();
 
-            let method: Method = match t.request.verb.to_string().as_str() {
+            let method: Method = match templated_reqfile.request.verb.to_string().as_str() {
                 "GET" => Method::GET,
                 _ => todo!(),
             };
 
-            let mut request = http_client.request(method, t.request.target);
+            let mut request = http_client.request(method, templated_reqfile.request.target);
 
-            for (key, value) in &t.request.headers {
+            for (key, value) in &templated_reqfile.request.headers {
                 request = request.header(key, value);
             }
 
-            if let Some(body) = t.request.body {
+            if let Some(body) = templated_reqfile.request.body {
                 if !body.is_empty() {
                     request = request.body(body);
                 }
@@ -277,9 +228,11 @@ impl LanguageServer for Backend {
                 body,
             };
 
-            return Ok(Some(Value::String(
-                serde_json::to_string(&reqlang_response).expect("Should serialize to json"),
-            )));
+            return Ok(Some(
+                serde_json::to_string(&reqlang_response)
+                    .expect("Should serialize to json")
+                    .into(),
+            ));
         };
 
         self.client
@@ -364,17 +317,85 @@ struct FromClientExecuteRequestParams {
     secrets: HashMap<String, String>,
 }
 
-impl FromClientExecuteRequestParams {
-    pub fn new(uri: String, env: String) -> Self {
-        Self {
+impl From<Value> for FromClientExecuteRequestParams {
+    fn from(params_value: Value) -> Self {
+        let uri = params_value
+            .get("uri")
+            .expect("Should be present")
+            .as_str()
+            .expect("Should be a string")
+            .to_string();
+
+        let env = params_value
+            .get("env")
+            .expect("Should be present")
+            .as_str()
+            .expect("Should be a string")
+            .to_string();
+
+        let vars_from_params = params_value
+            .get("vars")
+            .map(|v| v.as_object().expect("Should be there"))
+            .expect("Should be there");
+
+        let mut vars: HashMap<String, String> = HashMap::default();
+
+        for (key, value) in vars_from_params {
+            vars.insert(
+                key.to_string(),
+                value.as_str().expect("Should be a string").to_string(),
+            );
+        }
+
+        let prompts_from_params = params_value
+            .get("prompts")
+            .map(|v| v.as_object().expect("Should be there"))
+            .expect("Should be there");
+
+        let mut prompts: HashMap<String, String> = HashMap::default();
+
+        for (key, value) in prompts_from_params {
+            prompts.insert(
+                key.to_string(),
+                value.as_str().expect("Should be a string").to_string(),
+            );
+        }
+
+        let secrets_from_params = params_value
+            .get("secrets")
+            .map(|v| v.as_object().expect("Should be there"))
+            .expect("Should be there");
+
+        let mut secrets: HashMap<String, String> = HashMap::default();
+
+        for (key, value) in secrets_from_params {
+            secrets.insert(
+                key.to_string(),
+                value.as_str().expect("Should be a string").to_string(),
+            );
+        }
+
+        FromClientExecuteRequestParams {
             uri,
             env,
-            vars: Default::default(),
-            prompts: Default::default(),
-            secrets: Default::default(),
+            vars,
+            prompts,
+            secrets,
         }
     }
 }
+
+// impl FromClientExecuteRequestParams {
+//     pub fn new(uri: String, env: String) -> Self {
+//         Self {
+//             uri,
+//             env,
+//             vars: Default::default(),
+//             prompts: Default::default(),
+//             secrets: Default::default(),
+//         }
+//     }
+// }
 
 #[derive(Debug, Deserialize, Serialize)]
 struct ParseNotificationParams {
