@@ -21,6 +21,7 @@ import * as RsResult from "rsresult";
 
 import {
   Commands,
+  ExecuteRequestParams,
   MenuChoices,
   type ParseNotification,
   type ParseResult,
@@ -377,8 +378,39 @@ export function activate(context: ExtensionContext) {
           })
         );
 
+        const uri = window.activeTextEditor.document.uri.toString()!;
+        const env = getEnv(uri, context)!;
+        const vars: Record<string, string> = {};
+
+        const promptsObj: Record<string, string> = {};
+
+        for (let i = 0; i < prompts.length; i++) {
+          const key = prompts[i];
+          const value = promptValues[i]!;
+
+          promptsObj[key] = value;
+        }
+
+        const secretsObj: Record<string, string> = {};
+
+        for (let i = 0; i < secrets.length; i++) {
+          const key = secrets[i];
+          const value = secretValues[i]!;
+
+          secretsObj[key] = value;
+        }
+
+        const params: ExecuteRequestParams = {
+          uri,
+          env,
+          vars,
+          prompts: promptsObj,
+          secrets: secretsObj,
+        };
+
         const response = await commands.executeCommand<string>(
-          Commands.Execute
+          Commands.Execute,
+          params
         );
 
         client.outputChannel.appendLine(response);

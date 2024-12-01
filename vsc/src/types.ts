@@ -25,6 +25,14 @@ export type ParseResult = {
   request: HttpRequest;
 };
 
+export type ExecuteRequestParams = {
+  uri: string;
+  env: string;
+  vars: Record<string, string>;
+  prompts: Record<string, string>;
+  secrets: Record<string, string>;
+};
+
 /**
  * The possible choices for the Reqlang Menu in the VSC extension
  */

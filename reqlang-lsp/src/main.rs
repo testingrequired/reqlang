@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::ops::Deref;
 
 use anyhow::{Context, Result};
@@ -5,9 +6,12 @@ use reqlang::diagnostics::{
     Diagnoser, Diagnosis, DiagnosisPosition, DiagnosisRange, DiagnosisSeverity,
 };
 use reqlang::errors::ReqlangError;
-use reqlang::{http::HttpRequest, parse, Spanned, UnresolvedRequestFile};
+use reqlang::http::{HttpResponse, HttpVersion};
+use reqlang::{http::HttpRequest, parse, template, Spanned, UnresolvedRequestFile};
+use reqwest::{Method, Url, Version};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use tokio::sync::Mutex;
 use tower_lsp::jsonrpc::Result as RpcResult;
 use tower_lsp::lsp_types::notification::Notification;
 use tower_lsp::lsp_types::{
@@ -20,11 +24,15 @@ use tower_lsp::{Client, LanguageServer, LspService, Server};
 
 struct Backend {
     client: Client,
+    file_texts: Mutex<HashMap<Url, String>>,
 }
 
 impl Backend {
     pub fn new(client: Client) -> Self {
-        Self { client }
+        Self {
+            client,
+            file_texts: Mutex::new(HashMap::new()),
+        }
     }
 }
 
@@ -78,6 +86,9 @@ impl LanguageServer for Backend {
         let uri = params.text_document.uri;
         let source = params.text_document.text;
 
+        let mut file_texts = self.file_texts.lock().await;
+        file_texts.insert(uri.clone(), source.clone());
+
         let result: Result<ParseResult, Vec<Spanned<ReqlangError>>> =
             parse(&source).map(|unresolved_reqfile| {
                 let result: ParseResult = unresolved_reqfile.into();
@@ -128,6 +139,9 @@ impl LanguageServer for Backend {
         let uri = params.text_document.uri;
         let text = params.text.unwrap_or_default();
 
+        let mut file_texts = self.file_texts.lock().await;
+        file_texts.insert(uri.clone(), text.clone());
+
         let result: Result<ParseResult, Vec<Spanned<ReqlangError>>> =
             parse(&text).map(|unresolved_reqfile| {
                 let result: ParseResult = unresolved_reqfile.into();
@@ -142,7 +156,130 @@ impl LanguageServer for Backend {
 
     async fn execute_command(&self, params: ExecuteCommandParams) -> RpcResult<Option<Value>> {
         if params.command.as_str() == "reqlang.executeRequest" {
-            // TODO: Execute the request
+            let from_client_execute_params = params
+                .arguments
+                .first()
+                .expect("Should be present")
+                .as_object()
+                .expect("Should be an object");
+
+            self.client
+                .log_message(
+                    MessageType::INFO,
+                    format!("{:?}", from_client_execute_params),
+                )
+                .await;
+
+            let url = from_client_execute_params
+                .get("uri")
+                .expect("uri should be present")
+                .as_str()
+                .expect("uri value should be string");
+            let url = Url::parse(url).expect("Should be a valid url");
+
+            let file_texts = self.file_texts.lock().await;
+            let text = file_texts.get(&url).expect("Should be present");
+
+            let env = from_client_execute_params
+                .get("env")
+                .expect("Should be present")
+                .as_str()
+                .expect("Should be a string");
+
+            let vars_from_params = from_client_execute_params
+                .get("vars")
+                .map(|v| v.as_object().expect("Should be there"))
+                .expect("Should be there");
+
+            let mut vars: HashMap<String, String> = HashMap::default();
+
+            for (key, value) in vars_from_params {
+                vars.insert(
+                    key.to_string(),
+                    value.as_str().expect("Should be a string").to_string(),
+                );
+            }
+
+            let prompts_from_params = from_client_execute_params
+                .get("prompts")
+                .map(|v| v.as_object().expect("Should be there"))
+                .expect("Should be there");
+
+            let mut prompts: HashMap<String, String> = HashMap::default();
+
+            for (key, value) in prompts_from_params {
+                prompts.insert(
+                    key.to_string(),
+                    value.as_str().expect("Should be a string").to_string(),
+                );
+            }
+
+            let secrets_from_params = from_client_execute_params
+                .get("secrets")
+                .map(|v| v.as_object().expect("Should be there"))
+                .expect("Should be there");
+
+            let mut secrets: HashMap<String, String> = HashMap::default();
+
+            for (key, value) in secrets_from_params {
+                secrets.insert(
+                    key.to_string(),
+                    value.as_str().expect("Should be a string").to_string(),
+                );
+            }
+
+            let mut provider = HashMap::new();
+
+            provider.insert("env".to_string(), env.to_string());
+
+            let t =
+                template(&text, env, &prompts, &secrets, provider).expect("Should have templated");
+
+            let http_client = reqwest::Client::new();
+
+            let method: Method = match t.request.verb.to_string().as_str() {
+                "GET" => Method::GET,
+                _ => todo!(),
+            };
+
+            let mut request = http_client.request(method, t.request.target);
+
+            for (key, value) in &t.request.headers {
+                request = request.header(key, value);
+            }
+
+            if let Some(body) = t.request.body {
+                if !body.is_empty() {
+                    request = request.body(body);
+                }
+            }
+
+            let response = request.send().await.expect("Should not error");
+            let http_version = match response.version() {
+                Version::HTTP_11 => HttpVersion::one_point_one(),
+                _ => todo!(),
+            };
+            let mut headers = HashMap::new();
+            for (key, value) in response.headers() {
+                headers.insert(
+                    key.to_string(),
+                    value.to_str().expect("Shoud work").to_string(),
+                );
+            }
+            let status_code = response.status().to_string();
+            let body = Some(response.text().await.expect("Should have body"));
+
+            let reqlang_response = HttpResponse {
+                http_version,
+                status_code,
+                status_text: "".to_string(),
+                headers,
+                body,
+            };
+
+            return Ok(Some(Value::String(
+                serde_json::to_string(&reqlang_response).expect("Should serialize to json"),
+            )));
         };
 
         self.client
@@ -213,6 +350,30 @@ struct ParseResult {
     prompts: Vec<String>,
     secrets: Vec<String>,
     request: HttpRequest,
+}
+
+/// Command parameters from client to execute request
+///
+/// This is useful for language server clients
+#[derive(Debug, Deserialize, Serialize, Default)]
+struct FromClientExecuteRequestParams {
+    uri: String,
+    env: String,
+    vars: HashMap<String, String>,
+    prompts: HashMap<String, String>,
+    secrets: HashMap<String, String>,
+}
+
+impl FromClientExecuteRequestParams {
+    pub fn new(uri: String, env: String) -> Self {
+        Self {
+            uri,
+            env,
+            vars: Default::default(),
+            prompts: Default::default(),
+            secrets: Default::default(),
+        }
+    }
 }
 
 #[derive(Debug, Deserialize, Serialize)]
