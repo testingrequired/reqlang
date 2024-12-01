@@ -2598,7 +2598,6 @@ dependencies = [
  "errors",
  "export",
  "httparse",
- "oauth2",
  "pretty_assertions",
  "regex",
  "span",

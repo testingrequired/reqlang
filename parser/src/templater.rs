@@ -1,10 +1,6 @@
 use std::collections::HashMap;
 
 use errors::ReqlangError;
-use oauth2::{
-    basic::BasicClient, reqwest::http_client, AuthUrl, ClientId, ClientSecret, Scope,
-    TokenResponse, TokenUrl,
-};
 use span::Spanned;
 use types::{ReferenceType, ResolvedRequestFile, TemplatedRequestFile};
 
@@ -35,6 +31,7 @@ impl RequestFileTemplater {
         reqfile: &ResolvedRequestFile,
         provider_values: HashMap<String, String>,
     ) -> Result<TemplatedRequestFile, Vec<Spanned<ReqlangError>>> {
+        //
         let template_refs_to_replace: Vec<(String, ReferenceType)> = reqfile
             .refs
             .clone()
@@ -42,9 +39,8 @@ impl RequestFileTemplater {
             .map(|(template_reference, _)| (format!("{template_reference}"), template_reference))
             .collect();
 
-        let mut input = input.to_string();
-
         // Swap out variable, prompt, and secret references
+        let mut input = input.to_string();
         for (template_ref, ref_type) in &template_refs_to_replace {
             let value: Option<String> = match ref_type {
                 ReferenceType::Variable(name) => {
@@ -63,64 +59,13 @@ impl RequestFileTemplater {
             input = input.replace(template_ref, &value.unwrap_or(template_ref.clone()));
         }
 
-        let reqfile = &split(&input).unwrap();
-
-        for (template_ref, ref_type) in &template_refs_to_replace {
-            let replacement_value: Option<String> = match ref_type {
-                ReferenceType::Provider(name) => match name.as_str() {
-                    "auth.oauth2.access_token" => {
-                        let (config, _) = RequestFileParser::parse_config(&reqfile.config)
-                            .unwrap()
-                            .unwrap();
-                        let auth = &config.auth.clone().unwrap();
-                        let oauth2 = &auth.get("oauth2").unwrap();
-
-                        let client_id = oauth2.get("client_id").unwrap().to_owned();
-                        let client_secret = oauth2.get("client_secret").unwrap().to_owned();
-                        let authorize_url = oauth2.get("authorize_url").unwrap().to_owned();
-                        let access_token_url = oauth2.get("access_token_url").unwrap().to_owned();
-                        let scopes: Vec<Scope> = oauth2
-                            .get("scopes")
-                            .unwrap()
-                            .replace(',', " ")
-                            .split(' ')
-                            .map(|x| Scope::new(x.to_owned()))
-                            .collect();
-
-                        let client = BasicClient::new(
-                            ClientId::new(client_id),
-                            Some(ClientSecret::new(client_secret)),
-                            AuthUrl::new(authorize_url).unwrap(),
-                            Some(TokenUrl::new(access_token_url).unwrap()),
-                        );
-
-                        let token_result = client
-                            .exchange_client_credentials()
-                            .add_scopes(scopes)
-                            .request(http_client)
-                            .unwrap();
-
-                        let access_token = token_result.access_token().secret().to_owned();
-
-                        Some(access_token)
-                    }
-                    _ => None,
-                },
-                _ => None,
-            };
-
-            input = input.replace(
-                template_ref,
-                &replacement_value.unwrap_or(template_ref.clone()),
-            );
-        }
-
-        let split = RequestFileParser::split(&input).unwrap();
+        let reqfile_split = split(&input).unwrap();
 
         let request =
-            RequestFileParser::parse_request(&(split.request.0, reqfile.request.1.clone()))
+            RequestFileParser::parse_request(&(reqfile_split.request.0, reqfile.request.1.clone()))
                 .unwrap();
-        let response = RequestFileParser::parse_response(&split.response).map(|x| x.unwrap().0);
+        let response =
+            RequestFileParser::parse_response(&reqfile_split.response).map(|x| x.unwrap().0);
 
         Ok(TemplatedRequestFile {
             request: request.0,
