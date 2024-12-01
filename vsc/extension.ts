@@ -17,12 +17,13 @@ import {
   ServerOptions,
 } from "vscode-languageclient/node";
 
+import * as RsResult from "rsresult";
+
 import type {
   ParseNotification,
   ParseResult,
   ReqlangWorkspaceFileState,
 } from "./src/types";
-import { ifOk, ifOkOr, mapResult, type Result } from "./src/result";
 
 let client: LanguageClient;
 let status: StatusBarItem;
@@ -72,7 +73,7 @@ function getEnv(fileKey: string, context: ExtensionContext): string | null {
 function getParseResults(
   fileKey: string,
   context: ExtensionContext
-): Result<ParseResult> | null {
+): RsResult.Result<ParseResult> | null {
   const state = initState(fileKey, context);
 
   return state.parseResult;
@@ -81,7 +82,7 @@ function getParseResults(
 function setParseResult(
   fileKey: string,
   context: ExtensionContext,
-  result: Result<ParseResult>
+  result: RsResult.Result<ParseResult>
 ): ReqlangWorkspaceFileState {
   const state = initState(fileKey, context);
 
@@ -212,36 +213,33 @@ export function activate(context: ExtensionContext) {
       return;
     }
 
-    await ifOk(
-      mapResult(parseResult, (parsed) => parsed.envs),
-      async (envs) => {
-        if (!window.activeTextEditor) {
-          return;
-        }
-
-        if (envs.length === 0) {
-          return clearCurrentEnv();
-        }
-
-        const currentEnv = getEnv(uri, context);
-
-        const env =
-          (await window.showQuickPick(envs, {
-            title: "Select environment for request",
-            placeHolder: currentEnv ?? envs[0],
-          })) ??
-          currentEnv ??
-          envs[0];
-
-        if (env.length === 0) {
-          return clearCurrentEnv();
-        }
-
-        setEnv(window.activeTextEditor.document.uri.toString(), context, env);
-
-        updateStatusText();
+    await RsResult.ifOk(parseResult, async (parsedResult) => {
+      if (!window.activeTextEditor) {
+        return;
       }
-    );
+
+      if (parsedResult.envs.length === 0) {
+        return clearCurrentEnv();
+      }
+
+      const currentEnv = getEnv(uri, context);
+
+      const env =
+        (await window.showQuickPick(parsedResult.envs, {
+          title: "Select environment for request",
+          placeHolder: currentEnv ?? parsedResult.envs[0],
+        })) ??
+        currentEnv ??
+        parsedResult.envs[0];
+
+      if (env.length === 0) {
+        return clearCurrentEnv();
+      }
+
+      setEnv(window.activeTextEditor.document.uri.toString(), context, env);
+
+      updateStatusText();
+    });
   };
 
   const clearCurrentEnv = async () => {
@@ -274,7 +272,7 @@ export function activate(context: ExtensionContext) {
       return;
     }
 
-    ifOkOr(
+    RsResult.ifOkOr(
       parseResult,
       (parseResult) => {
         status.show();
@@ -286,7 +284,7 @@ export function activate(context: ExtensionContext) {
 
         status.text = `http ${parseResult.request.verb} $(globe) ${env}`;
       },
-      () => {
+      (_err) => {
         status.show();
         status.text = `http $(error) Error Parsing`;
       }
