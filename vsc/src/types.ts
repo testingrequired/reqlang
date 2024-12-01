@@ -1,5 +1,5 @@
-import { Request } from "reqlang-types";
-import { Result } from "./result";
+import { HttpRequest } from "reqlang-types";
+import * as RsResult from "rsresult";
 
 /**
  * State for an individual request file
@@ -9,12 +9,12 @@ export type ReqlangWorkspaceFileState = {
    * Current selected environment
    */
   env: string | null;
-  parseResult: Result<ParseResult> | null;
+  parseResult: RsResult.Result<ParseResult> | null;
 };
 
 export type ParseNotification = {
   file_id: string;
-  result: Result<ParseResult>;
+  result: RsResult.Result<ParseResult>;
 };
 
 export type ParseResult = {
@@ -22,7 +22,7 @@ export type ParseResult = {
   envs: string[];
   prompts: string[];
   secrets: string[];
-  request: Request;
+  request: HttpRequest;
 };
 
 /**
