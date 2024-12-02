@@ -92,7 +92,21 @@ impl RequestFileParser {
             };
 
             let config = match RequestFileParser::parse_config(&reqfile.config) {
-                Some(Ok(config)) => Some(config),
+                Some(Ok((mut config, config_span))) => {
+                    if let Some(envs) = &mut config.envs {
+                        if envs.keys().len() == 0 {
+                            envs.insert("default".to_string(), HashMap::new());
+                        }
+                    } else {
+                        let mut envs: HashMap<String, HashMap<String, String>> = HashMap::new();
+
+                        envs.insert("default".to_string(), HashMap::new());
+
+                        config.envs = Some(envs);
+                    }
+
+                    Some((config, config_span))
+                }
                 Some(Err(err)) => {
                     parse_errors.extend(err);
                     None

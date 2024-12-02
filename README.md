@@ -11,10 +11,8 @@ Requests are written as an HTTP request messages.
 ```reqlang
 #!/usr/bin/env reqlang
 
-[envs.default]
 ---
 GET https://example.com HTTP/1.1
----
 ```
 
 ### Response Assertions
@@ -24,7 +22,6 @@ Responses are treated as an assertion and are written as an HTTP response messag
 ```reqlang
 #!/usr/bin/env reqlang
 
-[envs.default]
 ---
 GET https://example.com HTTP/1.1
 ---
