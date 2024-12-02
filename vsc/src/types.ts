@@ -38,7 +38,11 @@ export type ExecuteRequestParams = {
  */
 export enum MenuChoices {
   PickEnv = "Pick an environment",
+  ClearEnv = "Clear the environment",
   RunRequest = "Run request",
+  StartLanguageServer = "Start Language Server",
+  StopLanguageServer = "Stop Language Server",
+  RestartLanguageServer = "Restart Language Server",
 }
 
 /**

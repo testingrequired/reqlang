@@ -308,16 +308,33 @@ export function activate(context: ExtensionContext) {
       restartLanguageServerHandler
     ),
     commands.registerCommand(Commands.Menu, async () => {
-      const choice = await window.showQuickPick(
-        [MenuChoices.PickEnv, MenuChoices.RunRequest, "Cancel"],
-        {
-          title: "Reqlang Menu",
-        }
-      );
+      if (!window.activeTextEditor) {
+        return;
+      }
+
+      const uri = window.activeTextEditor.document.uri.toString();
+
+      const choices: string[] = [];
+
+      const env = getEnv(uri, context);
+
+      if (!env) {
+        choices.push(MenuChoices.PickEnv);
+      } else {
+        choices.push(MenuChoices.RunRequest, MenuChoices.ClearEnv);
+      }
+
+      const choice = await window.showQuickPick(choices, {
+        title: "Reqlang Menu",
+      });
 
       switch (choice) {
         case MenuChoices.PickEnv:
           await commands.executeCommand(Commands.PickEnv);
+          break;
+
+        case MenuChoices.ClearEnv:
+          await commands.executeCommand(Commands.ClearEnv);
           break;
 
         case MenuChoices.RunRequest:
