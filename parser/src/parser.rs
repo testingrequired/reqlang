@@ -355,8 +355,7 @@ impl RequestFileParser {
         };
 
         let config = config
-            .map(|x| x.trim().to_string())
-            .filter(|x| !x.is_empty())
+            .map(|x| x.to_string())
             .map(|x| (x, config_start..config_end));
 
         Ok(RequestFileSplitUp {
@@ -596,8 +595,66 @@ mod test {
         just_request_ends_with_no_newline,
         concat!("---\n", "GET http://example.com HTTP/1.1", "---\n"),
         Ok(UnresolvedRequestFile {
-            config: None,
+            config: Some((
+                UnresolvedRequestFileConfig {
+                    vars: None,
+                    envs: Some(HashMap::from([("default".to_string(), HashMap::new())])),
+                    prompts: None,
+                    secrets: None,
+                    auth: None
+                },
+                0..0
+            )),
             request: (HttpRequest::get("http://example.com", "1.1", vec![]), 4..35),
+            response: None,
+            refs: vec![],
+        })
+    );
+
+    parser_test!(
+        just_request_ends_with_no_newline_with_envs,
+        concat!("[envs]\n---\n", "GET http://example.com HTTP/1.1", "---\n"),
+        Ok(UnresolvedRequestFile {
+            config: Some((
+                UnresolvedRequestFileConfig {
+                    vars: None,
+                    envs: Some(HashMap::from([("default".to_string(), HashMap::new())])),
+                    prompts: None,
+                    secrets: None,
+                    auth: None
+                },
+                0..7
+            )),
+            request: (
+                HttpRequest::get("http://example.com", "1.1", vec![]),
+                11..42
+            ),
+            response: None,
+            refs: vec![],
+        })
+    );
+
+    parser_test!(
+        just_request_ends_with_no_newline_or_split,
+        concat!(
+            "#!/usr/bin/env reqlang\n---\n",
+            "GET http://example.com HTTP/1.1"
+        ),
+        Ok(UnresolvedRequestFile {
+            config: Some((
+                UnresolvedRequestFileConfig {
+                    vars: None,
+                    envs: Some(HashMap::from([("default".to_string(), HashMap::new())])),
+                    prompts: None,
+                    secrets: None,
+                    auth: None
+                },
+                0..23
+            )),
+            request: (
+                HttpRequest::get("http://example.com", "1.1", vec![]),
+                27..58
+            ),
             response: None,
             refs: vec![],
         })
@@ -694,7 +751,16 @@ mod test {
         just_request_ends_with_single_newline,
         concat!("---\n", "GET http://example.com HTTP/1.1\n", "---\n"),
         Ok(UnresolvedRequestFile {
-            config: None,
+            config: Some((
+                UnresolvedRequestFileConfig {
+                    vars: None,
+                    envs: Some(HashMap::from([("default".to_string(), HashMap::new())])),
+                    prompts: None,
+                    secrets: None,
+                    auth: None
+                },
+                0..0
+            )),
             request: (
                 HttpRequest {
                     verb: HttpVerb::get(),
@@ -714,7 +780,16 @@ mod test {
         just_request_ends_with_multiple_newlines,
         concat!("---\n", "GET http://example.com HTTP/1.1\n\n", "---\n"),
         Ok(UnresolvedRequestFile {
-            config: None,
+            config: Some((
+                UnresolvedRequestFileConfig {
+                    vars: None,
+                    envs: Some(HashMap::from([("default".to_string(), HashMap::new())])),
+                    prompts: None,
+                    secrets: None,
+                    auth: None
+                },
+                0..0
+            )),
             request: (
                 HttpRequest {
                     verb: HttpVerb::get(),
