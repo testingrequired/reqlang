@@ -46,7 +46,16 @@ export enum MenuChoices {
  */
 export enum Commands {
   PickEnv = "reqlang.pickEnv",
+  ClearEnv = "reqlang.clearEnv",
   RunRequest = "reqlang.run",
   Menu = "reqlang.menu",
   Execute = "reqlang.executeRequest",
+  StartLanguageServer = "reqlang.startLanguageServer",
+  StopLanguageServer = "reqlang.stopLanguageServer",
+  RestartLanguageServer = "reqlang.restartLanguageServer",
+  Install = "reqlang.install",
+  OpenMdnDocsHttp = "reqlang.openMdnDocsHttp",
+  OpenMdnDocsHttpMessages = "reqlang.openMdnDocsHttpMessages",
+  OpenMdnDocsHttpSpecs = "reqlang.openMdnDocsHttpSpecs",
+  ExportToFile = "reqlang.exportToFile",
 }

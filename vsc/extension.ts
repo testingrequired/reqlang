@@ -135,7 +135,7 @@ export function activate(context: ExtensionContext) {
   context.subscriptions.push(parseNotifications);
 
   status = window.createStatusBarItem(StatusBarAlignment.Left, 0);
-  status.command = "reqlang.menu";
+  status.command = Commands.Menu;
 
   updateStatusText();
 
@@ -296,15 +296,15 @@ export function activate(context: ExtensionContext) {
 
   context.subscriptions.push(
     commands.registerCommand(
-      "reqlang.startLanguageServer",
+      Commands.StartLanguageServer,
       startLanguageServerHandler
     ),
     commands.registerCommand(
-      "reqlang.stopLanguageServer",
+      Commands.StopLanguageServer,
       stopLanguageServerHandler
     ),
     commands.registerCommand(
-      "reqlang.restartLanguageServer",
+      Commands.RestartLanguageServer,
       restartLanguageServerHandler
     ),
     commands.registerCommand(Commands.Menu, async () => {
@@ -329,7 +329,7 @@ export function activate(context: ExtensionContext) {
       }
     }),
     commands.registerCommand(Commands.PickEnv, pickCurrentEnv),
-    commands.registerCommand("reqlang.clearEnv", clearCurrentEnv),
+    commands.registerCommand(Commands.ClearEnv, clearCurrentEnv),
     commands.registerCommand(Commands.RunRequest, async () => {
       if (!window.activeTextEditor) {
         return;
@@ -416,25 +416,25 @@ export function activate(context: ExtensionContext) {
         client.outputChannel.appendLine(response);
       });
     }),
-    commands.registerCommand("reqlang.install", installHandler),
-    commands.registerCommand("reqlang.openMdnDocsHttp", () => {
+    commands.registerCommand(Commands.Install, installHandler),
+    commands.registerCommand(Commands.OpenMdnDocsHttp, () => {
       env.openExternal(
         Uri.parse("https://developer.mozilla.org/en-US/docs/Web/HTTP")
       );
     }),
-    commands.registerCommand("reqlang.openMdnDocsHttpMessages", () => {
+    commands.registerCommand(Commands.OpenMdnDocsHttpMessages, () => {
       env.openExternal(
         Uri.parse("https://developer.mozilla.org/en-US/docs/Web/HTTP/Messages")
       );
     }),
-    commands.registerCommand("reqlang.openMdnDocsHttpSpecs", () => {
+    commands.registerCommand(Commands.OpenMdnDocsHttpSpecs, () => {
       env.openExternal(
         Uri.parse(
           "https://developer.mozilla.org/en-US/docs/Web/HTTP/Resources_and_specifications"
         )
       );
     }),
-    commands.registerCommand("reqlang.exportToFile", exportToFile)
+    commands.registerCommand(Commands.ExportToFile, exportToFile)
   );
 
   function handleTextEditorChange() {
