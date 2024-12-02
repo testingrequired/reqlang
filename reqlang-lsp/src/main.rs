@@ -190,6 +190,7 @@ impl LanguageServer for Backend {
 
             let method: Method = match templated_reqfile.request.verb.to_string().as_str() {
                 "GET" => Method::GET,
+                "POST" => Method::POST,
                 _ => todo!(),
             };
 
