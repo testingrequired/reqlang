@@ -321,7 +321,17 @@ export function activate(context: ExtensionContext) {
       if (!env) {
         choices.push(MenuChoices.PickEnv);
       } else {
-        choices.push(MenuChoices.RunRequest, MenuChoices.ClearEnv);
+        choices.push(MenuChoices.RunRequest);
+
+        // Check if there is more than one environment
+        const parseResult = getParseResults(uri, context);
+        if (parseResult) {
+          RsResult.ifOk(parseResult, (ok) => {
+            if (ok.envs.length > 1) {
+              choices.push(MenuChoices.PickEnv);
+            }
+          });
+        }
       }
 
       const choice = await window.showQuickPick(choices, {
@@ -467,7 +477,14 @@ export function activate(context: ExtensionContext) {
       return;
     }
 
-    initState(window.activeTextEditor.document.uri.toString(), context);
+    initState(filename, context);
+
+    // Default the selected environment is there's just one
+    RsResult.ifOk(getParseResults(filename, context)!, (result) => {
+      if (result.envs.length === 1) {
+        setEnv(filename, context, result.envs[0]);
+      }
+    });
 
     updateStatusText();
   }

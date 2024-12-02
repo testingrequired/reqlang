@@ -1,7 +1,5 @@
 #!/usr/bin/env reqlang
 
-[envs.env]
-
 ---
 POST https://httpbin.org/post HTTP/1.1
 
