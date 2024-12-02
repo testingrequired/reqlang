@@ -218,13 +218,16 @@ impl LanguageServer for Backend {
                     value.to_str().expect("Shoud work").to_string(),
                 );
             }
-            let status_code = response.status().to_string();
+            let status = response.status().to_string();
+            let mut status_split = status.splitn(2, ' ');
+            let status_code = status_split.next().unwrap().to_string();
+            let status_text = status_split.next().unwrap().to_string();
             let body = Some(response.text().await.expect("Should have body"));
 
             let reqlang_response = HttpResponse {
                 http_version,
                 status_code,
-                status_text: "".to_string(),
+                status_text,
                 headers,
                 body,
             };
