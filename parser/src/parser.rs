@@ -563,20 +563,22 @@ mod test {
         use span::NO_SPAN;
         use types::ReferenceType;
 
+        // Structure
+
         parser_test!(
-            empty,
+            empty_file,
             "",
             Err(vec![(ParseError::EmptyFileError.into(), NO_SPAN)])
         );
 
         parser_test!(
-            no_doc_dividers,
+            bare_request,
             "GET http://example.com HTTP/1.1\n",
             Err(vec![(ParseError::NoDividersError.into(), 0..32)])
         );
 
         parser_test!(
-            too_many_doc_dividers,
+            too_many_doc_dividers_with_5,
             concat!(
                 "---\n",
                 "GET http://example.com HTTP/1.1\n",
@@ -589,7 +591,21 @@ mod test {
         );
 
         parser_test!(
-            undefined_variable_reference_in_request,
+            too_many_doc_dividers_with_4,
+            concat!(
+                "---\n",
+                "GET http://example.com HTTP/1.1\n",
+                "---\n",
+                "---\n",
+                "---\n"
+            ),
+            Err(vec![(ParseError::TooManyDividersError.into(), 0..48)])
+        );
+
+        // Undefined References
+
+        parser_test!(
+            reference_undefined_variable_in_request,
             concat!("---\n", "GET / HTTP/1.1\n", "test: {{:value}}\n", "---\n"),
             Err(vec![(
                 errors::ReqlangError::ParseError(ParseError::UndefinedReferenceError(
@@ -600,7 +616,7 @@ mod test {
         );
 
         parser_test!(
-            undefined_prompt_reference_in_request,
+            reference_undefined_prompt_in_request,
             concat!("---\n", "GET / HTTP/1.1\n", "test: {{?value}}\n", "---\n"),
             Err(vec![(
                 errors::ReqlangError::ParseError(ParseError::UndefinedReferenceError(
@@ -611,7 +627,7 @@ mod test {
         );
 
         parser_test!(
-            undefined_secret_reference_in_request,
+            reference_undefined_secret_in_request,
             concat!("---\n", "GET / HTTP/1.1\n", "test: {{!value}}\n", "---\n"),
             Err(vec![(
                 errors::ReqlangError::ParseError(ParseError::UndefinedReferenceError(
@@ -622,7 +638,7 @@ mod test {
         );
 
         parser_test!(
-            undefined_variable_reference_in_response,
+            reference_undefined_variable_in_response,
             concat!(
                 "---\n",
                 "GET / HTTP/1.1\n",
@@ -640,7 +656,7 @@ mod test {
         );
 
         parser_test!(
-            undefined_prompt_reference_in_response,
+            reference_undefined_prompt_in_reponse,
             concat!(
                 "---\n",
                 "GET / HTTP/1.1\n",
@@ -658,7 +674,7 @@ mod test {
         );
 
         parser_test!(
-            undefined_secret_reference_in_response,
+            reference_undefined_secret_in_response,
             concat!(
                 "---\n",
                 "GET / HTTP/1.1\n",
@@ -674,6 +690,8 @@ mod test {
                 23..57
             )])
         );
+
+        // Unused Config Data
 
         parser_test!(
             unused_variable,
@@ -726,6 +744,8 @@ mod test {
                 0..23
             )])
         );
+
+        // Forbidden Request Headers
 
         parser_test!(
             forbidden_header_host,
@@ -1077,8 +1097,10 @@ mod test {
             )])
         );
 
+        //
+
         parser_test!(
-            invalid_config,
+            invalid_config_syntax_error_incomplete_table,
             concat!(
                 "vars = [\"body\"]\n",
                 "[envs.dev.body = 123\n",
@@ -1097,7 +1119,7 @@ mod test {
         );
 
         parser_test!(
-            invalid_config2,
+            invalid_config_syntax_error_invalid_key_name,
             concat!(
                 "#!/usr/bin/env reqlang\n",
                 "\n",
