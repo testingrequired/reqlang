@@ -31,7 +31,9 @@ import { ReqlangCodeLensProvider } from "./src/codelens";
 let activeTextEditorHandler: Disposable;
 let visibleTextEditorHandler: Disposable;
 
-export function activate(context: ExtensionContext) {
+export async function activate(context: ExtensionContext) {
+  await startLanguageServer();
+
   // Initialize and update the status bar
   const updateStatusText = statusBar.updateStatusText(context);
   updateStatusText();
