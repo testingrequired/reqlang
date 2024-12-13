@@ -24,77 +24,14 @@ import {
   ExecuteRequestParams,
   MenuChoices,
   type ParseNotification,
-  type SimplifiedParsedRequestFile,
   type ReqlangWorkspaceFileState,
 } from "./src/types";
+import * as state from "./src/state";
 
 let client: LanguageClient;
 let status: StatusBarItem;
 let activeTextEditorHandler: Disposable;
 let visibleTextEditorHandler: Disposable;
-
-function initState(
-  fileKey: string,
-  context: ExtensionContext
-): ReqlangWorkspaceFileState {
-  const state = context.workspaceState.get<ReqlangWorkspaceFileState>(fileKey);
-
-  if (typeof state === "undefined") {
-    const initState: ReqlangWorkspaceFileState = {
-      env: null,
-      parsedReqfile: null,
-    };
-
-    context.workspaceState.update(fileKey, initState);
-
-    return initState;
-  }
-
-  return state;
-}
-
-function setEnv(
-  fileKey: string,
-  context: ExtensionContext,
-  env: string | null
-): ReqlangWorkspaceFileState {
-  const state = initState(fileKey, context);
-
-  state.env = env;
-
-  context.workspaceState.update(fileKey, state);
-
-  return state;
-}
-
-function getEnv(fileKey: string, context: ExtensionContext): string | null {
-  const state = initState(fileKey, context);
-
-  return state.env;
-}
-
-function getParseResults(
-  fileKey: string,
-  context: ExtensionContext
-): RsResult.Result<SimplifiedParsedRequestFile> | null {
-  const state = initState(fileKey, context);
-
-  return state.parsedReqfile;
-}
-
-function setParseResult(
-  fileKey: string,
-  context: ExtensionContext,
-  result: RsResult.Result<SimplifiedParsedRequestFile>
-): ReqlangWorkspaceFileState {
-  const state = initState(fileKey, context);
-
-  state.parsedReqfile = result;
-
-  context.workspaceState.update(fileKey, state);
-
-  return state;
-}
 
 export function activate(context: ExtensionContext) {
   const serverOptions: ServerOptions = {
@@ -122,11 +59,15 @@ export function activate(context: ExtensionContext) {
   const parseNotifications = client.onNotification(
     "reqlang/parse",
     async (params: ParseNotification) => {
-      const state = setParseResult(params.file_id, context, params.result);
+      const newState = state.setParseResult(
+        params.file_id,
+        context,
+        params.result
+      );
 
       client.outputChannel.appendLine(params.file_id);
       client.outputChannel.appendLine(
-        JSON.stringify(state.parsedReqfile, null, 2)
+        JSON.stringify(newState.parsedReqfile, null, 2)
       );
       client.outputChannel.show();
     }
@@ -210,7 +151,7 @@ export function activate(context: ExtensionContext) {
 
     let uri = window.activeTextEditor.document.uri.toString()!;
 
-    let parseResult = getParseResults(uri, context);
+    let parseResult = state.getParseResults(uri, context);
 
     if (parseResult === null) {
       return;
@@ -225,7 +166,7 @@ export function activate(context: ExtensionContext) {
         return clearCurrentEnv();
       }
 
-      const currentEnv = getEnv(uri, context);
+      const currentEnv = state.getEnv(uri, context);
 
       const env =
         (await window.showQuickPick(parsedResult.envs, {
@@ -239,7 +180,11 @@ export function activate(context: ExtensionContext) {
         return clearCurrentEnv();
       }
 
-      setEnv(window.activeTextEditor.document.uri.toString(), context, env);
+      state.setEnv(
+        window.activeTextEditor.document.uri.toString(),
+        context,
+        env
+      );
 
       updateStatusText();
     });
@@ -250,7 +195,11 @@ export function activate(context: ExtensionContext) {
       return;
     }
 
-    setEnv(window.activeTextEditor.document.uri.toString(), context, null);
+    state.setEnv(
+      window.activeTextEditor.document.uri.toString(),
+      context,
+      null
+    );
 
     updateStatusText();
   };
@@ -268,7 +217,7 @@ export function activate(context: ExtensionContext) {
       return;
     }
 
-    let parseResult = getParseResults(uri, context);
+    let parseResult = state.getParseResults(uri, context);
 
     if (parseResult === null) {
       client.outputChannel.appendLine("NULL");
@@ -316,7 +265,7 @@ export function activate(context: ExtensionContext) {
 
       const choices: string[] = [];
 
-      const env = getEnv(uri, context);
+      const env = state.getEnv(uri, context);
 
       if (!env) {
         choices.push(MenuChoices.PickEnv);
@@ -324,7 +273,7 @@ export function activate(context: ExtensionContext) {
         choices.push(MenuChoices.RunRequest);
 
         // Check if there is more than one environment
-        const parseResult = getParseResults(uri, context);
+        const parseResult = state.getParseResults(uri, context);
         if (parseResult) {
           RsResult.ifOk(parseResult, (ok) => {
             if (ok.envs.length > 1) {
@@ -364,7 +313,7 @@ export function activate(context: ExtensionContext) {
 
       let uri = window.activeTextEditor.document.uri.toString()!;
 
-      let parseResult = getParseResults(uri, context);
+      let parseResult = state.getParseResults(uri, context);
 
       if (parseResult === null) {
         return;
@@ -406,7 +355,7 @@ export function activate(context: ExtensionContext) {
         );
 
         const uri = window.activeTextEditor.document.uri.toString()!;
-        const env = getEnv(uri, context)!;
+        const env = state.getEnv(uri, context)!;
         const vars: Record<string, string> = {};
 
         const promptsObj: Record<string, string> = {};
@@ -477,12 +426,12 @@ export function activate(context: ExtensionContext) {
       return;
     }
 
-    initState(filename, context);
+    state.initState(filename, context);
 
     // Default the selected environment is there's just one
-    RsResult.ifOk(getParseResults(filename, context)!, (result) => {
+    RsResult.ifOk(state.getParseResults(filename, context)!, (result) => {
       if (result.envs.length === 1) {
-        setEnv(filename, context, result.envs[0]);
+        state.setEnv(filename, context, result.envs[0]);
       }
     });
 
