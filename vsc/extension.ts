@@ -6,7 +6,7 @@ import * as RsResult from "rsresult";
 
 import { Commands, type ParseNotification } from "./src/types";
 import * as state from "./src/state";
-import { getClient, getClientWithoutInit } from "./src/client";
+import { getClient } from "./src/client";
 import {
   clearCurrentEnv,
   menuHandler,
@@ -19,7 +19,7 @@ import {
   startLanguageServerHandler,
   stopLanguageServerHandler,
 } from "./src/commands";
-import { initStatus } from "./src/status";
+import * as statusBar from "./src/status";
 
 let activeTextEditorHandler: Disposable;
 let visibleTextEditorHandler: Disposable;
@@ -46,11 +46,8 @@ export function activate(context: ExtensionContext) {
 
   context.subscriptions.push(parseNotifications);
 
-  // Create the status bar
-  initStatus();
-
-  // Set the initial status bar text
-  const updateStatusText = state.updateStatusText(context);
+  // Initialize and update the status bar
+  const updateStatusText = statusBar.updateStatusText(context);
   updateStatusText();
 
   context.subscriptions.push(

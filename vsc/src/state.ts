@@ -1,55 +1,10 @@
 "use strict";
-import { ExtensionContext, window } from "vscode";
+import { ExtensionContext } from "vscode";
 import type {
   ReqlangWorkspaceFileState,
   SimplifiedParsedRequestFile,
 } from "./types";
 import * as RsResult from "rsresult";
-import * as statusBar from "./status";
-import { getClient } from "./client";
-
-export const updateStatusText = (context: ExtensionContext) => () => {
-  const status = statusBar.getStatus();
-
-  if (!window.activeTextEditor) {
-    status.hide();
-    return;
-  }
-
-  const uri = window.activeTextEditor.document.uri.toString();
-
-  if (!uri.endsWith(".reqlang")) {
-    status.hide();
-    return;
-  }
-
-  let parseResult = getParseResults(uri, context);
-
-  if (parseResult === null) {
-    const client = getClient();
-
-    client.outputChannel.appendLine("NULL");
-    return;
-  }
-
-  RsResult.ifOkOr(
-    parseResult,
-    (parseResult) => {
-      status.show();
-
-      const state: ReqlangWorkspaceFileState | undefined =
-        context.workspaceState.get(uri);
-
-      const env = state?.env ?? "Select Environment";
-
-      status.text = `http ${parseResult.request.verb} $(globe) ${env}`;
-    },
-    (_err) => {
-      status.show();
-      status.text = `http $(error) Error Parsing`;
-    }
-  );
-};
 
 export function setParseResult(
   fileKey: string,

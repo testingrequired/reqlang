@@ -10,6 +10,7 @@ import { getClient, getClientWithoutInit } from "./client";
 import * as state from "./state";
 import { Commands, ExecuteRequestParams, MenuChoices } from "./types";
 import * as RsResult from "rsresult";
+import { updateStatusText } from "./status";
 
 export const startLanguageServerHandler = () => {
   const client = getClient();
@@ -60,7 +61,7 @@ export const pickCurrentEnv = (context: ExtensionContext) => async () => {
 
     state.setEnv(window.activeTextEditor.document.uri.toString(), context, env);
 
-    state.updateStatusText(context)();
+    updateStatusText(context)();
   });
 };
 
@@ -71,7 +72,7 @@ export const clearCurrentEnv = (context: ExtensionContext) => async () => {
 
   state.setEnv(window.activeTextEditor.document.uri.toString(), context, null);
 
-  state.updateStatusText(context)();
+  updateStatusText(context)();
 };
 
 export const restartLanguageServerHandler = async () => {
