@@ -1,5 +1,6 @@
 import { HttpRequest } from "reqlang-types";
 import * as RsResult from "rsresult";
+import { StatusBarItem } from "vscode";
 
 /**
  * State for an individual request file
