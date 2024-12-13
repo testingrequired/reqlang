@@ -14,10 +14,10 @@ import {
   openMdnHttpDocsMessages,
   openMdnHttpDocsSpecs,
   pickCurrentEnv,
-  restartLanguageServerHandler,
+  restartLanguageServer,
   runRequest,
-  startLanguageServerHandler,
-  stopLanguageServerHandler,
+  startLanguageServer,
+  stopLanguageServer,
 } from "./src/commands";
 import * as statusBar from "./src/status";
 
@@ -51,17 +51,11 @@ export function activate(context: ExtensionContext) {
   updateStatusText();
 
   context.subscriptions.push(
-    commands.registerCommand(
-      Commands.StartLanguageServer,
-      startLanguageServerHandler
-    ),
-    commands.registerCommand(
-      Commands.StopLanguageServer,
-      stopLanguageServerHandler
-    ),
+    commands.registerCommand(Commands.StartLanguageServer, startLanguageServer),
+    commands.registerCommand(Commands.StopLanguageServer, stopLanguageServer),
     commands.registerCommand(
       Commands.RestartLanguageServer,
-      restartLanguageServerHandler
+      restartLanguageServer
     ),
     commands.registerCommand(Commands.Menu, menuHandler(context)),
     commands.registerCommand(Commands.PickEnv, pickCurrentEnv(context)),
@@ -116,5 +110,5 @@ export function deactivate() {
   activeTextEditorHandler?.dispose();
   visibleTextEditorHandler?.dispose();
 
-  stopLanguageServerHandler();
+  stopLanguageServer();
 }

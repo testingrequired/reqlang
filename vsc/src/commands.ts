@@ -12,12 +12,12 @@ import { Commands, ExecuteRequestParams, MenuChoices } from "./types";
 import * as RsResult from "rsresult";
 import { updateStatusText } from "./status";
 
-export const startLanguageServerHandler = () => {
+export const startLanguageServer = () => {
   const client = getClient();
   return client.start();
 };
 
-export const stopLanguageServerHandler = () => {
+export const stopLanguageServer = () => {
   const client = getClientWithoutInit();
 
   return client?.stop();
@@ -75,10 +75,10 @@ export const clearCurrentEnv = (context: ExtensionContext) => async () => {
   updateStatusText(context)();
 };
 
-export const restartLanguageServerHandler = async () => {
-  await stopLanguageServerHandler();
+export const restartLanguageServer = async () => {
+  await stopLanguageServer();
 
-  await startLanguageServerHandler();
+  await startLanguageServer();
 };
 
 export const menuHandler = (context: ExtensionContext) => async () => {
