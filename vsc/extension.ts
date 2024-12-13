@@ -121,9 +121,5 @@ export function deactivate() {
 
   const client = getClientWithoutInit();
 
-  if (!client) {
-    return undefined;
-  }
-
-  return client.stop();
+  return client?.stop();
 }
