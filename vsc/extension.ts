@@ -6,16 +6,10 @@ import {
   commands,
   env,
   Uri,
-  workspace,
   window,
   StatusBarItem,
   StatusBarAlignment,
 } from "vscode";
-import {
-  LanguageClient,
-  LanguageClientOptions,
-  ServerOptions,
-} from "vscode-languageclient/node";
 
 import * as RsResult from "rsresult";
 
@@ -27,34 +21,14 @@ import {
   type ReqlangWorkspaceFileState,
 } from "./src/types";
 import * as state from "./src/state";
+import { getClient, getClientWithoutInit } from "./src/client";
 
-let client: LanguageClient;
 let status: StatusBarItem;
 let activeTextEditorHandler: Disposable;
 let visibleTextEditorHandler: Disposable;
 
 export function activate(context: ExtensionContext) {
-  const serverOptions: ServerOptions = {
-    command: "reqlang-lsp",
-  };
-
-  const clientOptions: LanguageClientOptions = {
-    documentSelector: [
-      {
-        language: "reqlang",
-      },
-    ],
-    synchronize: {
-      fileEvents: workspace.createFileSystemWatcher("**/*.reqlang"),
-    },
-    outputChannelName: "reqlang",
-  };
-
-  client = new LanguageClient(
-    "reqlang-language-server",
-    serverOptions,
-    clientOptions
-  );
+  const client = getClient();
 
   const parseNotifications = client.onNotification(
     "reqlang/parse",
@@ -450,6 +424,8 @@ export function activate(context: ExtensionContext) {
 export function deactivate() {
   activeTextEditorHandler?.dispose();
   visibleTextEditorHandler?.dispose();
+
+  const client = getClientWithoutInit();
 
   if (!client) {
     return undefined;
