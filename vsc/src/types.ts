@@ -9,15 +9,20 @@ export type ReqlangWorkspaceFileState = {
    * Current selected environment
    */
   env: string | null;
-  parseResult: RsResult.Result<ParseResult> | null;
+  parsedReqfile: RsResult.Result<SimplifiedParsedRequestFile> | null;
 };
 
 export type ParseNotification = {
   file_id: string;
-  result: RsResult.Result<ParseResult>;
+  result: RsResult.Result<SimplifiedParsedRequestFile>;
 };
 
-export type ParseResult = {
+/**
+ * Simplified version of a parsed request file for use in the VSC extension.
+ *
+ * This is sent from the language server to VSC.
+ */
+export type SimplifiedParsedRequestFile = {
   vars: string[];
   envs: string[];
   prompts: string[];

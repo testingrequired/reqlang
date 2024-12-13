@@ -24,7 +24,7 @@ import {
   ExecuteRequestParams,
   MenuChoices,
   type ParseNotification,
-  type ParseResult,
+  type SimplifiedParsedRequestFile,
   type ReqlangWorkspaceFileState,
 } from "./src/types";
 
@@ -42,7 +42,7 @@ function initState(
   if (typeof state === "undefined") {
     const initState: ReqlangWorkspaceFileState = {
       env: null,
-      parseResult: null,
+      parsedReqfile: null,
     };
 
     context.workspaceState.update(fileKey, initState);
@@ -76,20 +76,20 @@ function getEnv(fileKey: string, context: ExtensionContext): string | null {
 function getParseResults(
   fileKey: string,
   context: ExtensionContext
-): RsResult.Result<ParseResult> | null {
+): RsResult.Result<SimplifiedParsedRequestFile> | null {
   const state = initState(fileKey, context);
 
-  return state.parseResult;
+  return state.parsedReqfile;
 }
 
 function setParseResult(
   fileKey: string,
   context: ExtensionContext,
-  result: RsResult.Result<ParseResult>
+  result: RsResult.Result<SimplifiedParsedRequestFile>
 ): ReqlangWorkspaceFileState {
   const state = initState(fileKey, context);
 
-  state.parseResult = result;
+  state.parsedReqfile = result;
 
   context.workspaceState.update(fileKey, state);
 
@@ -126,7 +126,7 @@ export function activate(context: ExtensionContext) {
 
       client.outputChannel.appendLine(params.file_id);
       client.outputChannel.appendLine(
-        JSON.stringify(state.parseResult, null, 2)
+        JSON.stringify(state.parsedReqfile, null, 2)
       );
       client.outputChannel.show();
     }
