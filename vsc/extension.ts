@@ -25,27 +25,6 @@ let activeTextEditorHandler: Disposable;
 let visibleTextEditorHandler: Disposable;
 
 export function activate(context: ExtensionContext) {
-  const client = getClient();
-
-  const parseNotifications = client.onNotification(
-    "reqlang/parse",
-    async (params: ParseNotification) => {
-      const newState = state.setParseResult(
-        params.file_id,
-        context,
-        params.result
-      );
-
-      client.outputChannel.appendLine(params.file_id);
-      client.outputChannel.appendLine(
-        JSON.stringify(newState.parsedReqfile, null, 2)
-      );
-      client.outputChannel.show();
-    }
-  );
-
-  context.subscriptions.push(parseNotifications);
-
   // Initialize and update the status bar
   const updateStatusText = statusBar.updateStatusText(context);
   updateStatusText();
@@ -104,6 +83,8 @@ export function activate(context: ExtensionContext) {
   visibleTextEditorHandler = window.onDidChangeVisibleTextEditors(
     handleTextEditorChange
   );
+
+  subscribeToParseNotificationsFromServer(context);
 }
 
 export function deactivate() {
@@ -111,4 +92,32 @@ export function deactivate() {
   visibleTextEditorHandler?.dispose();
 
   stopLanguageServer();
+}
+
+/**
+ * Subscribes to parse notifications from the language server.
+ *
+ * These happen on reqfile open and saves.
+ *
+ * @param context The extension context
+ */
+function subscribeToParseNotificationsFromServer(context: ExtensionContext) {
+  context.subscriptions.push(
+    getClient().onNotification(
+      "reqlang/parse",
+      async (params: ParseNotification) => {
+        const newState = state.setParseResult(
+          params.file_id,
+          context,
+          params.result
+        );
+
+        getClient().outputChannel.appendLine(params.file_id);
+        getClient().outputChannel.appendLine(
+          JSON.stringify(newState.parsedReqfile, null, 2)
+        );
+        getClient().outputChannel.show();
+      }
+    )
+  );
 }
