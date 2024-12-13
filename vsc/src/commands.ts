@@ -1,4 +1,11 @@
-import { commands, env, ExtensionContext, Uri, window } from "vscode";
+import {
+  commands,
+  env,
+  ExtensionContext,
+  Uri,
+  window,
+  workspace,
+} from "vscode";
 import { getClient, getClientWithoutInit } from "./client";
 import * as state from "./state";
 import { Commands, ExecuteRequestParams, MenuChoices } from "./types";
@@ -231,6 +238,17 @@ export const runRequest = (context: ExtensionContext) => async () => {
       params
     );
 
-    client.outputChannel.appendLine(response);
+    // Put response string in to a new file in the workspace
+    // Create a new untitled document
+    const document = await workspace.openTextDocument({
+      content: response, // Initial content for the document
+      language: "json", // Specify the language mode, e.g., 'plaintext', 'javascript', etc.
+    });
+
+    // Show the document in the editor
+    await window.showTextDocument(document);
+
+    // Format the response json
+    await commands.executeCommand("editor.action.formatDocument");
   });
 };
