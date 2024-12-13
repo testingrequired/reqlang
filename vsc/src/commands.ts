@@ -19,11 +19,7 @@ export const startLanguageServerHandler = () => {
 export const stopLanguageServerHandler = () => {
   const client = getClientWithoutInit();
 
-  if (!client) {
-    return undefined;
-  }
-
-  return client.stop();
+  return client?.stop();
 };
 
 export const pickCurrentEnv = (context: ExtensionContext) => async () => {

@@ -119,7 +119,5 @@ export function deactivate() {
   activeTextEditorHandler?.dispose();
   visibleTextEditorHandler?.dispose();
 
-  const client = getClientWithoutInit();
-
-  return client?.stop();
+  stopLanguageServerHandler();
 }
