@@ -15,10 +15,10 @@ use tokio::sync::Mutex;
 use tower_lsp::jsonrpc::Result as RpcResult;
 use tower_lsp::lsp_types::notification::Notification;
 use tower_lsp::lsp_types::{
-    CodeLensOptions, Diagnostic, DiagnosticSeverity, DidChangeTextDocumentParams,
-    DidOpenTextDocumentParams, DidSaveTextDocumentParams, ExecuteCommandOptions,
-    ExecuteCommandParams, InitializeParams, InitializeResult, MessageType, Position, Range,
-    SaveOptions, ServerCapabilities, ServerInfo, TextDocumentSyncKind, TextDocumentSyncOptions,
+    Diagnostic, DiagnosticSeverity, DidChangeTextDocumentParams, DidOpenTextDocumentParams,
+    DidSaveTextDocumentParams, ExecuteCommandOptions, ExecuteCommandParams, InitializeParams,
+    InitializeResult, MessageType, Position, Range, SaveOptions, ServerCapabilities, ServerInfo,
+    TextDocumentSyncKind, TextDocumentSyncOptions,
 };
 use tower_lsp::{Client, LanguageServer, LspService, Server};
 
@@ -50,9 +50,6 @@ impl LanguageServer for Backend {
 
         Ok(InitializeResult {
             capabilities: ServerCapabilities {
-                code_lens_provider: Some(CodeLensOptions {
-                    resolve_provider: Some(true),
-                }),
                 execute_command_provider: Some(ExecuteCommandOptions {
                     commands: vec!["reqlang.executeRequest".to_string()],
                     work_done_progress_options: Default::default(),
@@ -295,7 +292,8 @@ impl From<UnresolvedRequestFile> for ParseResult {
             envs,
             prompts,
             secrets,
-            request: value.request.0,
+            request: value.clone().request.0,
+            full: value,
         }
     }
 }
@@ -310,6 +308,7 @@ struct ParseResult {
     prompts: Vec<String>,
     secrets: Vec<String>,
     request: HttpRequest,
+    full: UnresolvedRequestFile,
 }
 
 /// Command parameters from client to execute request

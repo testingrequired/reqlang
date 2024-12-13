@@ -1,6 +1,5 @@
-import { HttpRequest } from "reqlang-types";
+import { HttpRequest, UnresolvedRequestFile } from "reqlang-types";
 import * as RsResult from "rsresult";
-import { StatusBarItem } from "vscode";
 
 /**
  * State for an individual request file
@@ -29,6 +28,7 @@ export type SimplifiedParsedRequestFile = {
   prompts: string[];
   secrets: string[];
   request: HttpRequest;
+  full: UnresolvedRequestFile;
 };
 
 export type ExecuteRequestParams = {

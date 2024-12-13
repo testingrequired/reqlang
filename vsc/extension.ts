@@ -1,6 +1,12 @@
 "use strict";
 
-import { ExtensionContext, Disposable, commands, window } from "vscode";
+import {
+  ExtensionContext,
+  Disposable,
+  commands,
+  window,
+  languages,
+} from "vscode";
 
 import * as RsResult from "rsresult";
 
@@ -20,6 +26,7 @@ import {
   stopLanguageServer,
 } from "./src/commands";
 import * as statusBar from "./src/status";
+import { ReqlangCodeLensProvider } from "./src/codelens";
 
 let activeTextEditorHandler: Disposable;
 let visibleTextEditorHandler: Disposable;
@@ -48,6 +55,13 @@ export function activate(context: ExtensionContext) {
     commands.registerCommand(
       Commands.OpenMdnDocsHttpSpecs,
       openMdnHttpDocsSpecs
+    )
+  );
+
+  context.subscriptions.push(
+    languages.registerCodeLensProvider(
+      "reqlang",
+      new ReqlangCodeLensProvider(context)
     )
   );
 
