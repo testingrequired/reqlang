@@ -11,7 +11,7 @@ members = [
     "export",
     "reqlang-client",
     "str-idxpos",
-    "reqlang",
+    "reqlang", "integration_tests",
 ]
 
 resolver = "2"
