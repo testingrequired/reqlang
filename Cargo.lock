@@ -2733,6 +2733,7 @@ name = "reqlang-lsp"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "export",
  "reqlang",
  "reqwest",
  "serde",

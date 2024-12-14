@@ -15,6 +15,7 @@ import * as state from "./src/state";
 import { getClient } from "./src/client";
 import {
   clearCurrentEnv,
+  exportToFile,
   menuHandler,
   openMdnHttpDocs,
   openMdnHttpDocsMessages,
@@ -57,7 +58,8 @@ export async function activate(context: ExtensionContext) {
     commands.registerCommand(
       Commands.OpenMdnDocsHttpSpecs,
       openMdnHttpDocsSpecs
-    )
+    ),
+    commands.registerCommand(Commands.ExportToFile, exportToFile(context))
   );
 
   context.subscriptions.push(

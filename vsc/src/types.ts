@@ -40,6 +40,15 @@ export type ExecuteRequestParams = {
   secrets: Record<string, string>;
 };
 
+export type ExportRequestParams = {
+  uri: string;
+  env: string;
+  vars: Record<string, string>;
+  prompts: Record<string, string>;
+  secrets: Record<string, string>;
+  format: string;
+};
+
 /**
  * The possible choices for the Reqlang Menu in the VSC extension
  */
@@ -47,6 +56,7 @@ export enum MenuChoices {
   PickEnv = "Pick an environment",
   ClearEnv = "Clear the environment",
   RunRequest = "Run request",
+  ExportRequest = "Export request as curl script",
   StartLanguageServer = "Start Language Server",
   StopLanguageServer = "Stop Language Server",
   RestartLanguageServer = "Restart Language Server",
@@ -62,6 +72,7 @@ export enum Commands {
   RunRequest = "reqlang.run",
   Menu = "reqlang.menu",
   Execute = "reqlang.executeRequest",
+  Export = "reqlang.exportRequest",
   StartLanguageServer = "reqlang.startLanguageServer",
   StopLanguageServer = "reqlang.stopLanguageServer",
   RestartLanguageServer = "reqlang.restartLanguageServer",

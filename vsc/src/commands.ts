@@ -8,7 +8,12 @@ import {
 } from "vscode";
 import { getClient, getClientWithoutInit } from "./client";
 import * as state from "./state";
-import { Commands, ExecuteRequestParams, MenuChoices } from "./types";
+import {
+  Commands,
+  ExecuteRequestParams,
+  ExportRequestParams,
+  MenuChoices,
+} from "./types";
 import * as RsResult from "rsresult";
 import { updateStatusText } from "./status";
 import { HttpResponse } from "reqlang-types";
@@ -106,6 +111,7 @@ export const menuHandler = (context: ExtensionContext) => async () => {
 
   if (env) {
     choices.push(MenuChoices.RunRequest);
+    choices.push(MenuChoices.ExportRequest);
   }
 
   const client = getClient();
@@ -134,6 +140,10 @@ export const menuHandler = (context: ExtensionContext) => async () => {
 
     case MenuChoices.RunRequest:
       await commands.executeCommand(Commands.RunRequest);
+      break;
+
+    case MenuChoices.ExportRequest:
+      await commands.executeCommand(Commands.ExportToFile);
       break;
 
     case MenuChoices.OpenOutput:
@@ -308,5 +318,107 @@ export const runRequest = (context: ExtensionContext) => async () => {
 
     // Format the response json
     await commands.executeCommand("editor.action.formatDocument");
+  });
+};
+
+export const exportToFile = (context: ExtensionContext) => async () => {
+  if (!window.activeTextEditor) {
+    return;
+  }
+
+  let uri = window.activeTextEditor.document.uri.toString()!;
+
+  let parseResult = state.getParseResults(uri, context);
+
+  if (parseResult === null) {
+    return;
+  }
+
+  if (state.getIsWaitingForResponse(uri, context)) {
+    return;
+  }
+
+  await RsResult.ifOk(parseResult, async ({ prompts, secrets }) => {
+    if (!window.activeTextEditor) {
+      return;
+    }
+
+    const promptValues: (string | null)[] = [];
+    const secretValues: (string | null)[] = [];
+    const providerValues: (string | null)[] = [];
+
+    for (const prompt of prompts) {
+      const promptValue = await window.showInputBox({
+        title: `Prompt: ${prompt}`,
+      });
+
+      promptValues.push(promptValue ?? null);
+    }
+
+    for (const secret of secrets) {
+      const secretValue = await window.showInputBox({
+        title: `Secret: ${secret}`,
+      });
+
+      secretValues.push(secretValue ?? null);
+    }
+
+    const client = getClient();
+
+    client.outputChannel.appendLine(
+      JSON.stringify({
+        prompts,
+        promptValues,
+        secrets,
+        secretValues,
+        providerValues,
+      })
+    );
+
+    const uri = window.activeTextEditor.document.uri.toString()!;
+    const env = state.getEnv(uri, context)!;
+    const vars: Record<string, string> = {};
+
+    const promptsObj: Record<string, string> = {};
+
+    for (let i = 0; i < prompts.length; i++) {
+      const key = prompts[i];
+      const value = promptValues[i]!;
+
+      promptsObj[key] = value;
+    }
+
+    const secretsObj: Record<string, string> = {};
+
+    for (let i = 0; i < secrets.length; i++) {
+      const key = secrets[i];
+      const value = secretValues[i]!;
+
+      secretsObj[key] = value;
+    }
+
+    const params: ExportRequestParams = {
+      uri,
+      env,
+      vars,
+      prompts: promptsObj,
+      secrets: secretsObj,
+      format: "CurlScript",
+    };
+
+    const response = await commands.executeCommand<string>(
+      Commands.Export,
+      params
+    );
+
+    // Put response string in to a new file in the workspace
+    // Create a new untitled document
+    const document = await workspace.openTextDocument({
+      content: response, // Initial content for the document
+      language: "shellscript", // Specify the language mode, e.g., 'plaintext', 'javascript', etc.
+    });
+
+    // Show the document in the editor
+    await window.showTextDocument(document);
   });
 };

@@ -3,10 +3,11 @@ use std::{fmt::Display, str::FromStr};
 use serde::{Deserialize, Serialize};
 use types::http::{HttpRequest, HttpVerb};
 
-#[derive(Copy, Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
+#[derive(Copy, Clone, PartialEq, Eq, Debug, Serialize, Deserialize, Default)]
 pub enum Format {
     Http,
     Curl,
+    #[default]
     CurlScript,
 }
 
