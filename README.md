@@ -75,7 +75,19 @@ Reqlang's primary focus is being a file format specification but there are sever
 
 The [`reqlang`](./cli) CLI can parse request files as well export templated requests in to a variety of formats (`http`, `curl`, `curl_script`).
 
-Adding `#!/usr/bin/env reqlang` to the top of request files allows easy usage of the CLI.
+Adding `#!/usr/bin/env reqlang` to the top of request files allows easy usage of the CLI:
+
+```reqlang
+#!/usr/bin/env reqlang
+
+[prompts]
+# Status code the response will return
+status_code = ""
+---
+GET https://httpbin.org/status/{{?status_code}} HTTP/1.1
+```
+
+Calling it:
 
 ```shell
 ./examples/valid/status_code.reqlang -e default -f curl -P status_code=201 | bash
