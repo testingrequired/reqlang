@@ -68,18 +68,22 @@ export class ReqlangCodeLensProvider implements CodeLensProvider {
       lenses.push(
         new CodeLens(lensRange, {
           command: Commands.RunRequest,
-          title: `$(run)`,
+          title: `$(run) Run`,
         })
       );
     }
 
-    // Add a pick environment lens
-    lenses.push(
-      new CodeLens(lensRange, {
-        command: Commands.PickEnv,
-        title: `$(globe) ${env ? env : "Env..."}`,
-      })
-    );
+    const numberOfEnvs = Object.keys(reqFile.config![0].envs ?? {}).length;
+
+    if (numberOfEnvs > 1) {
+      // Add a pick environment lens
+      lenses.push(
+        new CodeLens(lensRange, {
+          command: Commands.PickEnv,
+          title: `$(globe) ${env ? env : "Env..."}`,
+        })
+      );
+    }
 
     return lenses;
   }
