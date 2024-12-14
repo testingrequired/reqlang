@@ -132,7 +132,6 @@ function subscribeToParseNotificationsFromServer(context: ExtensionContext) {
         getClient().outputChannel.appendLine(
           JSON.stringify(newState.parsedReqfile, null, 2)
         );
-        getClient().outputChannel.show();
       }
     )
   );
