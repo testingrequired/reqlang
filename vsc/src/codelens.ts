@@ -8,12 +8,7 @@ import {
   Range,
   TextDocument,
 } from "vscode";
-import {
-  getEnv,
-  getIsWaitingForResponse,
-  getParseResults,
-  setIsWaitingForResponse,
-} from "./state";
+import { getEnv, getIsWaitingForResponse, getParseResults } from "./state";
 import { expect } from "rsresult";
 import { Commands } from "./types";
 
