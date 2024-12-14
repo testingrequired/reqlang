@@ -3,7 +3,6 @@ import {
   CodeLens,
   CodeLensProvider,
   ExtensionContext,
-  Position,
   ProviderResult,
   Range,
   TextDocument,
