@@ -108,7 +108,7 @@ The [VS Code extension](./vsc) acts as an in-editor REST client.
 
 ![VS Code Extension Screenshot](./vsc/screenshot.png)
 
-### Desktop
+## Desktop
 
 The [desktop client](./reqlang-client) is a very simple GUI written in [egui](https://github.com/emilk/egui). It's mostly used for testing.
 
