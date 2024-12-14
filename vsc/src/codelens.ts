@@ -87,9 +87,7 @@ export class ReqlangCodeLensProvider implements CodeLensProvider {
       if (isWaitingForResponse) {
         title = "$(pause) Running";
       } else {
-        const statusCode = Number(lastResponse!.status_code);
-        const responseIsOk = statusCode >= 200 && statusCode < 300;
-        title = responseIsOk ? "$(run) Run" : "$(run) Retry";
+        title = "$(run) Run";
       }
 
       lenses.push(
