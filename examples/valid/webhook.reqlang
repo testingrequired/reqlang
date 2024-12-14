@@ -1,0 +1,11 @@
+#!/usr/bin/env reqlang
+
+[prompts]
+foo_value = ""
+bar_value = ""
+---
+POST https://webhook.site/164e1f05-5d27-4940-9934-c0354dfc4c20 HTTP/1.1
+content-type: application/x-www-form-urlencoded
+user-agent: Hello
+
+foo={{?foo_value}}&bar={{?bar_value}}
