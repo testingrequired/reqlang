@@ -11,6 +11,7 @@ import * as state from "./state";
 import { Commands, ExecuteRequestParams, MenuChoices } from "./types";
 import * as RsResult from "rsresult";
 import { updateStatusText } from "./status";
+import { HttpResponse } from "reqlang-types";
 
 export const startLanguageServer = () => {
   const client = getClient();
@@ -246,15 +247,50 @@ export const runRequest = (context: ExtensionContext) => async () => {
     // Set state to know the request has been received
     state.setIsWaitingForResponse(uri, context, false);
 
-    // Put response string in to a new file in the workspace
-    // Create a new untitled document
-    const document = await workspace.openTextDocument({
-      content: response, // Initial content for the document
-      language: "json", // Specify the language mode, e.g., 'plaintext', 'javascript', etc.
-    });
+    const parsedReponse: HttpResponse = JSON.parse(response);
 
-    // Show the document in the editor
-    await window.showTextDocument(document);
+    const statusCode = Number.parseInt(parsedReponse.status_code, 10);
+
+    if (statusCode >= 200 && statusCode <= 299) {
+      // Try to get content type of the response
+      const contentType =
+        parsedReponse.headers["content-type"] ??
+        parsedReponse.headers["Content-Type"];
+
+      // Try to determine the language of the response based on the
+      // content type
+      let language: string;
+      switch (true) {
+        case contentType?.startsWith("application/json"):
+          language = "json";
+          break;
+        case contentType?.startsWith("text/html"):
+          language = "html";
+          break;
+        default:
+          language = "plaintext";
+      }
+
+      // Put response string in to a new file in the workspace
+      // Create a new untitled document
+      const document = await workspace.openTextDocument({
+        content: parsedReponse.body ?? "", // Initial content for the document
+        language, // Specify the language mode, e.g., 'plaintext', 'javascript', etc.
+      });
+
+      // Show the document in the editor
+      await window.showTextDocument(document);
+    } else {
+      // Put response string in to a new file in the workspace
+      // Create a new untitled document
+      const document = await workspace.openTextDocument({
+        content: response, // Initial content for the document
+        language: "json", // Specify the language mode, e.g., 'plaintext', 'javascript', etc.
+      });
+
+      // Show the document in the editor
+      await window.showTextDocument(document);
+    }
 
     // Format the response json
     await commands.executeCommand("editor.action.formatDocument");

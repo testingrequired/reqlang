@@ -8,4 +8,3 @@ content-type: application/json
 {
     "value": {{?value}}
 }
----
