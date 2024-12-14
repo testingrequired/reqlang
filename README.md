@@ -1,8 +1,10 @@
-# (Req)uest (Lang)uage
+# Request Language
 
-A format for defining http/s requests.
+A file format specification for HTTP/s requests, response assertions, and associated data/configuration.
 
 ## Examples
+
+See [all examples](./examples) for more.
 
 ### Request
 
