@@ -3,6 +3,7 @@ import {
   CodeLens,
   CodeLensProvider,
   ExtensionContext,
+  Position,
   ProviderResult,
   Range,
   TextDocument,
@@ -31,6 +32,14 @@ export class ReqlangCodeLensProvider implements CodeLensProvider {
   ): ProviderResult<CodeLens[]> {
     const lenses = [];
 
+    lenses.push(
+      new CodeLens(new Range(new Position(0, 0), new Position(0, 0)), {
+        title: "$(menu)",
+        tooltip: "Open the reqlang menu",
+        command: Commands.Menu,
+      })
+    );
+
     /**
      * Used to access this request file's workspace state.
      *
@@ -57,7 +66,7 @@ export class ReqlangCodeLensProvider implements CodeLensProvider {
      */
     const [_, requestSpan] = reqFile.request;
 
-    const lensRange = new Range(
+    const requestLensRange = new Range(
       document.positionAt(requestSpan.start),
       document.positionAt(requestSpan.end)
     );
@@ -73,7 +82,7 @@ export class ReqlangCodeLensProvider implements CodeLensProvider {
     // If an environment is set, add a run request lens
     if (env !== null) {
       lenses.push(
-        new CodeLens(lensRange, {
+        new CodeLens(requestLensRange, {
           command: Commands.RunRequest,
           title: isWaitingForResponse ? "$(pause) Running" : `$(run) Run`,
         })
@@ -85,7 +94,7 @@ export class ReqlangCodeLensProvider implements CodeLensProvider {
     if (numberOfEnvs > 1) {
       // Add a pick environment lens
       lenses.push(
-        new CodeLens(lensRange, {
+        new CodeLens(requestLensRange, {
           command: Commands.PickEnv,
           title: `$(globe) ${env ? env : "Env..."}`,
         })

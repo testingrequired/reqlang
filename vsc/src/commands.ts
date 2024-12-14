@@ -93,20 +93,28 @@ export const menuHandler = (context: ExtensionContext) => async () => {
 
   const env = state.getEnv(uri, context);
 
-  if (!env) {
-    choices.push(MenuChoices.PickEnv);
-  } else {
-    choices.push(MenuChoices.RunRequest);
+  // Check if there is more than one environment
+  const parseResult = state.getParseResults(uri, context);
+  if (parseResult) {
+    RsResult.ifOk(parseResult, (ok) => {
+      if (ok.envs.length > 1) {
+        choices.push(MenuChoices.PickEnv);
+        choices.push(MenuChoices.ClearEnv);
+      }
+    });
+  }
 
-    // Check if there is more than one environment
-    const parseResult = state.getParseResults(uri, context);
-    if (parseResult) {
-      RsResult.ifOk(parseResult, (ok) => {
-        if (ok.envs.length > 1) {
-          choices.push(MenuChoices.PickEnv);
-        }
-      });
-    }
+  if (env) {
+    choices.push(MenuChoices.RunRequest);
+  }
+
+  const client = getClient();
+
+  if (client.isRunning()) {
+    choices.push(MenuChoices.RestartLanguageServer);
+    choices.push(MenuChoices.StopLanguageServer);
+  } else {
+    choices.push(MenuChoices.StartLanguageServer);
   }
 
   const choice = await window.showQuickPick(choices, {
