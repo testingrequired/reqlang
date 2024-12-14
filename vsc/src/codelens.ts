@@ -7,12 +7,7 @@ import {
   Range,
   TextDocument,
 } from "vscode";
-import {
-  getEnv,
-  getIsWaitingForResponse,
-  getLastResponse,
-  getParseResults,
-} from "./state";
+import { getEnv, getIsWaitingForResponse, getParseResults } from "./state";
 import { expect } from "rsresult";
 import { Commands } from "./types";
 import { UnresolvedRequestFile } from "reqlang-types";
@@ -66,9 +61,6 @@ export class ReqlangCodeLensProvider implements CodeLensProvider {
       document.positionAt(requestSpan.end)
     );
 
-    const isWaitingForResponse = getIsWaitingForResponse(uri, this.context);
-    const lastResponse = getLastResponse(uri, this.context);
-
     /**
      * The request file's selected environment from the workspace state.
      * This might be null if the user hasn't selected an environment.
@@ -78,7 +70,10 @@ export class ReqlangCodeLensProvider implements CodeLensProvider {
     // If an environment is set, add a run request lens
     if (env !== null) {
       lenses.push(
-        new RunRequestCodeLens(requestLensRange, isWaitingForResponse)
+        new RunRequestCodeLens(
+          requestLensRange,
+          getIsWaitingForResponse(uri, this.context)
+        )
       );
     }
 
