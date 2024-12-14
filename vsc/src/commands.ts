@@ -206,7 +206,11 @@ export const runRequest = (context: ExtensionContext) => async () => {
         title: `Prompt: ${prompt}`,
       });
 
-      promptValues.push(promptValue ?? null);
+      if (promptValue === undefined) {
+        return;
+      }
+
+      promptValues.push(promptValue);
     }
 
     for (const secret of secrets) {
@@ -214,7 +218,11 @@ export const runRequest = (context: ExtensionContext) => async () => {
         title: `Secret: ${secret}`,
       });
 
-      secretValues.push(secretValue ?? null);
+      if (secretValue === undefined) {
+        return;
+      }
+
+      secretValues.push(secretValue);
     }
 
     const client = getClient();
@@ -352,6 +360,10 @@ export const exportToFile = (context: ExtensionContext) => async () => {
         title: `Prompt: ${prompt}`,
       });
 
+      if (promptValue === undefined) {
+        return;
+      }
+
       promptValues.push(promptValue ?? null);
     }
 
@@ -359,6 +371,10 @@ export const exportToFile = (context: ExtensionContext) => async () => {
       const secretValue = await window.showInputBox({
         title: `Secret: ${secret}`,
       });
+
+      if (secretValue === undefined) {
+        return;
+      }
 
       secretValues.push(secretValue ?? null);
     }
