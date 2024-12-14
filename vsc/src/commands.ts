@@ -117,6 +117,8 @@ export const menuHandler = (context: ExtensionContext) => async () => {
     choices.push(MenuChoices.StartLanguageServer);
   }
 
+  choices.push(MenuChoices.OpenOutput);
+
   const choice = await window.showQuickPick(choices, {
     title: "Reqlang Menu",
   });
@@ -132,6 +134,10 @@ export const menuHandler = (context: ExtensionContext) => async () => {
 
     case MenuChoices.RunRequest:
       await commands.executeCommand(Commands.RunRequest);
+      break;
+
+    case MenuChoices.OpenOutput:
+      client.outputChannel.show();
       break;
 
     default:

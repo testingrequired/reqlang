@@ -50,6 +50,7 @@ export enum MenuChoices {
   StartLanguageServer = "Start Language Server",
   StopLanguageServer = "Stop Language Server",
   RestartLanguageServer = "Restart Language Server",
+  OpenOutput = "Open Output Channel",
 }
 
 /**
