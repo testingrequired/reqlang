@@ -12,3 +12,4 @@ esbuild-prepublish.mjs
 esbuild-watch.mjs
 .nvmrc
 justfile
+screenshot.png
