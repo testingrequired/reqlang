@@ -109,6 +109,10 @@
       {
         "command": "reqlang.exportToFile",
         "title": "Reqlang: Export request to file"
+      },
+      {
+        "command": "reqlang.debugResetWorkspaceState",
+        "title": "Reqlang: Debug Reset Workspace State"
       }
     ],
     "taskDefinitions": [

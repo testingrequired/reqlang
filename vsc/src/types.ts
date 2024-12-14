@@ -81,4 +81,5 @@ export enum Commands {
   OpenMdnDocsHttpMessages = "reqlang.openMdnDocsHttpMessages",
   OpenMdnDocsHttpSpecs = "reqlang.openMdnDocsHttpSpecs",
   ExportToFile = "reqlang.exportToFile",
+  DebugResetWorkspaceState = "reqlang.debugResetWorkspaceState",
 }

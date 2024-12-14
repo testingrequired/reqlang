@@ -59,7 +59,16 @@ export async function activate(context: ExtensionContext) {
       Commands.OpenMdnDocsHttpSpecs,
       openMdnHttpDocsSpecs
     ),
-    commands.registerCommand(Commands.ExportToFile, exportToFile(context))
+    commands.registerCommand(Commands.ExportToFile, exportToFile(context)),
+    commands.registerCommand(Commands.DebugResetWorkspaceState, () => {
+      if (!window.activeTextEditor) {
+        return;
+      }
+
+      let filename = window.activeTextEditor.document.uri.toString();
+
+      state.debugResetWorkspaceState(filename, context);
+    })
   );
 
   context.subscriptions.push(

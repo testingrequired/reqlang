@@ -29,6 +29,21 @@ export function getParseResults(
   return state.parsedReqfile;
 }
 
+export function debugResetWorkspaceState(
+  fileKey: string,
+  context: ExtensionContext
+) {
+  const initState: ReqlangWorkspaceFileState = {
+    env: null,
+    parsedReqfile: null,
+    isWaitingForResponse: false,
+  };
+
+  context.workspaceState.update(fileKey, initState);
+
+  return initState;
+}
+
 export function initState(
   fileKey: string,
   context: ExtensionContext
