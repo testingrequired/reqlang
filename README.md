@@ -104,7 +104,7 @@ Access-Control-Allow-Credentials: true
 
 ## VS Code
 
-The [VS Code extension](./vsc) acts as an in-editor REST client.
+The [VS Code extension](./vsc/#readme) acts as an in-editor REST client.
 
 ![VS Code Extension Screenshot](./vsc/screenshot.png)
 
