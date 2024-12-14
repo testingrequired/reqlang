@@ -93,3 +93,6 @@ run-docker *args:
 
 run-mock-oauth:
     docker run --rm -p 8080:8080 -h localhost ghcr.io/navikt/mock-oauth2-server:2.1.2
+
+run-status-request status_code:
+    ./examples/valid/status_code.reqlang -e default -f curl -P status_code={{status_code}} | bash

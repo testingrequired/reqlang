@@ -2,6 +2,19 @@
 
 A format for defining http/s requests.
 
+```shell
+./valid/status_code.reqlang -e default -f curl -P status_code=201 | bash
+
+HTTP/1.1 201 CREATED
+Date: Sat, 14 Dec 2024 19:20:26 GMT
+Content-Type: text/html; charset=utf-8
+Content-Length: 0
+Connection: keep-alive
+Server: gunicorn/19.9.0
+Access-Control-Allow-Origin: *
+Access-Control-Allow-Credentials: true
+```
+
 ## Examples
 
 ### Request
