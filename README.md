@@ -10,7 +10,6 @@ Requests are written as an HTTP request messages.
 
 ```reqlang
 #!/usr/bin/env reqlang
-
 ---
 GET https://example.com HTTP/1.1
 ```
@@ -21,13 +20,10 @@ Responses are treated as an assertion and are written as an HTTP response messag
 
 ```reqlang
 #!/usr/bin/env reqlang
-
 ---
 GET https://example.com HTTP/1.1
 ---
 HTTP/1.1 200 OK
-
----
 ```
 
 ### Variables, Evironmental Values, & Template References
@@ -46,10 +42,6 @@ base_url = "https://dev.example.com"
 base_url = "https://example.com"
 ---
 GET {{:base_url}} HTTP/1.1
----
-HTTP/1.1 200 OK
-
----
 ```
 
 ### Prompts
@@ -71,10 +63,6 @@ base_url = "https://example.com"
 example_id = ""
 ---
 GET {{:base_url}}/?id={{?example_id}} HTTP/1.1
----
-HTTP/1.1 200 OK
-
----
 ```
 
 ### Secrets
@@ -98,9 +86,4 @@ example_id = ""
 ---
 GET {{:base_url}}/?id={{?example_id}} HTTP/1.1
 x-api-key: {{!api_key}}
-
----
-HTTP/1.1 200 OK
-
----
 ```
