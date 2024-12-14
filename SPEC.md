@@ -1,5 +1,7 @@
 # Request Language Specification
 
+This is more of a future spec doc than what's implemented.
+
 ## Objectives
 
 Request Language (Reqlang/reqlang) aims to be an easy to read and write document format for encoding an HTTP request, its associated variables, prompts & secrets as well as an optional expected HTTP response.
