@@ -1,0 +1,7 @@
+#!/usr/bin/env reqlang
+
+[prompts]
+# Delay in the number of seconds before responding
+seconds = ""
+---
+GET https://httpbin.org/delay/{{?seconds}} HTTP/1.1

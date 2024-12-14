@@ -163,6 +163,10 @@ export const runRequest = (context: ExtensionContext) => async () => {
     return;
   }
 
+  if (state.getIsWaitingForResponse(uri, context)) {
+    return;
+  }
+
   await RsResult.ifOk(parseResult, async ({ prompts, secrets }) => {
     if (!window.activeTextEditor) {
       return;
@@ -230,10 +234,17 @@ export const runRequest = (context: ExtensionContext) => async () => {
       secrets: secretsObj,
     };
 
+    // Set state to know the request has been sent to the language server
+    // It's used to set UI state in the editor
+    state.setIsWaitingForResponse(uri, context, true);
+
     const response = await commands.executeCommand<string>(
       Commands.Execute,
       params
     );
+
+    // Set state to know the request has been received
+    state.setIsWaitingForResponse(uri, context, false);
 
     // Put response string in to a new file in the workspace
     // Create a new untitled document

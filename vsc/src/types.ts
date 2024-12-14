@@ -10,6 +10,7 @@ export type ReqlangWorkspaceFileState = {
    */
   env: string | null;
   parsedReqfile: RsResult.Result<SimplifiedParsedRequestFile> | null;
+  isWaitingForResponse: boolean;
 };
 
 export type ParseNotification = {

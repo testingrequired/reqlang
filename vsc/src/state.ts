@@ -39,6 +39,7 @@ export function initState(
     const initState: ReqlangWorkspaceFileState = {
       env: null,
       parsedReqfile: null,
+      isWaitingForResponse: false,
     };
 
     context.workspaceState.update(fileKey, initState);
@@ -48,6 +49,7 @@ export function initState(
 
   return state;
 }
+
 export function setEnv(
   fileKey: string,
   context: ExtensionContext,
@@ -61,6 +63,7 @@ export function setEnv(
 
   return state;
 }
+
 export function getEnv(
   fileKey: string,
   context: ExtensionContext
@@ -68,4 +71,28 @@ export function getEnv(
   const state = initState(fileKey, context);
 
   return state.env;
+}
+
+// Get isWaitingForResponse in state
+export function getIsWaitingForResponse(
+  fileKey: string,
+  context: ExtensionContext
+): boolean {
+  const state = initState(fileKey, context);
+
+  return state.isWaitingForResponse;
+}
+
+export function setIsWaitingForResponse(
+  fileKey: string,
+  context: ExtensionContext,
+  isWaitingForResponse: boolean
+): ReqlangWorkspaceFileState {
+  const state = initState(fileKey, context);
+
+  state.isWaitingForResponse = isWaitingForResponse;
+
+  context.workspaceState.update(fileKey, state);
+
+  return state;
 }
