@@ -1,6 +1,4 @@
-#!/usr/bin/env reqlang
 
 [envs]
-
 ---
 GET http://example.com HTTP/1.1
