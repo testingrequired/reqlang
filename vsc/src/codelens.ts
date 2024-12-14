@@ -79,15 +79,6 @@ export class ReqlangCodeLensProvider implements CodeLensProvider {
      */
     const env = getEnv(uri, this.context);
 
-    if (env !== null) {
-      lenses.push(
-        new CodeLens(new Range(new Position(0, 0), new Position(0, 0)), {
-          command: Commands.ExportToFile,
-          title: "$(terminal) Export Script",
-        })
-      );
-    }
-
     // If an environment is set, add a run request lens
     if (env !== null) {
       lenses.push(
