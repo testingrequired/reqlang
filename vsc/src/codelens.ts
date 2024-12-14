@@ -8,7 +8,12 @@ import {
   Range,
   TextDocument,
 } from "vscode";
-import { getEnv, getIsWaitingForResponse, getParseResults } from "./state";
+import {
+  getEnv,
+  getIsWaitingForResponse,
+  getLastResponse,
+  getParseResults,
+} from "./state";
 import { expect } from "rsresult";
 import { Commands } from "./types";
 
@@ -67,6 +72,7 @@ export class ReqlangCodeLensProvider implements CodeLensProvider {
     );
 
     const isWaitingForResponse = getIsWaitingForResponse(uri, this.context);
+    const lastResponse = getLastResponse(uri, this.context);
 
     /**
      * The request file's selected environment from the workspace state.
@@ -76,10 +82,20 @@ export class ReqlangCodeLensProvider implements CodeLensProvider {
 
     // If an environment is set, add a run request lens
     if (env !== null) {
+      let title: string;
+
+      if (isWaitingForResponse) {
+        title = "$(pause) Running";
+      } else {
+        const statusCode = Number(lastResponse!.status_code);
+        const responseIsOk = statusCode >= 200 && statusCode < 300;
+        title = responseIsOk ? "$(run) Run" : "$(run) Retry";
+      }
+
       lenses.push(
         new CodeLens(requestLensRange, {
           command: Commands.RunRequest,
-          title: isWaitingForResponse ? "$(pause) Running" : `$(run) Run`,
+          title,
         })
       );
     }

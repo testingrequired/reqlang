@@ -1,4 +1,8 @@
-import { HttpRequest, UnresolvedRequestFile } from "reqlang-types";
+import {
+  HttpRequest,
+  HttpResponse,
+  UnresolvedRequestFile,
+} from "reqlang-types";
 import * as RsResult from "rsresult";
 
 /**
@@ -11,6 +15,7 @@ export type ReqlangWorkspaceFileState = {
   env: string | null;
   parsedReqfile: RsResult.Result<SimplifiedParsedRequestFile> | null;
   isWaitingForResponse: boolean;
+  lastResponse: HttpResponse | null;
 };
 
 export type ParseNotification = {

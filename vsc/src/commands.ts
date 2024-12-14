@@ -271,6 +271,9 @@ export const runRequest = (context: ExtensionContext) => async () => {
     // It's used to set UI state in the editor
     state.setIsWaitingForResponse(uri, context, true);
 
+    // Clear the last response, if it exists
+    state.setLastResponse(uri, context, null);
+
     const response = await commands.executeCommand<string>(
       Commands.Execute,
       params
@@ -280,6 +283,8 @@ export const runRequest = (context: ExtensionContext) => async () => {
     state.setIsWaitingForResponse(uri, context, false);
 
     const parsedReponse: HttpResponse = JSON.parse(response);
+
+    state.setLastResponse(uri, context, parsedReponse);
 
     const statusCode = Number.parseInt(parsedReponse.status_code, 10);
 

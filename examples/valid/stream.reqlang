@@ -1,0 +1,7 @@
+#!/usr/bin/env reqlang
+
+[prompts]
+# Stream n JSON responses
+number = ""
+---
+GET https://httpbin.org/stream/{{?number}} HTTP/1.1

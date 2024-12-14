@@ -5,6 +5,7 @@ import type {
   SimplifiedParsedRequestFile,
 } from "./types";
 import * as RsResult from "rsresult";
+import { HttpResponse } from "reqlang-types";
 
 export function setParseResult(
   fileKey: string,
@@ -37,6 +38,7 @@ export function debugResetWorkspaceState(
     env: null,
     parsedReqfile: null,
     isWaitingForResponse: false,
+    lastResponse: null,
   };
 
   context.workspaceState.update(fileKey, initState);
@@ -55,6 +57,7 @@ export function initState(
       env: null,
       parsedReqfile: null,
       isWaitingForResponse: false,
+      lastResponse: null,
     };
 
     context.workspaceState.update(fileKey, initState);
@@ -106,6 +109,30 @@ export function setIsWaitingForResponse(
   const state = initState(fileKey, context);
 
   state.isWaitingForResponse = isWaitingForResponse;
+
+  context.workspaceState.update(fileKey, state);
+
+  return state;
+}
+
+// Get isWaitingForResponse in state
+export function getLastResponse(
+  fileKey: string,
+  context: ExtensionContext
+): HttpResponse | null {
+  const state = initState(fileKey, context);
+
+  return state.lastResponse;
+}
+
+export function setLastResponse(
+  fileKey: string,
+  context: ExtensionContext,
+  response: HttpResponse | null
+): ReqlangWorkspaceFileState {
+  const state = initState(fileKey, context);
+
+  state.lastResponse = response;
 
   context.workspaceState.update(fileKey, state);
 

@@ -1,0 +1,7 @@
+#!/usr/bin/env reqlang
+
+[prompts]
+# Status code the response will return
+status_code = ""
+---
+GET https://httpbin.org/status/{{?status_code}} HTTP/1.1
