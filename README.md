@@ -117,7 +117,10 @@ docker build -t reqlang:0.1.0 .
 A directory of request files can be mounted inside the container's `/usr/local/src` directory to make them accessible.
 
 ```shell
-docker run --rm --read-only -v "/$PWD/examples":/usr/local/src/examples:ro reqlang:0.1.0 ./examples/valid/delay.reqlang -e default -f curl -P seconds=5 | bash
+docker run --rm --read-only \
+    -v "/$PWD/examples":/usr/local/src/examples:ro reqlang:0.1.0 \
+    ./examples/valid/delay.reqlang -e default -f curl \
+    -P seconds=5 | bash
 
 # HTTP/1.1 201 CREATED
 # Date: Sat, 14 Dec 2024 19:20:26 GMT
