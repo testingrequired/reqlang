@@ -138,10 +138,9 @@
     "vscode-languageclient": "9.0.1"
   },
   "scripts": {
-    "vscode:prepublish": "node ./esbuild-prepublish.mjs",
-    "build": "node ./esbuild-build.mjs",
+    "build": "node ./esbuild-build.mjs --production",
     "package": "vsce package --out out",
-    "watch": "node ./esbuild-watch.mjs",
+    "watch": "node ./esbuild-build.mjs --watch",
     "update-vscode": "node ./node_modules/vscode/bin/install"
   }
 }

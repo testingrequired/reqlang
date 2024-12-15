@@ -8,8 +8,6 @@ src/**
 **/*.map
 **/*.ts
 esbuild-build.mjs
-esbuild-prepublish.mjs
-esbuild-watch.mjs
 .nvmrc
 justfile
 screenshot.png
