@@ -79,7 +79,7 @@ pub fn export(request: &HttpRequest, format: Format) -> String {
             };
 
             format!(
-                "curl {}{} --http{}{} -ILs",
+                "curl {}{} --http{}{} -v",
                 verb, target, request.http_version, the_rest
             )
         }
@@ -112,21 +112,21 @@ mod test {
         format_to_curl_get_request,
         HttpRequest::get("/", "1.1", vec![]),
         crate::Format::Curl,
-        "curl / --http1.1 -ILs"
+        "curl / --http1.1 -v"
     );
 
     export_test!(
         format_to_curl_get_request_with_single_header,
         HttpRequest::get("/", "1.1", vec![("test".to_string(), "value".to_string())]),
         crate::Format::Curl,
-        "curl / --http1.1 -H \"test: value\" -ILs"
+        "curl / --http1.1 -H \"test: value\" -v"
     );
 
     export_test!(
         format_to_curl_post_request,
         HttpRequest::post("/", "1.1", vec![], Some("")),
         crate::Format::Curl,
-        "curl -X POST / --http1.1 -ILs"
+        "curl -X POST / --http1.1 -v"
     );
 
     export_test!(
@@ -138,7 +138,7 @@ mod test {
             None
         ),
         crate::Format::Curl,
-        "curl -X POST / --http1.1 -H \"test: value\" -ILs"
+        "curl -X POST / --http1.1 -H \"test: value\" -v"
     );
 
     export_test!(
@@ -150,7 +150,7 @@ mod test {
             Some("testing")
         ),
         crate::Format::Curl,
-        "curl -X POST / --http1.1 -H \"test: value\" -d 'testing' -ILs"
+        "curl -X POST / --http1.1 -H \"test: value\" -d 'testing' -v"
     );
 
     export_test!(
@@ -171,6 +171,6 @@ mod test {
         format_to_curl_script_get_request,
         HttpRequest::get("/", "1.1", vec![]),
         crate::Format::CurlScript,
-        "#!/usr/bin/env bash\n\ncurl / --http1.1 -ILs"
+        "#!/usr/bin/env bash\n\ncurl / --http1.1 -v"
     );
 }
