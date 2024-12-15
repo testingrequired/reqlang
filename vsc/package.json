@@ -1,7 +1,8 @@
 {
-  "name": "reqlang-vsc-extension",
-  "displayName": "Reqlang VSC Extension",
-  "description": "An extension for the Request language",
+  "name": "reqlang",
+  "displayName": "Request Language",
+  "description": "Support for request language files",
+  "icon": "reqlang.webp",
   "version": "0.1.0",
   "publisher": "kyleect",
   "license": "MIT",
@@ -33,7 +34,7 @@
         "configuration": "./language-configuration.json"
       },
       {
-        "id": "reqlang-injection"
+        "id": "reqlang-in-markdown"
       }
     ],
     "grammars": [
@@ -43,7 +44,7 @@
         "path": "./reqlang.tmLanguage.json"
       },
       {
-        "language": "reqlang-injection",
+        "language": "reqlang-in-markdown",
         "scopeName": "markdown.reqlang.codeblock",
         "path": "./syntaxes/codeblock.json",
         "injectTo": [

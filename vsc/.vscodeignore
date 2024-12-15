@@ -10,4 +10,3 @@ src/**
 esbuild-build.mjs
 .nvmrc
 justfile
-screenshot.png
