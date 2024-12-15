@@ -1,4 +1,5 @@
-target
-vsc
-wasm-example
-examples
+target/
+vsc/
+examples/
+node_modules/
+.git/

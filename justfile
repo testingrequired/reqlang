@@ -83,13 +83,13 @@ clean-git-branches:
     git branch -d $(git branch --merged=main | grep -v main) && git fetch --prune
 
 build-docker:
-    docker build -t {{docker_image}} .
+    DOCKER_BUILDKIT=1 docker build -t {{docker_image}} .
 
 build-docker-no-cache:
     docker build --no-cache -t {{docker_image}} .
 
 run-docker *args:
-    docker run --rm --read-only -v "/$PWD/examples":/app/examples:ro {{docker_image}} {{args}}
+    docker run --rm --read-only -v "/$PWD/examples":/usr/local/src/examples:ro {{docker_image}} {{args}}
 
 run-mock-oauth:
     docker run --rm -p 8080:8080 -h localhost ghcr.io/navikt/mock-oauth2-server:2.1.2

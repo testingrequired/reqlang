@@ -1,38 +1,35 @@
 # syntax=docker/dockerfile:1
 
 # BUILD ########################################################################
+FROM rust:1.75.0-slim-bookworm AS build
 
-ARG RUST_VERSION=1.75.0
-FROM rust:${RUST_VERSION}-slim-bookworm AS build
-WORKDIR /app
+WORKDIR /usr/local/src
 
-COPY . .
+COPY Cargo.toml Cargo.lock ./
+COPY cli cli/
+COPY diagnostics diagnostics/
+COPY errors errors/
+COPY export export/
+COPY integration_tests integration_tests/
+COPY parser parser/
+COPY reqlang reqlang/
+COPY reqlang-client reqlang-client/
+COPY reqlang-lsp reqlang-lsp/
+COPY span span/
+COPY str-idxpos str-idxpos/
+COPY types types/
 
+RUN cargo fetch
 RUN cargo build --locked --release --package cli
 
-# FINAL #######################################################################
+# RUNTIME #####################################################################
+FROM debian:bookworm-slim
 
-FROM debian:bookworm-slim AS final
+WORKDIR /usr/local/bin
 
-RUN groupadd -r user
-RUN useradd -r -g user user
+COPY --from=build /usr/local/src/target/release/reqlang /usr/local/bin/
 
-WORKDIR /app
+# Request files can be mounted here
+WORKDIR /usr/local/src
 
-RUN chown -R user:user /app
-
-USER user
-
-COPY \
-  --from=build \
-  /app/target/release/reqlang \
-  .
-
-COPY --chown=user \
-  --from=build \
-  /app/entrypoint.sh \
-  .
-
-RUN chmod 755 ./entrypoint.sh
-
-ENTRYPOINT [ "./entrypoint.sh" ]
+ENTRYPOINT ["/usr/local/bin/reqlang"]
