@@ -102,6 +102,29 @@ Access-Control-Allow-Origin: *
 Access-Control-Allow-Credentials: true
 ```
 
+## CLI in Docker
+
+The CLI can be ran in docker as well. First build the docker image:
+
+```shell
+just build-docker
+```
+
+Calling it:
+
+```shell
+just run-docker ./examples/valid/status_code.reqlang -e default -f curl -P status_code=200 | bash
+
+HTTP/1.1 201 CREATED
+Date: Sat, 14 Dec 2024 19:20:26 GMT
+Content-Type: text/html; charset=utf-8
+Content-Length: 0
+Connection: keep-alive
+Server: gunicorn/19.9.0
+Access-Control-Allow-Origin: *
+Access-Control-Allow-Credentials: true
+```
+
 ## VS Code
 
 The [VS Code extension](./vsc/#readme) acts as an in-editor REST client.
