@@ -92,37 +92,41 @@ Calling it:
 ```shell
 ./examples/valid/status_code.reqlang -e default -f curl -P status_code=201 | bash
 
-HTTP/1.1 201 CREATED
-Date: Sat, 14 Dec 2024 19:20:26 GMT
-Content-Type: text/html; charset=utf-8
-Content-Length: 0
-Connection: keep-alive
-Server: gunicorn/19.9.0
-Access-Control-Allow-Origin: *
-Access-Control-Allow-Credentials: true
+# HTTP/1.1 201 CREATED
+# Date: Sat, 14 Dec 2024 19:20:26 GMT
+# Content-Type: text/html; charset=utf-8
+# Content-Length: 0
+# Connection: keep-alive
+# Server: gunicorn/19.9.0
+# Access-Control-Allow-Origin: *
+# Access-Control-Allow-Credentials: true
 ```
 
 ## CLI in Docker
 
-The CLI can be ran in docker as well. First build the docker image:
+The `reqlang` CLI can be run from a docker image.
+
+### Building
 
 ```shell
-just build-docker
+docker build -t reqlang:0.1.0 .
 ```
 
-Calling it:
+### Running
+
+A directory of request files can be mounted inside the container's `/usr/local/src` directory to make them accessible.
 
 ```shell
-just run-docker ./examples/valid/status_code.reqlang -e default -f curl -P status_code=200 | bash
+docker run --rm --read-only -v "/$PWD/examples":/usr/local/src/examples:ro reqlang:0.1.0 ./examples/valid/delay.reqlang -e default -f curl -P seconds=5 | bash
 
-HTTP/1.1 201 CREATED
-Date: Sat, 14 Dec 2024 19:20:26 GMT
-Content-Type: text/html; charset=utf-8
-Content-Length: 0
-Connection: keep-alive
-Server: gunicorn/19.9.0
-Access-Control-Allow-Origin: *
-Access-Control-Allow-Credentials: true
+# HTTP/1.1 201 CREATED
+# Date: Sat, 14 Dec 2024 19:20:26 GMT
+# Content-Type: text/html; charset=utf-8
+# Content-Length: 0
+# Connection: keep-alive
+# Server: gunicorn/19.9.0
+# Access-Control-Allow-Origin: *
+# Access-Control-Allow-Credentials: true
 ```
 
 ## VS Code

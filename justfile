@@ -1,4 +1,4 @@
-docker_image := "kyleect/reqlang:0.1.0"
+docker_image := "reqlang:0.1.0"
 
 default:
     @just --list
@@ -83,7 +83,7 @@ clean-git-branches:
     git branch -d $(git branch --merged=main | grep -v main) && git fetch --prune
 
 build-docker:
-    DOCKER_BUILDKIT=1 docker build -t {{docker_image}} .
+    docker build -t {{docker_image}} .
 
 build-docker-no-cache:
     docker build --no-cache -t {{docker_image}} .
