@@ -1,12 +1,11 @@
 "use strict";
 import { ExtensionContext } from "vscode";
-import type {
-  RecordedHttpResponse,
-  ReqlangWorkspaceFileState,
-  SimplifiedParsedRequestFile,
+import {
+  type RecordedHttpResponse,
+  type ReqlangWorkspaceFileState,
+  type SimplifiedParsedRequestFile,
 } from "./types";
 import * as RsResult from "rsresult";
-import { HttpResponse } from "reqlang-types";
 
 /**
  * Set a request file's workspace state with it's parsed request file
@@ -99,7 +98,6 @@ export function updateState(
 ): ReqlangWorkspaceFileState {
   const state = fn(getOrInitState(fileKey, context));
   context.workspaceState.update(fileKey, state);
-  console.log(`NEW STATE: ${JSON.stringify(state)}`);
   return state;
 }
 
