@@ -114,6 +114,10 @@
       {
         "command": "reqlang.debugResetWorkspaceState",
         "title": "Reqlang: Debug Reset Workspace State"
+      },
+      {
+        "command": "reqlang.showResponse",
+        "title": "Reqlang: Show Response For Request File"
       }
     ],
     "taskDefinitions": [

@@ -155,6 +155,103 @@ export const menuHandler = (context: ExtensionContext) => async () => {
   }
 };
 
+export const showResponse = async (response: HttpResponse | null) => {
+  if (response === null) {
+    return;
+  }
+
+  const statusCode = Number.parseInt(response.status_code, 10);
+  const hasBody = response.body !== null && response.body !== "";
+
+  if (statusCode >= 200 && statusCode <= 299) {
+    const actions = ["Show Response"];
+
+    if (hasBody) {
+      actions.push("Show Body");
+    }
+
+    actions.push("Ok");
+
+    window
+      .showInformationMessage(
+        `Success! Status: ${response.status_code}`,
+        ...actions
+      )
+      .then(async (action) => {
+        switch (action) {
+          case "Show Response":
+            // Put response string in to a new file in the workspace
+            // Create a new untitled document
+            const responseDocument = await workspace.openTextDocument({
+              content: JSON.stringify(response, null, 2), // Initial content for the document
+              language: "json", // Specify the language mode, e.g., 'plaintext', 'javascript', etc.
+            });
+
+            // Show the document in the editor
+            await window.showTextDocument(responseDocument);
+            break;
+          case "Show Body":
+            // Try to get content type of the response
+            const contentType =
+              response.headers["content-type"] ??
+              response.headers["Content-Type"];
+
+            // Try to determine the language of the response based on the
+            // content type
+            let language: string;
+            switch (true) {
+              case contentType?.startsWith("application/json"):
+                language = "json";
+                break;
+              case contentType?.startsWith("text/html"):
+                language = "html";
+                break;
+              default:
+                language = "plaintext";
+            }
+
+            // Put response string in to a new file in the workspace
+            // Create a new untitled document
+            const document = await workspace.openTextDocument({
+              content: response.body ?? "", // Initial content for the document
+              language, // Specify the language mode, e.g., 'plaintext', 'javascript', etc.
+            });
+
+            // Show the document in the editor
+            await window.showTextDocument(document);
+            break;
+          default:
+            break;
+        }
+      });
+  } else {
+    const action = await window.showErrorMessage(
+      `Failed! Status: ${response.status_code}`,
+      "Show Response",
+      "Ok"
+    );
+
+    switch (action) {
+      case "Show Response":
+        // Put response string in to a new file in the workspace
+        // Create a new untitled document
+        const document = await workspace.openTextDocument({
+          content: JSON.stringify(response, null, 2), // Initial content for the document
+          language: "json", // Specify the language mode, e.g., 'plaintext', 'javascript', etc.
+        });
+
+        // Show the document in the editor
+        await window.showTextDocument(document);
+
+        // Format the response json
+        await commands.executeCommand("editor.action.formatDocument");
+        break;
+      case "Ok":
+        break;
+    }
+  }
+};
+
 export const openMdnHttpDocs = () => {
   env.openExternal(
     Uri.parse("https://developer.mozilla.org/en-US/docs/Web/HTTP")
@@ -286,96 +383,7 @@ export const runRequest = (context: ExtensionContext) => async () => {
 
     state.setLastResponse(uri, context, parsedReponse);
 
-    const statusCode = Number.parseInt(parsedReponse.status_code, 10);
-    const hasBody = parsedReponse.body !== null && parsedReponse.body !== "";
-
-    if (statusCode >= 200 && statusCode <= 299) {
-      const actions = ["Show Response"];
-
-      if (hasBody) {
-        actions.push("Show Body");
-      }
-
-      actions.push("Ok");
-
-      window
-        .showInformationMessage(
-          `Success! Status: ${parsedReponse.status_code}`,
-          ...actions
-        )
-        .then(async (action) => {
-          switch (action) {
-            case "Show Response":
-              // Put response string in to a new file in the workspace
-              // Create a new untitled document
-              const responseDocument = await workspace.openTextDocument({
-                content: JSON.stringify(parsedReponse, null, 2), // Initial content for the document
-                language: "json", // Specify the language mode, e.g., 'plaintext', 'javascript', etc.
-              });
-
-              // Show the document in the editor
-              await window.showTextDocument(responseDocument);
-              break;
-            case "Show Body":
-              // Try to get content type of the response
-              const contentType =
-                parsedReponse.headers["content-type"] ??
-                parsedReponse.headers["Content-Type"];
-
-              // Try to determine the language of the response based on the
-              // content type
-              let language: string;
-              switch (true) {
-                case contentType?.startsWith("application/json"):
-                  language = "json";
-                  break;
-                case contentType?.startsWith("text/html"):
-                  language = "html";
-                  break;
-                default:
-                  language = "plaintext";
-              }
-
-              // Put response string in to a new file in the workspace
-              // Create a new untitled document
-              const document = await workspace.openTextDocument({
-                content: parsedReponse.body ?? "", // Initial content for the document
-                language, // Specify the language mode, e.g., 'plaintext', 'javascript', etc.
-              });
-
-              // Show the document in the editor
-              await window.showTextDocument(document);
-              break;
-            default:
-              break;
-          }
-        });
-    } else {
-      const action = await window.showErrorMessage(
-        `Failed! Status: ${parsedReponse.status_code}`,
-        "Show Response",
-        "Ok"
-      );
-
-      switch (action) {
-        case "Show Response":
-          // Put response string in to a new file in the workspace
-          // Create a new untitled document
-          const document = await workspace.openTextDocument({
-            content: response, // Initial content for the document
-            language: "json", // Specify the language mode, e.g., 'plaintext', 'javascript', etc.
-          });
-
-          // Show the document in the editor
-          await window.showTextDocument(document);
-
-          // Format the response json
-          await commands.executeCommand("editor.action.formatDocument");
-          break;
-        case "Ok":
-          break;
-      }
-    }
+    commands.executeCommand(Commands.ShowResponse, parsedReponse);
   });
 };
 

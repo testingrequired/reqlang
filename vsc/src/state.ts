@@ -98,6 +98,7 @@ export function updateState(
 ): ReqlangWorkspaceFileState {
   const state = fn(getOrInitState(fileKey, context));
   context.workspaceState.update(fileKey, state);
+  console.log(`NEW STATE: ${JSON.stringify(state)}`);
   return state;
 }
 

@@ -23,6 +23,7 @@ import {
   pickCurrentEnv,
   restartLanguageServer,
   runRequest,
+  showResponse,
   startLanguageServer,
   stopLanguageServer,
 } from "./src/commands";
@@ -60,6 +61,7 @@ export async function activate(context: ExtensionContext) {
       openMdnHttpDocsSpecs
     ),
     commands.registerCommand(Commands.ExportToFile, exportToFile(context)),
+    commands.registerCommand(Commands.ShowResponse, showResponse),
     commands.registerCommand(Commands.DebugResetWorkspaceState, () => {
       if (!window.activeTextEditor) {
         return;

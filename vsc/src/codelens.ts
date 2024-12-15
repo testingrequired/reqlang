@@ -7,10 +7,15 @@ import {
   Range,
   TextDocument,
 } from "vscode";
-import { getEnv, getIsWaitingForResponse, getParseResults } from "./state";
+import {
+  getEnv,
+  getIsWaitingForResponse,
+  getLastResponse,
+  getParseResults,
+} from "./state";
 import { expect } from "rsresult";
 import { Commands } from "./types";
-import { UnresolvedRequestFile } from "reqlang-types";
+import { HttpResponse, UnresolvedRequestFile } from "reqlang-types";
 
 /**
  * A codelens provider for request files
@@ -62,6 +67,11 @@ export class ReqlangCodeLensProvider implements CodeLensProvider {
     );
 
     /**
+     * The last response, if it exists
+     */
+    const lastResponse = getLastResponse(uri, this.context);
+
+    /**
      * The request file's selected environment from the workspace state.
      * This might be null if the user hasn't selected an environment.
      */
@@ -75,6 +85,10 @@ export class ReqlangCodeLensProvider implements CodeLensProvider {
           getIsWaitingForResponse(uri, this.context)
         )
       );
+    }
+
+    if (lastResponse !== null) {
+      lenses.push(new LastReponseCodeLens(requestLensRange, lastResponse));
     }
 
     // If there are more than one environment in the request file, add a pick environment lens
@@ -108,6 +122,19 @@ class RunRequestCodeLens extends CodeLens {
     super(requestLensRange, {
       command: Commands.RunRequest,
       title: isWaitingForResponse ? "$(pause) Running" : "$(run) Run",
+    });
+  }
+}
+
+/**
+ * A codelens to display the last resposne.
+ */
+class LastReponseCodeLens extends CodeLens {
+  constructor(requestLensRange: Range, lastResponse: HttpResponse) {
+    super(requestLensRange, {
+      command: Commands.ShowResponse,
+      title: `Response: ${lastResponse.status_code}`,
+      arguments: [lastResponse],
     });
   }
 }

@@ -66,6 +66,7 @@ export enum MenuChoices {
   StopLanguageServer = "Stop Language Server",
   RestartLanguageServer = "Restart Language Server",
   OpenOutput = "Open Output Channel",
+  LastResponse = "Last response",
 }
 
 /**
@@ -87,4 +88,5 @@ export enum Commands {
   OpenMdnDocsHttpSpecs = "reqlang.openMdnDocsHttpSpecs",
   ExportToFile = "reqlang.exportToFile",
   DebugResetWorkspaceState = "reqlang.debugResetWorkspaceState",
+  ShowResponse = "reqlang.showResponse",
 }
