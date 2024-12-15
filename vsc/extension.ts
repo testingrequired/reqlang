@@ -91,7 +91,7 @@ export async function activate(context: ExtensionContext) {
       return;
     }
 
-    state.initState(filename, context);
+    state.getOrInitState(filename, context);
 
     // Default the selected environment is there's just one
     RsResult.ifOk(state.getParseResults(filename, context)!, (result) => {
