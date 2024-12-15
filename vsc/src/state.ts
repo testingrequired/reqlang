@@ -1,6 +1,7 @@
 "use strict";
 import { ExtensionContext } from "vscode";
 import type {
+  RecordedHttpResponse,
   ReqlangWorkspaceFileState,
   SimplifiedParsedRequestFile,
 } from "./types";
@@ -48,7 +49,7 @@ export function debugResetWorkspaceState(
     env: null,
     parsedReqfile: null,
     isWaitingForResponse: false,
-    lastResponse: null,
+    responses: [],
   };
 
   context.workspaceState.update(fileKey, initState);
@@ -73,7 +74,7 @@ export function getOrInitState(
       env: null,
       parsedReqfile: null,
       isWaitingForResponse: false,
-      lastResponse: null,
+      responses: [],
     };
 
     context.workspaceState.update(fileKey, initState);
@@ -182,10 +183,10 @@ export function setIsWaitingForResponse(
 export function getLastResponse(
   fileKey: string,
   context: ExtensionContext
-): HttpResponse | null {
+): RecordedHttpResponse | null {
   const state = getOrInitState(fileKey, context);
 
-  return state.lastResponse;
+  return state.responses[state.responses.length - 1] ?? null;
 }
 
 /**
@@ -199,10 +200,10 @@ export function getLastResponse(
 export function setLastResponse(
   fileKey: string,
   context: ExtensionContext,
-  response: HttpResponse | null
+  response: RecordedHttpResponse
 ): ReqlangWorkspaceFileState {
   return updateState(fileKey, context, (state) => {
-    state.lastResponse = response;
+    state.responses.push(response);
     return state;
   });
 }

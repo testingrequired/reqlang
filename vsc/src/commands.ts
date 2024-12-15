@@ -123,7 +123,7 @@ export const menuHandler = (context: ExtensionContext) => async () => {
     choices.push(MenuChoices.StartLanguageServer);
   }
 
-  choices.push(MenuChoices.OpenOutput);
+  choices.push(MenuChoices.OpenOutput, MenuChoices.DebugClearWorkspaceState);
 
   const choice = await window.showQuickPick(choices, {
     title: "Reqlang Menu",
@@ -148,6 +148,10 @@ export const menuHandler = (context: ExtensionContext) => async () => {
 
     case MenuChoices.OpenOutput:
       client.outputChannel.show();
+      break;
+
+    case MenuChoices.DebugClearWorkspaceState:
+      await commands.executeCommand(Commands.DebugResetWorkspaceState);
       break;
 
     default:
@@ -368,9 +372,6 @@ export const runRequest = (context: ExtensionContext) => async () => {
     // It's used to set UI state in the editor
     state.setIsWaitingForResponse(uri, context, true);
 
-    // Clear the last response, if it exists
-    state.setLastResponse(uri, context, null);
-
     const response = await commands.executeCommand<string>(
       Commands.Execute,
       params
@@ -381,7 +382,13 @@ export const runRequest = (context: ExtensionContext) => async () => {
 
     const parsedReponse: HttpResponse = JSON.parse(response);
 
-    state.setLastResponse(uri, context, parsedReponse);
+    const statusCode = Number.parseInt(parsedReponse.status_code, 10);
+
+    state.setLastResponse(uri, context, {
+      response: parsedReponse,
+      recieved: new Date(),
+      wasSuccessful: statusCode >= 200 && statusCode < 300,
+    });
 
     commands.executeCommand(Commands.ShowResponse, parsedReponse);
   });

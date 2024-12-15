@@ -14,8 +14,9 @@ import {
   getParseResults,
 } from "./state";
 import { expect } from "rsresult";
-import { Commands } from "./types";
-import { HttpResponse, UnresolvedRequestFile } from "reqlang-types";
+import { Commands, RecordedHttpResponse } from "./types";
+import { UnresolvedRequestFile } from "reqlang-types";
+import { formatDistance } from "date-fns";
 
 /**
  * A codelens provider for request files
@@ -130,11 +131,14 @@ class RunRequestCodeLens extends CodeLens {
  * A codelens to display the last resposne.
  */
 class LastReponseCodeLens extends CodeLens {
-  constructor(requestLensRange: Range, lastResponse: HttpResponse) {
+  constructor(requestLensRange: Range, lastResponse: RecordedHttpResponse) {
+    const ago = formatDistance(new Date(), lastResponse.recieved);
+    const icon = lastResponse.wasSuccessful ? "check" : "error";
+
     super(requestLensRange, {
       command: Commands.ShowResponse,
-      title: `Response: ${lastResponse.status_code}`,
-      arguments: [lastResponse],
+      title: `$(${icon}) (${ago} ago)`,
+      arguments: [lastResponse.response],
     });
   }
 }

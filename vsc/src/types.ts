@@ -6,6 +6,15 @@ import {
 import * as RsResult from "rsresult";
 
 /**
+ * Responses from executed requests send to the language server
+ */
+export type RecordedHttpResponse = {
+  response: HttpResponse;
+  recieved: Date;
+  wasSuccessful: boolean;
+};
+
+/**
  * State for an individual request file
  */
 export type ReqlangWorkspaceFileState = {
@@ -15,7 +24,7 @@ export type ReqlangWorkspaceFileState = {
   env: string | null;
   parsedReqfile: RsResult.Result<SimplifiedParsedRequestFile> | null;
   isWaitingForResponse: boolean;
-  lastResponse: HttpResponse | null;
+  responses: RecordedHttpResponse[];
 };
 
 export type ParseNotification = {
@@ -67,6 +76,7 @@ export enum MenuChoices {
   RestartLanguageServer = "Restart Language Server",
   OpenOutput = "Open Output Channel",
   LastResponse = "Last response",
+  DebugClearWorkspaceState = "Debug: Clear Workspace State For This Request File",
 }
 
 /**
