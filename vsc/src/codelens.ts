@@ -78,17 +78,17 @@ export class ReqlangCodeLensProvider implements CodeLensProvider {
      */
     const env = getEnv(uri, this.context);
 
+    // Get the current state of whether we're waiting for a response or not.
+    const isWaitingForResponse = getIsWaitingForResponse(uri, this.context);
+
     // If an environment is set, add a run request lens
     if (env !== null) {
       lenses.push(
-        new RunRequestCodeLens(
-          requestLensRange,
-          getIsWaitingForResponse(uri, this.context)
-        )
+        new RunRequestCodeLens(requestLensRange, isWaitingForResponse)
       );
     }
 
-    if (lastResponse !== null) {
+    if (lastResponse !== null && !isWaitingForResponse) {
       lenses.push(new LastReponseCodeLens(requestLensRange, lastResponse));
     }
 
@@ -122,13 +122,13 @@ class RunRequestCodeLens extends CodeLens {
   constructor(requestLensRange: Range, isWaitingForResponse: boolean) {
     super(requestLensRange, {
       command: Commands.RunRequest,
-      title: isWaitingForResponse ? "$(pause) Running" : "$(run) Run",
+      title: isWaitingForResponse ? "$(sync~spin) Running Request" : "$(run)",
     });
   }
 }
 
 /**
- * A codelens to display the last resposne.
+ * A codelens to display the last response.
  */
 class LastReponseCodeLens extends CodeLens {
   constructor(requestLensRange: Range, lastResponse: RecordedHttpResponse) {
@@ -137,7 +137,7 @@ class LastReponseCodeLens extends CodeLens {
 
     super(requestLensRange, {
       command: Commands.ShowResponse,
-      title: `$(${icon}) (${ago} ago)`,
+      title: `$(${icon}) ${ago} ago`,
       arguments: [lastResponse.response],
     });
   }
