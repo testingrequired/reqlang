@@ -9,6 +9,8 @@ import * as RsResult from "rsresult";
  * Responses from executed requests send to the language server
  */
 export type RecordedHttpResponse = {
+  start: Date;
+  params: RecordedRequestParams;
   response: HttpResponse;
   recieved: Date;
   wasSuccessful: boolean;
@@ -53,6 +55,8 @@ export type ExecuteRequestParams = {
   prompts: Record<string, string>;
   secrets: Record<string, string>;
 };
+
+export type RecordedRequestParams = Exclude<ExecuteRequestParams, "uri">;
 
 export type ExportRequestParams = {
   uri: string;

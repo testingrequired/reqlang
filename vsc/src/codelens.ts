@@ -16,7 +16,7 @@ import {
 import { expect } from "rsresult";
 import { Commands, RecordedHttpResponse } from "./types";
 import { UnresolvedRequestFile } from "reqlang-types";
-import { formatDistance } from "date-fns";
+import { formatDistance, formatDuration, intervalToDuration } from "date-fns";
 
 /**
  * A codelens provider for request files
@@ -132,12 +132,24 @@ class RunRequestCodeLens extends CodeLens {
  */
 class LastReponseCodeLens extends CodeLens {
   constructor(requestLensRange: Range, lastResponse: RecordedHttpResponse) {
-    const ago = formatDistance(new Date(), lastResponse.recieved);
     const icon = lastResponse.wasSuccessful ? "check" : "error";
+
+    const durationMs =
+      lastResponse.recieved.getTime() - lastResponse.start.getTime();
+    const durationSecondsOrMore = formatDuration(
+      intervalToDuration({
+        start: lastResponse.start,
+        end: lastResponse.recieved,
+      })
+    );
+    const duration =
+      durationMs < 1000 ? `${durationMs} ms` : durationSecondsOrMore;
+
+    const ago = formatDistance(new Date(), lastResponse.recieved);
 
     super(requestLensRange, {
       command: Commands.ShowResponse,
-      title: `$(${icon}) ${ago} ago`,
+      title: `$(${icon}) took ${duration}, ${ago} ago`,
       arguments: [lastResponse.response],
     });
   }

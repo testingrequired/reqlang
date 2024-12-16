@@ -283,6 +283,8 @@ export const runRequest = (context: ExtensionContext) => async () => {
 
   let uri = window.activeTextEditor.document.uri.toString()!;
 
+  const lastResponse = state.getLastResponse(uri, context);
+
   let parseResult = state.getParseResults(uri, context);
 
   if (parseResult === null) {
@@ -305,6 +307,7 @@ export const runRequest = (context: ExtensionContext) => async () => {
     for (const prompt of prompts) {
       const promptValue = await window.showInputBox({
         title: `Prompt: ${prompt}`,
+        value: lastResponse?.params.prompts[prompt],
       });
 
       if (promptValue === undefined) {
@@ -368,6 +371,8 @@ export const runRequest = (context: ExtensionContext) => async () => {
       secrets: secretsObj,
     };
 
+    const requestStartDate = new Date();
+
     // Set state to know the request has been sent to the language server
     // It's used to set UI state in the editor
     state.setIsWaitingForResponse(uri, context, true);
@@ -385,9 +390,11 @@ export const runRequest = (context: ExtensionContext) => async () => {
     const statusCode = Number.parseInt(parsedReponse.status_code, 10);
 
     state.setLastResponse(uri, context, {
+      start: requestStartDate,
       response: parsedReponse,
       recieved: new Date(),
       wasSuccessful: statusCode >= 200 && statusCode < 300,
+      params,
     });
 
     commands.executeCommand(Commands.ShowResponse, parsedReponse);
