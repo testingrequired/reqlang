@@ -9,10 +9,10 @@ import * as RsResult from "rsresult";
  * Responses from executed requests send to the language server
  */
 export type RecordedHttpResponse = {
-  start: Date;
+  start: string;
   params: RecordedRequestParams;
   response: HttpResponse;
-  recieved: Date;
+  recieved: string;
   wasSuccessful: boolean;
 };
 

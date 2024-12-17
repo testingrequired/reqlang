@@ -276,130 +276,134 @@ export const openMdnHttpDocsSpecs = () => {
   );
 };
 
-export const runRequest = (context: ExtensionContext) => async () => {
-  if (!window.activeTextEditor) {
-    return;
-  }
-
-  let uri = window.activeTextEditor.document.uri.toString()!;
-
-  const lastResponse = state.getLastResponse(uri, context);
-
-  let parseResult = state.getParseResults(uri, context);
-
-  if (parseResult === null) {
-    return;
-  }
-
-  if (state.getIsWaitingForResponse(uri, context)) {
-    return;
-  }
-
-  await RsResult.ifOk(parseResult, async ({ prompts, secrets }) => {
+/**
+ * Create command handler for running requests
+ * @param context Extension context for VS Code
+ * @returns Command handler for running requests
+ */
+export const runRequest =
+  (context: ExtensionContext) =>
+  /**
+   * Handle command to run requests
+   */
+  async () => {
     if (!window.activeTextEditor) {
       return;
     }
 
-    const promptValues: (string | null)[] = [];
-    const secretValues: (string | null)[] = [];
-    const providerValues: (string | null)[] = [];
-
-    for (const prompt of prompts) {
-      const promptValue = await window.showInputBox({
-        title: `Prompt: ${prompt}`,
-        value: lastResponse?.params.prompts[prompt],
-      });
-
-      if (promptValue === undefined) {
-        return;
-      }
-
-      promptValues.push(promptValue);
-    }
-
-    for (const secret of secrets) {
-      const secretValue = await window.showInputBox({
-        title: `Secret: ${secret}`,
-      });
-
-      if (secretValue === undefined) {
-        return;
-      }
-
-      secretValues.push(secretValue);
-    }
-
-    const client = getClient();
-
-    client.outputChannel.appendLine(
-      JSON.stringify({
-        prompts,
-        promptValues,
-        secrets,
-        secretValues,
-        providerValues,
-      })
-    );
-
     const uri = window.activeTextEditor.document.uri.toString()!;
-    const env = state.getEnv(uri, context)!;
-    const vars: Record<string, string> = {};
 
-    const promptsObj: Record<string, string> = {};
+    const lastResponse = state.getLastResponse(uri, context);
 
-    for (let i = 0; i < prompts.length; i++) {
-      const key = prompts[i];
-      const value = promptValues[i]!;
+    let parseResult = state.getParseResults(uri, context);
 
-      promptsObj[key] = value;
+    if (parseResult === null) {
+      return;
     }
 
-    const secretsObj: Record<string, string> = {};
-
-    for (let i = 0; i < secrets.length; i++) {
-      const key = secrets[i];
-      const value = secretValues[i]!;
-
-      secretsObj[key] = value;
+    if (state.getIsWaitingForResponse(uri, context)) {
+      return;
     }
 
-    const params: ExecuteRequestParams = {
-      uri,
-      env,
-      vars,
-      prompts: promptsObj,
-      secrets: secretsObj,
-    };
+    await RsResult.ifOk(parseResult, async ({ prompts, secrets }) => {
+      if (!window.activeTextEditor) {
+        return;
+      }
 
-    const requestStartDate = new Date();
+      const promptValues: (string | null)[] = [];
+      const secretValues: (string | null)[] = [];
+      const providerValues: (string | null)[] = [];
 
-    // Set state to know the request has been sent to the language server
-    // It's used to set UI state in the editor
-    state.setIsWaitingForResponse(uri, context, true);
+      for (const prompt of prompts) {
+        const promptValue = await window.showInputBox({
+          title: `Prompt: ${prompt}`,
+          value: lastResponse?.params.prompts[prompt],
+        });
 
-    const response = await commands.executeCommand<string>(
-      Commands.Execute,
-      params
-    );
+        if (promptValue === undefined) {
+          return;
+        }
 
-    // Set state to know the request has been received
-    state.setIsWaitingForResponse(uri, context, false);
+        promptValues.push(promptValue);
+      }
 
-    const parsedReponse: HttpResponse = JSON.parse(response);
+      for (const secret of secrets) {
+        const secretValue = await window.showInputBox({
+          title: `Secret: ${secret}`,
+        });
 
-    const statusCode = Number.parseInt(parsedReponse.status_code, 10);
+        if (secretValue === undefined) {
+          return;
+        }
 
-    state.setLastResponse(uri, context, {
-      start: requestStartDate,
-      response: parsedReponse,
-      recieved: new Date(),
-      wasSuccessful: statusCode >= 200 && statusCode < 300,
-      params,
+        secretValues.push(secretValue);
+      }
+
+      const vars: Record<string, string> = {};
+
+      // Prompts
+
+      const promptsObj: Record<string, string> = {};
+
+      for (let i = 0; i < prompts.length; i++) {
+        const key = prompts[i];
+        const value = promptValues[i]!;
+
+        promptsObj[key] = value;
+      }
+
+      // Secrets
+
+      const secretsObj: Record<string, string> = {};
+
+      for (let i = 0; i < secrets.length; i++) {
+        const key = secrets[i];
+        const value = secretValues[i]!;
+
+        secretsObj[key] = value;
+      }
+
+      const requestStartDate = new Date();
+
+      // Set state to know the request has been sent to the language server
+      // It's used to set UI state in the editor
+      state.setIsWaitingForResponse(uri, context, true);
+
+      const env = state.getEnv(uri, context)!;
+
+      const executeRequestParams: ExecuteRequestParams = {
+        uri,
+        env,
+        vars,
+        prompts: promptsObj,
+        secrets: secretsObj,
+      };
+
+      /**
+       * HTTP Response from language server
+       */
+      const responseJson = await commands.executeCommand<string>(
+        Commands.Execute,
+        executeRequestParams
+      );
+
+      const response: HttpResponse = JSON.parse(responseJson);
+      const statusCode = Number.parseInt(response.status_code, 10);
+
+      state.setLastResponse(uri, context, {
+        start: requestStartDate.toISOString(),
+        response,
+        recieved: new Date().toISOString(),
+        wasSuccessful: statusCode >= 200 && statusCode < 300,
+        params: executeRequestParams,
+      });
+
+      // Set state to know the request has been received
+      state.setIsWaitingForResponse(uri, context, false);
+
+      commands.executeCommand(Commands.ShowResponse, response);
     });
-
-    commands.executeCommand(Commands.ShowResponse, parsedReponse);
-  });
-};
+  };
 
 export const exportToFile = (context: ExtensionContext) => async () => {
   if (!window.activeTextEditor) {

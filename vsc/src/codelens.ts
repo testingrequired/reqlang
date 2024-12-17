@@ -134,8 +134,10 @@ class LastReponseCodeLens extends CodeLens {
   constructor(requestLensRange: Range, lastResponse: RecordedHttpResponse) {
     const icon = lastResponse.wasSuccessful ? "check" : "error";
 
-    const durationMs =
-      lastResponse.recieved.getTime() - lastResponse.start.getTime();
+    const recieved = new Date(lastResponse.recieved);
+    const start = new Date(lastResponse.start);
+
+    const durationMs = recieved.getTime() - start.getTime();
     const durationSecondsOrMore = formatDuration(
       intervalToDuration({
         start: lastResponse.start,
@@ -147,10 +149,18 @@ class LastReponseCodeLens extends CodeLens {
 
     const ago = formatDistance(new Date(), lastResponse.recieved);
 
+    const response = lastResponse.response;
+    const tooltip = [
+      start.toISOString(),
+      ``,
+      `HTTP/${response.http_version} ${response.status_code} ${response.status_text}`,
+    ].join("\n");
+
     super(requestLensRange, {
       command: Commands.ShowResponse,
       title: `$(${icon}) took ${duration}, ${ago} ago`,
-      arguments: [lastResponse.response],
+      arguments: [response],
+      tooltip,
     });
   }
 }
