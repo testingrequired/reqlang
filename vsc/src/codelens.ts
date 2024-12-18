@@ -172,7 +172,7 @@ class LastReponseCodeLens extends CodeLens {
 class EnvPickerCodeLens extends CodeLens {
   constructor(range: Range, env: string | null) {
     super(range, {
-      command: Commands.RunRequest,
+      command: Commands.PickEnv,
       title: `$(globe) ${env ? env : "Env..."}`,
     });
   }
