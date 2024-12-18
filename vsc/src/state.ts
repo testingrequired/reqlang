@@ -1,11 +1,12 @@
 "use strict";
-import { ExtensionContext } from "vscode";
+import { ExtensionContext, window } from "vscode";
 import {
   type RequestToBeExecuted,
   type ReqfileState,
   type ParsedReqfileFromServer,
 } from "./types";
 import * as RsResult from "rsresult";
+import { updateStatusText } from "./status";
 
 /**
  * Set a request file's workspace state with it's parsed request file
@@ -55,6 +56,49 @@ export function debugResetWorkspaceState(
 
   return initState;
 }
+
+export const initCurrentFileState = (context: ExtensionContext) => () => {
+  if (!window.activeTextEditor) {
+    updateStatusText(context);
+    return;
+  }
+
+  let filename = window.activeTextEditor.document.uri.toString();
+
+  if (!filename.endsWith(".reqlang")) {
+    updateStatusText(context);
+    return;
+  }
+
+  getOrInitState(filename, context);
+
+  // Default the selected environment is there's just one
+  RsResult.ifOk(getParseResults(filename, context)!, (result) => {
+    if (result.envs.length === 1) {
+      setEnv(filename, context, result.envs[0]);
+    }
+  });
+
+  updateStatusText(context);
+};
+
+export const debugResetCurrentFileState = (context: ExtensionContext) => () => {
+  if (!window.activeTextEditor) {
+    updateStatusText(context);
+    return;
+  }
+
+  let filename = window.activeTextEditor.document.uri.toString();
+
+  if (!filename.endsWith(".reqlang")) {
+    updateStatusText(context);
+    return;
+  }
+
+  context.workspaceState.update(filename, undefined);
+
+  getOrInitState(filename, context);
+};
 
 /**
  * Get or initialize a workspace state for request file.

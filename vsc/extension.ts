@@ -8,8 +8,6 @@ import {
   languages,
 } from "vscode";
 
-import * as RsResult from "rsresult";
-
 import { type ParseNotificationFromServer } from "./src/types";
 import * as state from "./src/state";
 import { getClient } from "./src/client";
@@ -40,8 +38,9 @@ export async function activate(context: ExtensionContext) {
   // Initialize and update the status bar
   const updateStatusText = statusBar.updateStatusText(context);
   updateStatusText();
+  const initCurrentFileState = state.initCurrentFileState(context);
 
-  handleTextEditorChange();
+  initCurrentFileState();
 
   context.subscriptions.push(
     commands.registerCommand(Commands.StartLanguageServer, startLanguageServer),
@@ -65,15 +64,10 @@ export async function activate(context: ExtensionContext) {
     ),
     commands.registerCommand(Commands.ExportToFile, exportToFile(context)),
     commands.registerCommand(Commands.ShowResponse, showResponse),
-    commands.registerCommand(Commands.DebugResetWorkspaceState, () => {
-      if (!window.activeTextEditor) {
-        return;
-      }
-
-      let filename = window.activeTextEditor.document.uri.toString();
-
-      state.debugResetWorkspaceState(filename, context);
-    })
+    commands.registerCommand(
+      Commands.DebugResetWorkspaceState,
+      state.debugResetCurrentFileState(context)
+    )
   );
 
   context.subscriptions.push(
@@ -83,38 +77,11 @@ export async function activate(context: ExtensionContext) {
     )
   );
 
-  function handleTextEditorChange() {
-    if (!window.activeTextEditor) {
-      updateStatusText();
-      return;
-    }
+  activeTextEditorHandler =
+    window.onDidChangeActiveTextEditor(initCurrentFileState);
 
-    let filename = window.activeTextEditor.document.uri.toString();
-
-    if (!filename.endsWith(".reqlang")) {
-      updateStatusText();
-      return;
-    }
-
-    state.getOrInitState(filename, context);
-
-    // Default the selected environment is there's just one
-    RsResult.ifOk(state.getParseResults(filename, context)!, (result) => {
-      if (result.envs.length === 1) {
-        state.setEnv(filename, context, result.envs[0]);
-      }
-    });
-
-    updateStatusText();
-  }
-
-  activeTextEditorHandler = window.onDidChangeActiveTextEditor(
-    handleTextEditorChange
-  );
-
-  visibleTextEditorHandler = window.onDidChangeVisibleTextEditors(
-    handleTextEditorChange
-  );
+  visibleTextEditorHandler =
+    window.onDidChangeVisibleTextEditors(initCurrentFileState);
 
   subscribeToParseNotificationsFromServer(context);
 }
