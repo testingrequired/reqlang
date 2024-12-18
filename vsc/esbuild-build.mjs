@@ -10,7 +10,7 @@ async function main() {
     format: "cjs",
     minify: production,
     sourcemap: !production,
-    sourcesContent: false,
+    sourcesContent: !production,
     platform: "node",
     outfile: "out/extension.js",
     external: ["vscode"],

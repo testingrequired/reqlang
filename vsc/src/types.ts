@@ -8,55 +8,108 @@ import * as RsResult from "rsresult";
 /**
  * Responses from executed requests send to the language server
  */
-export type RecordedHttpResponse = {
-  start: string;
-  params: RecordedRequestParams;
+export type RequestToBeExecuted = {
+  startDateIso: string;
+  params: RequestToBeExecutedParams;
   response: HttpResponse;
-  recieved: string;
+  endDateIso: string;
   wasSuccessful: boolean;
 };
 
 /**
  * State for an individual request file
  */
-export type ReqlangWorkspaceFileState = {
+export type ReqfileState = {
   /**
    * Current selected environment
    */
   env: string | null;
-  parsedReqfile: RsResult.Result<SimplifiedParsedRequestFile> | null;
+  /**
+   * Parsed request file from the server.
+   */
+  parsedReqfileFromServer: RsResult.Result<ParsedReqfileFromServer> | null;
+  /**
+   * If the latest request execution is waiting for a response
+   */
   isWaitingForResponse: boolean;
-  responses: RecordedHttpResponse[];
-};
-
-export type ParseNotification = {
-  file_id: string;
-  result: RsResult.Result<SimplifiedParsedRequestFile>;
+  /**
+   * List of request executions sent to the server
+   */
+  requestExecutions: RequestToBeExecuted[];
 };
 
 /**
- * Simplified version of a parsed request file for use in the VSC extension.
- *
- * This is sent from the language server to VSC.
+ * A notification sent from the language server that a request file has been parsed
  */
-export type SimplifiedParsedRequestFile = {
-  vars: string[];
+export type ParseNotificationFromServer = {
+  file_id: string;
+  result: RsResult.Result<ParsedReqfileFromServer>;
+};
+
+/**
+ * Parsed request file from the server.
+ *
+ * This is a simplified version of the actual parsed request file.
+ */
+export type ParsedReqfileFromServer = {
+  /**
+   * List of environment names in the request file
+   */
   envs: string[];
+
+  /**
+   * List of variables names declared in the request file
+   */
+  vars: string[];
+
+  /**
+   * List of prompt names declared in the request file
+   */
   prompts: string[];
+
+  /**
+   * List of secret names declared in the request file
+   */
   secrets: string[];
+
+  /**
+   * HTTP Request object that still contains template references
+   */
   request: HttpRequest;
+
+  /**
+   * Full parsed request file
+   */
   full: UnresolvedRequestFile;
 };
 
+/**
+ * Params sent to language server for the execute request command
+ */
 export type ExecuteRequestParams = {
+  /**
+   * Path to the request file being executed
+   */
   uri: string;
+  /**
+   * Environment name used for request
+   */
   env: string;
+  /**
+   * Variable name/value pairs used for request
+   */
   vars: Record<string, string>;
+  /**
+   * Prompt name/value pairs used for request
+   */
   prompts: Record<string, string>;
+  /**
+   * Secret name/value pairs used for request
+   */
   secrets: Record<string, string>;
 };
 
-export type RecordedRequestParams = Exclude<ExecuteRequestParams, "uri">;
+export type RequestToBeExecutedParams = Exclude<ExecuteRequestParams, "uri">;
 
 export type ExportRequestParams = {
   uri: string;
@@ -81,26 +134,4 @@ export enum MenuChoices {
   OpenOutput = "Open Output Channel",
   LastResponse = "Last response",
   DebugClearWorkspaceState = "Debug: Clear Workspace State For This Request File",
-}
-
-/**
- * The possible choices for the Reqlang Menu in the VSC extension
- */
-export enum Commands {
-  PickEnv = "reqlang.pickEnv",
-  ClearEnv = "reqlang.clearEnv",
-  RunRequest = "reqlang.run",
-  Menu = "reqlang.menu",
-  Execute = "reqlang.executeRequest",
-  Export = "reqlang.exportRequest",
-  StartLanguageServer = "reqlang.startLanguageServer",
-  StopLanguageServer = "reqlang.stopLanguageServer",
-  RestartLanguageServer = "reqlang.restartLanguageServer",
-  Install = "reqlang.install",
-  OpenMdnDocsHttp = "reqlang.openMdnDocsHttp",
-  OpenMdnDocsHttpMessages = "reqlang.openMdnDocsHttpMessages",
-  OpenMdnDocsHttpSpecs = "reqlang.openMdnDocsHttpSpecs",
-  ExportToFile = "reqlang.exportToFile",
-  DebugResetWorkspaceState = "reqlang.debugResetWorkspaceState",
-  ShowResponse = "reqlang.showResponse",
 }

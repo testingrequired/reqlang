@@ -4,10 +4,11 @@ import {
   StatusBarItem,
   window,
 } from "vscode";
-import { Commands, ReqlangWorkspaceFileState } from "./types";
+import { ReqfileState } from "./types";
 import { getParseResults } from "./state";
 import { getClient } from "./client";
 import * as RsResult from "rsresult";
+import { Commands } from "./commands";
 
 let status: StatusBarItem;
 
@@ -52,8 +53,7 @@ export const updateStatusText = (context: ExtensionContext) => () => {
     (parseResult) => {
       status.show();
 
-      const state: ReqlangWorkspaceFileState | undefined =
-        context.workspaceState.get(uri);
+      const state: ReqfileState | undefined = context.workspaceState.get(uri);
 
       const env = state?.env ?? "Select Environment";
 

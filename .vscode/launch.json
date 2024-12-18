@@ -7,6 +7,11 @@
       "type": "extensionHost",
       "request": "launch",
       "runtimeExecutable": "${execPath}",
+      "sourceMaps": true,
+      "outFiles": [
+        "${workspaceFolder}/vsc/out/**/*.(m|c|)js",
+        "!**/node_modules/**"
+      ],
       "args": ["--extensionDevelopmentPath=${workspaceRoot}/vsc"]
     }]
   }

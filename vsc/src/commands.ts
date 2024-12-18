@@ -9,7 +9,6 @@ import {
 import { getClient, getClientWithoutInit } from "./client";
 import * as state from "./state";
 import {
-  Commands,
   ExecuteRequestParams,
   ExportRequestParams,
   MenuChoices,
@@ -17,6 +16,25 @@ import {
 import * as RsResult from "rsresult";
 import { updateStatusText } from "./status";
 import { HttpResponse } from "reqlang-types";
+
+export enum Commands {
+  PickEnv = "reqlang.pickEnv",
+  ClearEnv = "reqlang.clearEnv",
+  RunRequest = "reqlang.run",
+  Menu = "reqlang.menu",
+  Execute = "reqlang.executeRequest",
+  Export = "reqlang.exportRequest",
+  StartLanguageServer = "reqlang.startLanguageServer",
+  StopLanguageServer = "reqlang.stopLanguageServer",
+  RestartLanguageServer = "reqlang.restartLanguageServer",
+  Install = "reqlang.install",
+  OpenMdnDocsHttp = "reqlang.openMdnDocsHttp",
+  OpenMdnDocsHttpMessages = "reqlang.openMdnDocsHttpMessages",
+  OpenMdnDocsHttpSpecs = "reqlang.openMdnDocsHttpSpecs",
+  ExportToFile = "reqlang.exportToFile",
+  DebugResetWorkspaceState = "reqlang.debugResetWorkspaceState",
+  ShowResponse = "reqlang.showResponse",
+}
 
 export const startLanguageServer = () => {
   const client = getClient();
@@ -391,9 +409,9 @@ export const runRequest =
       const statusCode = Number.parseInt(response.status_code, 10);
 
       state.setLastResponse(uri, context, {
-        start: requestStartDate.toISOString(),
+        startDateIso: requestStartDate.toISOString(),
         response,
-        recieved: new Date().toISOString(),
+        endDateIso: new Date().toISOString(),
         wasSuccessful: statusCode >= 200 && statusCode < 300,
         params: executeRequestParams,
       });

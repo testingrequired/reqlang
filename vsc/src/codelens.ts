@@ -14,9 +14,10 @@ import {
   getParseResults,
 } from "./state";
 import { expect } from "rsresult";
-import { Commands, RecordedHttpResponse } from "./types";
+import { RequestToBeExecuted } from "./types";
 import { UnresolvedRequestFile } from "reqlang-types";
 import { formatDistance, formatDuration, intervalToDuration } from "date-fns";
+import { Commands } from "./commands";
 
 /**
  * A codelens provider for request files
@@ -131,23 +132,23 @@ class RunRequestCodeLens extends CodeLens {
  * A codelens to display the last response.
  */
 class LastReponseCodeLens extends CodeLens {
-  constructor(requestLensRange: Range, lastResponse: RecordedHttpResponse) {
+  constructor(requestLensRange: Range, lastResponse: RequestToBeExecuted) {
     const icon = lastResponse.wasSuccessful ? "check" : "error";
 
-    const recieved = new Date(lastResponse.recieved);
-    const start = new Date(lastResponse.start);
+    const recieved = new Date(lastResponse.endDateIso);
+    const start = new Date(lastResponse.startDateIso);
 
     const durationMs = recieved.getTime() - start.getTime();
     const durationSecondsOrMore = formatDuration(
       intervalToDuration({
-        start: lastResponse.start,
-        end: lastResponse.recieved,
+        start: lastResponse.startDateIso,
+        end: lastResponse.endDateIso,
       })
     );
     const duration =
       durationMs < 1000 ? `${durationMs} ms` : durationSecondsOrMore;
 
-    const ago = formatDistance(new Date(), lastResponse.recieved);
+    const ago = formatDistance(new Date(), lastResponse.endDateIso);
 
     const response = lastResponse.response;
     const tooltip = [

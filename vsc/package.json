@@ -144,7 +144,7 @@
     "vscode-languageclient": "9.0.1"
   },
   "scripts": {
-    "build": "node ./esbuild-build.mjs --production",
+    "build": "node ./esbuild-build.mjs",
     "package": "vsce package --out out",
     "watch": "node ./esbuild-build.mjs --watch",
     "update-vscode": "node ./node_modules/vscode/bin/install"

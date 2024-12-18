@@ -10,11 +10,12 @@ import {
 
 import * as RsResult from "rsresult";
 
-import { Commands, type ParseNotification } from "./src/types";
+import { type ParseNotificationFromServer } from "./src/types";
 import * as state from "./src/state";
 import { getClient } from "./src/client";
 import {
   clearCurrentEnv,
+  Commands,
   exportToFile,
   menuHandler,
   openMdnHttpDocs,
@@ -134,7 +135,7 @@ function subscribeToParseNotificationsFromServer(context: ExtensionContext) {
   context.subscriptions.push(
     getClient().onNotification(
       "reqlang/parse",
-      async (params: ParseNotification) => {
+      async (params: ParseNotificationFromServer) => {
         const newState = state.setParseResult(
           params.file_id,
           context,
@@ -143,7 +144,7 @@ function subscribeToParseNotificationsFromServer(context: ExtensionContext) {
 
         getClient().outputChannel.appendLine(params.file_id);
         getClient().outputChannel.appendLine(
-          JSON.stringify(newState.parsedReqfile, null, 2)
+          JSON.stringify(newState.parsedReqfileFromServer, null, 2)
         );
       }
     )

@@ -1,9 +1,9 @@
 "use strict";
 import { ExtensionContext } from "vscode";
 import {
-  type RecordedHttpResponse,
-  type ReqlangWorkspaceFileState,
-  type SimplifiedParsedRequestFile,
+  type RequestToBeExecuted,
+  type ReqfileState,
+  type ParsedReqfileFromServer,
 } from "./types";
 import * as RsResult from "rsresult";
 
@@ -17,10 +17,10 @@ import * as RsResult from "rsresult";
 export function setParseResult(
   fileKey: string,
   context: ExtensionContext,
-  result: RsResult.Result<SimplifiedParsedRequestFile>
-): ReqlangWorkspaceFileState {
+  result: RsResult.Result<ParsedReqfileFromServer>
+): ReqfileState {
   return updateState(fileKey, context, (state) => {
-    state.parsedReqfile = result;
+    state.parsedReqfileFromServer = result;
     return state;
   });
 }
@@ -34,21 +34,21 @@ export function setParseResult(
 export function getParseResults(
   fileKey: string,
   context: ExtensionContext
-): RsResult.Result<SimplifiedParsedRequestFile> | null {
+): RsResult.Result<ParsedReqfileFromServer> | null {
   const state = getOrInitState(fileKey, context);
 
-  return state.parsedReqfile;
+  return state.parsedReqfileFromServer;
 }
 
 export function debugResetWorkspaceState(
   fileKey: string,
   context: ExtensionContext
 ) {
-  const initState: ReqlangWorkspaceFileState = {
+  const initState: ReqfileState = {
     env: null,
-    parsedReqfile: null,
+    parsedReqfileFromServer: null,
     isWaitingForResponse: false,
-    responses: [],
+    requestExecutions: [],
   };
 
   context.workspaceState.update(fileKey, initState);
@@ -65,15 +65,15 @@ export function debugResetWorkspaceState(
 export function getOrInitState(
   fileKey: string,
   context: ExtensionContext
-): ReqlangWorkspaceFileState {
-  const state = context.workspaceState.get<ReqlangWorkspaceFileState>(fileKey);
+): ReqfileState {
+  const state = context.workspaceState.get<ReqfileState>(fileKey);
 
   if (typeof state === "undefined") {
-    const initState: ReqlangWorkspaceFileState = {
+    const initState: ReqfileState = {
       env: null,
-      parsedReqfile: null,
+      parsedReqfileFromServer: null,
       isWaitingForResponse: false,
-      responses: [],
+      requestExecutions: [],
     };
 
     context.workspaceState.update(fileKey, initState);
@@ -94,8 +94,8 @@ export function getOrInitState(
 export function updateState(
   fileKey: string,
   context: ExtensionContext,
-  fn: (state: ReqlangWorkspaceFileState) => ReqlangWorkspaceFileState
-): ReqlangWorkspaceFileState {
+  fn: (state: ReqfileState) => ReqfileState
+): ReqfileState {
   const state = fn(getOrInitState(fileKey, context));
   context.workspaceState.update(fileKey, state);
   return state;
@@ -112,7 +112,7 @@ export function setEnv(
   fileKey: string,
   context: ExtensionContext,
   env: string | null
-): ReqlangWorkspaceFileState {
+): ReqfileState {
   return updateState(fileKey, context, (state) => {
     state.env = env;
     return state;
@@ -164,7 +164,7 @@ export function setIsWaitingForResponse(
   fileKey: string,
   context: ExtensionContext,
   isWaitingForResponse: boolean
-): ReqlangWorkspaceFileState {
+): ReqfileState {
   return updateState(fileKey, context, (state) => {
     state.isWaitingForResponse = isWaitingForResponse;
     return state;
@@ -181,10 +181,9 @@ export function setIsWaitingForResponse(
 export function getLastResponse(
   fileKey: string,
   context: ExtensionContext
-): RecordedHttpResponse | null {
+): RequestToBeExecuted | null {
   const state = getOrInitState(fileKey, context);
-
-  return state.responses[state.responses.length - 1] ?? null;
+  return state.requestExecutions.at(-1) ?? null;
 }
 
 /**
@@ -198,10 +197,11 @@ export function getLastResponse(
 export function setLastResponse(
   fileKey: string,
   context: ExtensionContext,
-  response: RecordedHttpResponse
-): ReqlangWorkspaceFileState {
+  response: RequestToBeExecuted
+): ReqfileState {
   return updateState(fileKey, context, (state) => {
-    state.responses.push(response);
+    debugger;
+    state.requestExecutions.push(response);
     return state;
   });
 }
