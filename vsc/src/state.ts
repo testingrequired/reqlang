@@ -200,7 +200,6 @@ export function setLastResponse(
   response: RequestToBeExecuted
 ): ReqfileState {
   return updateState(fileKey, context, (state) => {
-    debugger;
     state.requestExecutions.push(response);
     return state;
   });

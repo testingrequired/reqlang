@@ -41,6 +41,8 @@ export async function activate(context: ExtensionContext) {
   const updateStatusText = statusBar.updateStatusText(context);
   updateStatusText();
 
+  handleTextEditorChange();
+
   context.subscriptions.push(
     commands.registerCommand(Commands.StartLanguageServer, startLanguageServer),
     commands.registerCommand(Commands.StopLanguageServer, stopLanguageServer),
