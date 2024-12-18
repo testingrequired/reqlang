@@ -95,7 +95,7 @@ export class ReqlangCodeLensProvider implements CodeLensProvider {
 
     // If there are more than one environment in the request file, add a pick environment lens
     if (getEnvsFromReqfile(reqFile).length > 1) {
-      lenses.push(new EnvPickerCodeLens(requestLensRange, env));
+      lenses.push(new EnvPickerCodeLens(new Range(0, 0, 0, 0), env));
     }
 
     return lenses;
