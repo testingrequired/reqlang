@@ -173,7 +173,7 @@ mod test {
             },
             response: Some(HttpResponse {
                 http_version: "1.1".into(),
-                status_code: "200".to_string(),
+                status_code: 200.into(),
                 status_text: "OK".to_string(),
                 headers: HashMap::new(),
                 body: Some("expected_response_body_value\n\n".to_string())

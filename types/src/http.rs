@@ -169,12 +169,48 @@ impl Display for HttpRequest {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
+#[ts(export)]
+pub struct HttpStatusCode(u16);
+
+impl Default for HttpStatusCode {
+    fn default() -> Self {
+        panic!("Default value for HttpStatusCode is not allowed");
+    }
+}
+
+impl HttpStatusCode {
+    pub fn is_valid(value: u16) -> bool {
+        value >= 100 && value <= 599
+    }
+}
+
+impl From<u16> for HttpStatusCode {
+    fn from(value: u16) -> Self {
+        HttpStatusCode(value)
+    }
+}
+
+impl TryFrom<String> for HttpStatusCode {
+    type Error = String;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        let status_code = u16::from_str_radix(&value, 10).expect("Should be a valid number");
+
+        if HttpStatusCode::is_valid(status_code) {
+            Ok(Self(status_code))
+        } else {
+            Err(format!("Invalid HTTP status code: {}", value))
+        }
+    }
+}
+
 /// HTTP Response
 #[derive(Clone, Debug, PartialEq, Default, Serialize, Deserialize, TS)]
 #[ts(export)]
 pub struct HttpResponse {
     pub http_version: HttpVersion,
-    pub status_code: String,
+    pub status_code: HttpStatusCode,
     pub status_text: String,
     pub headers: HashMap<String, String>,
     pub body: Option<String>,

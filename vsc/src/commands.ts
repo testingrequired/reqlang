@@ -12,6 +12,7 @@ import {
   ExecuteRequestParams,
   ExportRequestParams,
   MenuChoices,
+  RequestToBeExecuted,
 } from "./types";
 import * as RsResult from "rsresult";
 import { updateStatusText } from "./status";
@@ -319,7 +320,7 @@ export const runRequest =
       return;
     }
 
-    if (state.getIsWaitingForResponse(uri, context)) {
+    if (state.getLastResponse(uri, context)?.response) {
       return;
     }
 
@@ -381,12 +382,6 @@ export const runRequest =
         secretsObj[key] = value;
       }
 
-      const requestStartDate = new Date();
-
-      // Set state to know the request has been sent to the language server
-      // It's used to set UI state in the editor
-      state.setIsWaitingForResponse(uri, context, true);
-
       const env = state.getEnv(uri, context)!;
 
       const executeRequestParams: ExecuteRequestParams = {
@@ -397,6 +392,8 @@ export const runRequest =
         secrets: secretsObj,
       };
 
+      state.startRequestToBeExecuted(uri, context, executeRequestParams);
+
       /**
        * HTTP Response from language server
        */
@@ -406,18 +403,8 @@ export const runRequest =
       );
 
       const response: HttpResponse = JSON.parse(responseJson);
-      const statusCode = Number.parseInt(response.status_code, 10);
 
-      state.setLastResponse(uri, context, {
-        startDateIso: requestStartDate.toISOString(),
-        response,
-        endDateIso: new Date().toISOString(),
-        wasSuccessful: statusCode >= 200 && statusCode < 300,
-        params: executeRequestParams,
-      });
-
-      // Set state to know the request has been received
-      state.setIsWaitingForResponse(uri, context, false);
+      state.endRequestToBeExecuted(uri, context, response);
 
       commands.executeCommand(Commands.ShowResponse, response);
     });
@@ -436,7 +423,7 @@ export const exportToFile = (context: ExtensionContext) => async () => {
     return;
   }
 
-  if (state.getIsWaitingForResponse(uri, context)) {
+  if (state.getLastResponse(uri, context)?.response) {
     return;
   }
 

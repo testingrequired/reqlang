@@ -4,9 +4,11 @@ import {
   type RequestToBeExecuted,
   type ReqfileState,
   type ParsedReqfileFromServer,
+  RequestToBeExecutedParams,
 } from "./types";
 import * as RsResult from "rsresult";
 import { updateStatusText } from "./status";
+import { HttpResponse } from "reqlang-types";
 
 /**
  * Set a request file's workspace state with it's parsed request file
@@ -48,7 +50,6 @@ export function debugResetWorkspaceState(
   const initState: ReqfileState = {
     env: null,
     parsedReqfileFromServer: null,
-    isWaitingForResponse: false,
     requestExecutions: [],
   };
 
@@ -116,7 +117,6 @@ export function getOrInitState(
     const initState: ReqfileState = {
       env: null,
       parsedReqfileFromServer: null,
-      isWaitingForResponse: false,
       requestExecutions: [],
     };
 
@@ -163,6 +163,44 @@ export function setEnv(
   });
 }
 
+export function startRequestToBeExecuted(
+  fileKey: string,
+  context: ExtensionContext,
+  params: RequestToBeExecutedParams
+) {
+  updateState(fileKey, context, (state) => {
+    state.requestExecutions.push({
+      startDateIso: new Date().toISOString(),
+      response: null,
+      endDateIso: null,
+      wasSuccessful: null,
+      params,
+    });
+
+    return state;
+  });
+}
+
+export function endRequestToBeExecuted(
+  fileKey: string,
+  context: ExtensionContext,
+  response: HttpResponse
+) {
+  updateState(fileKey, context, (state) => {
+    const requestToBeExecuted = state.requestExecutions.at(-1)!;
+
+    requestToBeExecuted.response = response;
+    requestToBeExecuted.endDateIso = new Date().toISOString();
+    requestToBeExecuted.wasSuccessful =
+      response.status_code >= 200 && response.status_code <= 299;
+
+    state.requestExecutions[state.requestExecutions.length - 1] =
+      requestToBeExecuted;
+
+    return state;
+  });
+}
+
 /**
  * Get the environment name selected for the request file
  * @param fileKey File uri of the request file
@@ -176,43 +214,6 @@ export function getEnv(
   const state = getOrInitState(fileKey, context);
 
   return state.env;
-}
-
-/**
- * Get if a request file is waiting an execute request response from language
- * server
- *
- * @param fileKey File uri of the request file
- * @param context Extension context from VS Code
- * @returns If the request file is waiting for a response
- */
-export function getIsWaitingForResponse(
-  fileKey: string,
-  context: ExtensionContext
-): boolean {
-  const state = getOrInitState(fileKey, context);
-
-  return state.isWaitingForResponse;
-}
-
-/**
- * Set if a request file is waiting an execute request response from language
- * server
- *
- * @param fileKey File uri of the request file
- * @param context Extension context from VS Code
- * @param isWaitingForResponse Value to set
- * @returns Updated workspace state for request file
- */
-export function setIsWaitingForResponse(
-  fileKey: string,
-  context: ExtensionContext,
-  isWaitingForResponse: boolean
-): ReqfileState {
-  return updateState(fileKey, context, (state) => {
-    state.isWaitingForResponse = isWaitingForResponse;
-    return state;
-  });
 }
 
 /**

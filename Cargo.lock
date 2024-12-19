@@ -2825,6 +2825,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "responsediff"
+version = "0.1.0"
+dependencies = [
+ "thiserror 2.0.0",
+ "types",
+]
+
+[[package]]
 name = "rfd"
 version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"

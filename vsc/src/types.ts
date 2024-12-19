@@ -11,9 +11,9 @@ import * as RsResult from "rsresult";
 export type RequestToBeExecuted = {
   startDateIso: string;
   params: RequestToBeExecutedParams;
-  response: HttpResponse;
-  endDateIso: string;
-  wasSuccessful: boolean;
+  response: HttpResponse | null;
+  endDateIso: string | null;
+  wasSuccessful: boolean | null;
 };
 
 /**
@@ -28,10 +28,6 @@ export type ReqfileState = {
    * Parsed request file from the server.
    */
   parsedReqfileFromServer: RsResult.Result<ParsedReqfileFromServer> | null;
-  /**
-   * If the latest request execution is waiting for a response
-   */
-  isWaitingForResponse: boolean;
   /**
    * List of request executions sent to the server
    */

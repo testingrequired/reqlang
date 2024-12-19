@@ -1,0 +1,8 @@
+[package]
+name = "responsediff"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+types = { path = "../types" }
+thiserror = "2"

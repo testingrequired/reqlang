@@ -223,7 +223,12 @@ impl LanguageServer for Backend {
             }
             let status = response.status().to_string();
             let mut status_split = status.splitn(2, ' ');
-            let status_code = status_split.next().unwrap().to_string();
+            let status_code = status_split
+                .next()
+                .unwrap()
+                .to_string()
+                .try_into()
+                .expect("Should be valid status code");
             let status_text = status_split.next().unwrap().to_string();
             let body = Some(response.text().await.expect("Should have body"));
 

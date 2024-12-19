@@ -7,12 +7,7 @@ import {
   Range,
   TextDocument,
 } from "vscode";
-import {
-  getEnv,
-  getIsWaitingForResponse,
-  getLastResponse,
-  getParseResults,
-} from "./state";
+import { getEnv, getLastResponse, getParseResults } from "./state";
 import { expect } from "rsresult";
 import { RequestToBeExecuted } from "./types";
 import { UnresolvedRequestFile } from "reqlang-types";
@@ -80,7 +75,7 @@ export class ReqlangCodeLensProvider implements CodeLensProvider {
     const env = getEnv(uri, this.context);
 
     // Get the current state of whether we're waiting for a response or not.
-    const isWaitingForResponse = getIsWaitingForResponse(uri, this.context);
+    const isWaitingForResponse = lastResponse?.response === null;
 
     // If an environment is set, add a run request lens
     if (env !== null) {
@@ -132,25 +127,28 @@ class RunRequestCodeLens extends CodeLens {
  * A codelens to display the last response.
  */
 class LastReponseCodeLens extends CodeLens {
-  constructor(requestLensRange: Range, lastResponse: RequestToBeExecuted) {
+  constructor(
+    requestLensRange: Range,
+    lastResponse: NonNullable<RequestToBeExecuted>
+  ) {
     const icon = lastResponse.wasSuccessful ? "check" : "error";
 
-    const recieved = new Date(lastResponse.endDateIso);
+    const recieved = new Date(lastResponse.endDateIso!);
     const start = new Date(lastResponse.startDateIso);
 
     const durationMs = recieved.getTime() - start.getTime();
     const durationSecondsOrMore = formatDuration(
       intervalToDuration({
         start: lastResponse.startDateIso,
-        end: lastResponse.endDateIso,
+        end: lastResponse.endDateIso!,
       })
     );
     const duration =
       durationMs < 1000 ? `${durationMs} ms` : durationSecondsOrMore;
 
-    const ago = formatDistance(new Date(), lastResponse.endDateIso);
+    const ago = formatDistance(new Date(), lastResponse.endDateIso!);
 
-    const response = lastResponse.response;
+    const response = lastResponse.response!;
     const tooltip = [
       start.toISOString(),
       ``,
