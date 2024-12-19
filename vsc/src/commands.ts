@@ -182,7 +182,7 @@ export const showResponse = async (response: HttpResponse | null) => {
     return;
   }
 
-  const statusCode = Number.parseInt(response.status_code, 10);
+  const statusCode = response.status_code;
   const hasBody = response.body !== null && response.body !== "";
 
   if (statusCode >= 200 && statusCode <= 299) {
@@ -406,7 +406,7 @@ export const runRequest =
       );
 
       const response: HttpResponse = JSON.parse(responseJson);
-      const statusCode = Number.parseInt(response.status_code, 10);
+      const statusCode = response.status_code;
 
       state.setLastResponse(uri, context, {
         startDateIso: requestStartDate.toISOString(),

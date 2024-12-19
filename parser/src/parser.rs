@@ -514,7 +514,12 @@ impl RequestFileParser {
                     Some(Ok((
                         HttpResponse {
                             http_version: format!("1.{}", res.version.unwrap()).into(),
-                            status_code: res.code.unwrap().to_string(),
+                            status_code: res
+                                .code
+                                .unwrap()
+                                .to_string()
+                                .try_into()
+                                .expect("Invalid status code in response"),
                             status_text: res.reason.unwrap().to_string(),
                             headers: mapped_headers,
                             body: Some(body.to_string()),
@@ -1142,7 +1147,7 @@ mod test {
         use std::collections::HashMap;
 
         use types::{
-            http::{HttpRequest, HttpResponse, HttpVerb},
+            http::{HttpRequest, HttpResponse, HttpStatusCode, HttpVerb},
             ReferenceType, UnresolvedRequestFile, UnresolvedRequestFileConfig,
         };
 
@@ -1456,7 +1461,7 @@ mod test {
                 response: Some((
                     HttpResponse {
                         http_version: "1.1".into(),
-                        status_code: "200".to_string(),
+                        status_code: HttpStatusCode::new(200),
                         status_text: "OK".to_string(),
                         headers: HashMap::new(),
                         body: Some("{{?expected_response_body}}\n\n".to_string())

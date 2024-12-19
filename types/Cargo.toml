@@ -14,6 +14,9 @@ serde = { version = "1.0.195", features = ["derive"] }
 span = { path = "../span" }
 ts-rs = "10.0"
 
+[dev-dependencies]
+rstest = "0.19.0"
+
 [[bin]]
 name = "bundle_types"
 path = "src/bundle.rs"
