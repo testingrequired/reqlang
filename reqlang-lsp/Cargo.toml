@@ -17,3 +17,4 @@ serde = { version = "1" }
 serde_json = "1.0"
 reqwest = { version = "0.12", features = ["json"] }
 export = { path = "../export" }
+reqlang-fetch = { path = "../reqlang-fetch" }

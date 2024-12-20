@@ -6,9 +6,10 @@ use reqlang::diagnostics::{
     Diagnoser, Diagnosis, DiagnosisPosition, DiagnosisRange, DiagnosisSeverity,
 };
 use reqlang::errors::ReqlangError;
-use reqlang::http::{HttpResponse, HttpVersion};
+use reqlang::RequestParamsFromClient;
 use reqlang::{http::HttpRequest, parse, template, Spanned, UnresolvedRequestFile};
-use reqwest::{Method, Url, Version};
+use reqlang_fetch::{Fetch, RequestParamsFromClientFetcher};
+use reqwest::Url;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tokio::sync::Mutex;
@@ -166,82 +167,16 @@ impl LanguageServer for Backend {
                 .await;
 
             // Get parsed params from JSON `Value`
-            let from_client_params: FromClientExecuteRequestParams =
+            let from_client_params: RequestParamsFromClient =
                 from_client_params_value.clone().into();
 
-            // Setup provider values
-            let env = from_client_params.env.as_str();
-            let mut provider = HashMap::new();
-            provider.insert("env".to_string(), env.to_string());
-
-            // Get reqfile text content
-            let url = Url::parse(&from_client_params.uri).expect("Should be a valid url");
-            let file_texts = self.file_texts.lock().await;
-            let text = file_texts.get(&url).expect("Should be present");
-
-            // Template the reqfile
-            let templated_reqfile = template(
-                text,
-                env,
-                &from_client_params.prompts,
-                &from_client_params.secrets,
-                provider,
-            )
-            .expect("Should have templated");
-
-            let http_client = reqwest::Client::new();
-
-            let method: Method = match templated_reqfile.request.verb.to_string().as_str() {
-                "GET" => Method::GET,
-                "POST" => Method::POST,
-                _ => todo!(),
-            };
-
-            let mut request = http_client.request(method, templated_reqfile.request.target);
-
-            for (key, value) in &templated_reqfile.request.headers {
-                request = request.header(key, value);
-            }
-
-            if let Some(body) = templated_reqfile.request.body {
-                if !body.is_empty() {
-                    request = request.body(body);
-                }
-            }
-
-            let response = request.send().await.expect("Should not error");
-            let http_version = match response.version() {
-                Version::HTTP_11 => HttpVersion::one_point_one(),
-                _ => todo!(),
-            };
-            let mut headers = HashMap::new();
-            for (key, value) in response.headers() {
-                headers.insert(
-                    key.to_string(),
-                    value.to_str().expect("Shoud work").to_string(),
-                );
-            }
-            let status = response.status().to_string();
-            let mut status_split = status.splitn(2, ' ');
-            let status_code = status_split
-                .next()
-                .unwrap()
-                .to_string()
-                .try_into()
-                .expect("Invalid status code");
-            let status_text = status_split.next().unwrap().to_string();
-            let body = Some(response.text().await.expect("Should have body"));
-
-            let reqlang_response = HttpResponse {
-                http_version,
-                status_code,
-                status_text,
-                headers,
-                body,
-            };
+            let response = RequestParamsFromClientFetcher(&from_client_params)
+                .fetch()
+                .await
+                .expect("Request should have succeeded");
 
             return Ok(Some(
-                serde_json::to_string(&reqlang_response)
+                serde_json::to_string(&response)
                     .expect("Should serialize to json")
                     .into(),
             ));
@@ -353,86 +288,6 @@ struct ParseResult {
     secrets: Vec<String>,
     request: HttpRequest,
     full: UnresolvedRequestFile,
-}
-
-/// Command parameters from client to execute request
-///
-/// This is useful for language server clients
-#[derive(Debug, Deserialize, Serialize, Default)]
-struct FromClientExecuteRequestParams {
-    uri: String,
-    env: String,
-    vars: HashMap<String, String>,
-    prompts: HashMap<String, String>,
-    secrets: HashMap<String, String>,
-}
-
-impl From<Value> for FromClientExecuteRequestParams {
-    fn from(params_value: Value) -> Self {
-        let uri = params_value
-            .get("uri")
-            .expect("Should be present")
-            .as_str()
-            .expect("Should be a string")
-            .to_string();
-
-        let env = params_value
-            .get("env")
-            .expect("Should be present")
-            .as_str()
-            .expect("Should be a string")
-            .to_string();
-
-        let vars_from_params = params_value
-            .get("vars")
-            .map(|v| v.as_object().expect("Should be there"))
-            .expect("Should be there");
-
-        let mut vars: HashMap<String, String> = HashMap::default();
-
-        for (key, value) in vars_from_params {
-            vars.insert(
-                key.to_string(),
-                value.as_str().expect("Should be a string").to_string(),
-            );
-        }
-
-        let prompts_from_params = params_value
-            .get("prompts")
-            .map(|v| v.as_object().expect("Should be there"))
-            .expect("Should be there");
-
-        let mut prompts: HashMap<String, String> = HashMap::default();
-
-        for (key, value) in prompts_from_params {
-            prompts.insert(
-                key.to_string(),
-                value.as_str().expect("Should be a string").to_string(),
-            );
-        }
-
-        let secrets_from_params = params_value
-            .get("secrets")
-            .map(|v| v.as_object().expect("Should be there"))
-            .expect("Should be there");
-
-        let mut secrets: HashMap<String, String> = HashMap::default();
-
-        for (key, value) in secrets_from_params {
-            secrets.insert(
-                key.to_string(),
-                value.as_str().expect("Should be a string").to_string(),
-            );
-        }
-
-        FromClientExecuteRequestParams {
-            uri,
-            env,
-            vars,
-            prompts,
-            secrets,
-        }
-    }
 }
 
 /// Command parameters from client to export request

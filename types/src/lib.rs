@@ -1,5 +1,6 @@
 use http::{HttpRequest, HttpResponse};
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use span::Spanned;
 use std::collections::HashMap;
 use std::fmt::Display;
@@ -124,6 +125,86 @@ pub struct ResolvedRequestFileConfig {
     pub prompts: HashMap<String, String>,
     pub secrets: HashMap<String, String>,
     pub auth: Option<HashMap<String, HashMap<String, String>>>,
+}
+
+/// Parameters sent from the client to execute a request.
+///
+/// This is useful for language server clients
+#[derive(Debug, Deserialize, Serialize, Default)]
+pub struct RequestParamsFromClient {
+    pub uri: String,
+    pub env: String,
+    pub vars: HashMap<String, String>,
+    pub prompts: HashMap<String, String>,
+    pub secrets: HashMap<String, String>,
+}
+
+impl From<Value> for RequestParamsFromClient {
+    fn from(params_value: Value) -> Self {
+        let uri = params_value
+            .get("uri")
+            .expect("Should be present")
+            .as_str()
+            .expect("Should be a string")
+            .to_string();
+
+        let env = params_value
+            .get("env")
+            .expect("Should be present")
+            .as_str()
+            .expect("Should be a string")
+            .to_string();
+
+        let vars_from_params = params_value
+            .get("vars")
+            .map(|v| v.as_object().expect("Should be there"))
+            .expect("Should be there");
+
+        let mut vars: HashMap<String, String> = HashMap::default();
+
+        for (key, value) in vars_from_params {
+            vars.insert(
+                key.to_string(),
+                value.as_str().expect("Should be a string").to_string(),
+            );
+        }
+
+        let prompts_from_params = params_value
+            .get("prompts")
+            .map(|v| v.as_object().expect("Should be there"))
+            .expect("Should be there");
+
+        let mut prompts: HashMap<String, String> = HashMap::default();
+
+        for (key, value) in prompts_from_params {
+            prompts.insert(
+                key.to_string(),
+                value.as_str().expect("Should be a string").to_string(),
+            );
+        }
+
+        let secrets_from_params = params_value
+            .get("secrets")
+            .map(|v| v.as_object().expect("Should be there"))
+            .expect("Should be there");
+
+        let mut secrets: HashMap<String, String> = HashMap::default();
+
+        for (key, value) in secrets_from_params {
+            secrets.insert(
+                key.to_string(),
+                value.as_str().expect("Should be a string").to_string(),
+            );
+        }
+
+        RequestParamsFromClient {
+            uri,
+            env,
+            vars,
+            prompts,
+            secrets,
+        }
+    }
 }
 
 /// A templated request file.

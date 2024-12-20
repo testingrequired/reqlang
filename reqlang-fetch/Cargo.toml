@@ -1,0 +1,9 @@
+[package]
+name = "reqlang-fetch"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+types = { path = "../types" }
+parser = { path = "../parser" }
+reqwest = { version = "0.12", features = ["json"] }

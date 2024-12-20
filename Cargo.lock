@@ -2768,12 +2768,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "reqlang-fetch"
+version = "0.1.0"
+dependencies = [
+ "parser",
+ "reqwest",
+ "types",
+]
+
+[[package]]
 name = "reqlang-lsp"
 version = "0.1.0"
 dependencies = [
  "anyhow",
  "export",
  "reqlang",
+ "reqlang-fetch",
  "reqwest",
  "serde",
  "serde_json",
@@ -3730,6 +3740,7 @@ version = "0.1.0"
 dependencies = [
  "rstest",
  "serde",
+ "serde_json",
  "span",
  "ts-rs",
 ]
