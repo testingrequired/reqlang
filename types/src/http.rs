@@ -5,7 +5,7 @@ use ts_rs::TS;
 
 #[derive(Clone, Debug, PartialEq, Default, Serialize, Deserialize, TS)]
 #[ts(export)]
-pub struct HttpVerb(String);
+pub struct HttpVerb(pub String);
 
 impl HttpVerb {
     pub fn get() -> Self {

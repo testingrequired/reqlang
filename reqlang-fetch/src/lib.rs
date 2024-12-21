@@ -3,60 +3,47 @@ use std::{collections::HashMap, future::Future};
 use parser::template;
 use reqwest::{Client, Method, Version};
 use types::{
-    http::{HttpResponse, HttpVersion},
+    http::{HttpRequest, HttpResponse, HttpVersion},
     RequestParamsFromClient,
 };
 
-/// Fetch trait for making HTTP requests
+/// Execute HTTP Request
+///
+/// Write an implementation that returns an [`HttpResponse`]
 pub trait Fetch {
     fn fetch(
         &self,
     ) -> impl Future<Output = Result<HttpResponse, Box<dyn std::error::Error + Send>>> + Send;
 }
 
-/// Make a request from params sent from the client
-pub struct RequestParamsFromClientFetcher<'a>(pub &'a RequestParamsFromClient);
+/// Execute HTTP Request using [`HttpRequest`].
+///
+/// ## Usage
+///
+/// ```ignore
+/// let fetcher: HttpRequestFetcher = http_request.into();
+/// let response: HttpResponse = fetcher.fetch().await?;
+/// ```
+pub struct HttpRequestFetcher(pub HttpRequest);
 
-impl<'a> Fetch for RequestParamsFromClientFetcher<'a> {
+impl Fetch for HttpRequestFetcher {
     async fn fetch(&self) -> std::result::Result<HttpResponse, Box<dyn std::error::Error + Send>> {
-        let params = self.0;
+        let http_request = &self.0;
 
-        // The request file text
-        let text = &params.reqfile;
+        let url = &http_request.target;
 
-        // The environment to execute the request in
-        let env = params.env.as_str();
-
-        // Provider values are template values provided by the client
-        let mut provider = HashMap::new();
-        provider.insert("env".to_string(), env.to_string());
-
-        // Template the reqfile
-        let reqfile = template(&text, env, &params.prompts, &params.secrets, provider)
-            .expect("Should have templated");
-
-        let request_method: Method = match reqfile.request.verb.to_string().as_str() {
+        let request_method: Method = match http_request.verb.0.as_str() {
             "GET" => Method::GET,
             "POST" => Method::POST,
             _ => todo!(),
         };
 
-        let request_url = reqfile.request.target;
-
-        let mut request_builder = Client::new().request(request_method, request_url);
-
-        for (key, value) in &reqfile.request.headers {
-            request_builder = request_builder.header(key, value);
-        }
-
-        if let Some(body) = reqfile.request.body {
-            if !body.is_empty() {
-                request_builder = request_builder.body(body);
-            }
-        }
-
-        // Execute the request and get the response
-        let response = request_builder.send().await.expect("Should not error");
+        let client = Client::new();
+        let response = client
+            .request(request_method, url)
+            .send()
+            .await
+            .expect("Request should have executed");
 
         let response_http_version = match response.version() {
             Version::HTTP_11 => HttpVersion::one_point_one(),
@@ -100,5 +87,114 @@ impl<'a> Fetch for RequestParamsFromClientFetcher<'a> {
         };
 
         Ok(response)
+    }
+}
+
+impl From<HttpRequest> for HttpRequestFetcher {
+    fn from(value: HttpRequest) -> Self {
+        Self(value)
+    }
+}
+
+/// Executes requests from an [`RequestParamsFromClient`].
+///
+/// ```ignore
+/// let response: HttpResponse = Into::<RequestParamsFromClient>::into(params).fetch().await?;
+/// ```
+impl From<RequestParamsFromClient> for HttpRequestFetcher {
+    fn from(params: RequestParamsFromClient) -> Self {
+        let reqfile = template(
+            &params.reqfile,
+            &params.env,
+            &params.prompts,
+            &params.secrets,
+            HashMap::new(),
+        )
+        .unwrap();
+
+        Self(reqfile.request)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    use pretty_assertions::assert_eq;
+    use types::http::HttpStatusCode;
+
+    use crate::Fetch;
+
+    #[tokio::test]
+    async fn test_real_http_request_fetch() {
+        let http_request = HttpRequest {
+            verb: types::http::HttpVerb("GET".to_owned()),
+            target: "https://example.com".to_owned(),
+            http_version: HttpVersion::one_point_one(),
+            headers: vec![],
+            body: None,
+        };
+
+        let fetcher: HttpRequestFetcher = http_request.into();
+        let response = fetcher
+            .fetch()
+            .await
+            .expect("Should be able to make real HTTP request");
+
+        assert_eq!(HttpVersion::one_point_one(), response.http_version);
+        assert_eq!(HttpStatusCode::new(200), response.status_code);
+
+        assert_eq!(
+            Some("text/html; charset=UTF-8"),
+            response.headers.get("content-type").map(|x| x.as_str())
+        );
+
+        assert_eq!("OK", response.status_text);
+
+        assert!(response.body.is_some());
+
+        let body = response.body.unwrap();
+
+        assert!(body.contains("<h1>Example Domain</h1>"));
+        assert!(body.contains("<p>This domain is for use in illustrative examples in documents. You may use this\n    domain in literature without prior coordination or asking for permission.</p>"));
+    }
+
+    #[tokio::test]
+    async fn test_real_request_params_fetch() {
+        let params: RequestParamsFromClient = RequestParamsFromClient {
+            reqfile: r#"
+            ---
+GET http://example.com HTTP/1.1
+
+            "#
+            .to_string(),
+            env: "default".to_string(),
+            vars: HashMap::new(),
+            prompts: HashMap::new(),
+            secrets: HashMap::new(),
+        };
+
+        let fetcher: HttpRequestFetcher = params.into();
+        let response = fetcher
+            .fetch()
+            .await
+            .expect("Should be able to make real HTTP request");
+
+        assert_eq!(HttpVersion::one_point_one(), response.http_version);
+        assert_eq!(HttpStatusCode::new(200), response.status_code);
+
+        assert_eq!(
+            Some("text/html; charset=UTF-8"),
+            response.headers.get("content-type").map(|x| x.as_str())
+        );
+
+        assert_eq!("OK", response.status_text);
+
+        assert!(response.body.is_some());
+
+        let body = response.body.unwrap();
+
+        assert!(body.contains("<h1>Example Domain</h1>"));
+        assert!(body.contains("<p>This domain is for use in illustrative examples in documents. You may use this\n    domain in literature without prior coordination or asking for permission.</p>"));
     }
 }

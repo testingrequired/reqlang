@@ -8,7 +8,7 @@ use reqlang::diagnostics::{
 use reqlang::errors::ReqlangError;
 use reqlang::RequestParamsFromClient;
 use reqlang::{http::HttpRequest, parse, template, Spanned, UnresolvedRequestFile};
-use reqlang_fetch::{Fetch, RequestParamsFromClientFetcher};
+use reqlang_fetch::{Fetch, HttpRequestFetcher};
 use reqwest::Url;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -170,7 +170,7 @@ impl LanguageServer for Backend {
             let from_client_params: RequestParamsFromClient =
                 from_client_params_value.clone().into();
 
-            let response = RequestParamsFromClientFetcher(&from_client_params)
+            let response = Into::<HttpRequestFetcher>::into(from_client_params)
                 .fetch()
                 .await
                 .expect("Request should have succeeded");
