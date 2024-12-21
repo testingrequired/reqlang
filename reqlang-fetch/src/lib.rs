@@ -11,28 +11,18 @@ use types::{
 pub trait Fetch {
     fn fetch(
         &self,
-    ) -> impl Future<Output = Result<HttpResponse, Box<dyn std::error::Error>>> + Send;
+    ) -> impl Future<Output = Result<HttpResponse, Box<dyn std::error::Error + Send>>> + Send;
 }
 
 /// Make a request from params sent from the client
 pub struct RequestParamsFromClientFetcher<'a>(pub &'a RequestParamsFromClient);
 
 impl<'a> Fetch for RequestParamsFromClientFetcher<'a> {
-    async fn fetch(&self) -> std::result::Result<HttpResponse, Box<dyn std::error::Error>> {
+    async fn fetch(&self) -> std::result::Result<HttpResponse, Box<dyn std::error::Error + Send>> {
         let params = self.0;
 
-        // Convert file:// prepended url to a file path
-        let url = if params.uri.starts_with("file://") {
-            std::fs::canonicalize(params.uri[7..].to_string())
-                .expect(&format!("Should be able to canonicalize {}", params.uri))
-        } else {
-            std::fs::canonicalize(params.uri.to_string())
-                .expect(&format!("Should be able to canonicalize {}", params.uri))
-        };
-
         // The request file text
-        let text = std::fs::read_to_string(&url)
-            .expect(&format!("Should be able to read reqfile {}", params.uri));
+        let text = &params.reqfile;
 
         // The environment to execute the request in
         let env = params.env.as_str();
@@ -45,15 +35,15 @@ impl<'a> Fetch for RequestParamsFromClientFetcher<'a> {
         let reqfile = template(&text, env, &params.prompts, &params.secrets, provider)
             .expect("Should have templated");
 
-        let method: Method = match reqfile.request.verb.to_string().as_str() {
+        let request_method: Method = match reqfile.request.verb.to_string().as_str() {
             "GET" => Method::GET,
             "POST" => Method::POST,
             _ => todo!(),
         };
 
-        let url = reqfile.request.target;
+        let request_url = reqfile.request.target;
 
-        let mut request_builder = Client::new().request(method, url);
+        let mut request_builder = Client::new().request(request_method, request_url);
 
         for (key, value) in &reqfile.request.headers {
             request_builder = request_builder.header(key, value);

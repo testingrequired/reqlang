@@ -130,9 +130,11 @@ pub struct ResolvedRequestFileConfig {
 /// Parameters sent from the client to execute a request.
 ///
 /// This is useful for language server clients
-#[derive(Debug, Deserialize, Serialize, Default)]
+#[derive(Debug, Deserialize, Serialize, Default, TS)]
+#[ts(export)]
 pub struct RequestParamsFromClient {
-    pub uri: String,
+    /// The text content of the request file
+    pub reqfile: String,
     pub env: String,
     pub vars: HashMap<String, String>,
     pub prompts: HashMap<String, String>,
@@ -141,8 +143,8 @@ pub struct RequestParamsFromClient {
 
 impl From<Value> for RequestParamsFromClient {
     fn from(params_value: Value) -> Self {
-        let uri = params_value
-            .get("uri")
+        let reqfile = params_value
+            .get("reqfile")
             .expect("Should be present")
             .as_str()
             .expect("Should be a string")
@@ -198,7 +200,7 @@ impl From<Value> for RequestParamsFromClient {
         }
 
         RequestParamsFromClient {
-            uri,
+            reqfile,
             env,
             vars,
             prompts,

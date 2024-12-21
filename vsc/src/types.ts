@@ -2,6 +2,7 @@ import {
   HttpRequest,
   HttpResponse,
   UnresolvedRequestFile,
+  RequestParamsFromClient,
 } from "reqlang-types";
 import * as RsResult from "rsresult";
 
@@ -10,7 +11,7 @@ import * as RsResult from "rsresult";
  */
 export type RequestToBeExecuted = {
   startDateIso: string;
-  params: RequestToBeExecutedParams;
+  params: RequestParamsFromClient;
   response: HttpResponse;
   endDateIso: string;
   wasSuccessful: boolean;
@@ -82,34 +83,6 @@ export type ParsedReqfileFromServer = {
    */
   full: UnresolvedRequestFile;
 };
-
-/**
- * Params sent to language server for the execute request command
- */
-export type ExecuteRequestParams = {
-  /**
-   * Path to the request file being executed
-   */
-  uri: string;
-  /**
-   * Environment name used for request
-   */
-  env: string;
-  /**
-   * Variable name/value pairs used for request
-   */
-  vars: Record<string, string>;
-  /**
-   * Prompt name/value pairs used for request
-   */
-  prompts: Record<string, string>;
-  /**
-   * Secret name/value pairs used for request
-   */
-  secrets: Record<string, string>;
-};
-
-export type RequestToBeExecutedParams = Exclude<ExecuteRequestParams, "uri">;
 
 export type ExportRequestParams = {
   uri: string;

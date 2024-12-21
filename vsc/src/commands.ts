@@ -8,14 +8,10 @@ import {
 } from "vscode";
 import { getClient, getClientWithoutInit } from "./client";
 import * as state from "./state";
-import {
-  ExecuteRequestParams,
-  ExportRequestParams,
-  MenuChoices,
-} from "./types";
+import { ExportRequestParams, MenuChoices } from "./types";
 import * as RsResult from "rsresult";
 import { updateStatusText } from "./status";
-import { HttpResponse } from "reqlang-types";
+import { HttpResponse, RequestParamsFromClient } from "reqlang-types";
 
 export enum Commands {
   PickEnv = "reqlang.pickEnv",
@@ -387,10 +383,12 @@ export const runRequest =
       // It's used to set UI state in the editor
       state.setIsWaitingForResponse(uri, context, true);
 
+      const reqfile_text = window.activeTextEditor.document.getText();
+
       const env = state.getEnv(uri, context)!;
 
-      const executeRequestParams: ExecuteRequestParams = {
-        uri,
+      const requestParamsToServer: RequestParamsFromClient = {
+        reqfile: reqfile_text,
         env,
         vars,
         prompts: promptsObj,
@@ -402,7 +400,7 @@ export const runRequest =
        */
       const responseJson = await commands.executeCommand<string>(
         Commands.Execute,
-        executeRequestParams
+        requestParamsToServer
       );
 
       const response: HttpResponse = JSON.parse(responseJson);
@@ -413,7 +411,7 @@ export const runRequest =
         response,
         endDateIso: new Date().toISOString(),
         wasSuccessful: statusCode >= 200 && statusCode < 300,
-        params: executeRequestParams,
+        params: requestParamsToServer,
       });
 
       // Set state to know the request has been received
