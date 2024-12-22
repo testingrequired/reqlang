@@ -1,9 +1,9 @@
 use std::{collections::HashMap, future::Future};
 
 use parser::template;
-use reqwest::{Client, Method, Version};
+use reqwest::{Client, Method, Response, Version};
 use types::{
-    http::{HttpRequest, HttpResponse, HttpVersion},
+    http::{HttpRequest, HttpResponse, HttpStatusCode, HttpVersion},
     RequestParamsFromClient,
 };
 
@@ -24,69 +24,77 @@ pub trait Fetch {
 /// let fetcher: HttpRequestFetcher = http_request.into();
 /// let response: HttpResponse = fetcher.fetch().await?;
 /// ```
-pub struct HttpRequestFetcher(pub HttpRequest);
+pub struct HttpRequestFetcher(HttpRequest);
 
-impl Fetch for HttpRequestFetcher {
-    async fn fetch(&self) -> std::result::Result<HttpResponse, Box<dyn std::error::Error + Send>> {
-        let http_request = &self.0;
-
-        let url = &http_request.target;
-
-        let request_method: Method = match http_request.verb.0.as_str() {
+impl HttpRequestFetcher {
+    fn request_method(&self) -> Method {
+        match self.0.verb.0.as_str() {
             "GET" => Method::GET,
             "POST" => Method::POST,
             _ => todo!(),
-        };
+        }
+    }
 
+    fn request_url(&self) -> &str {
+        &self.0.target
+    }
+
+    fn map_response_http_version(response: &Response) -> HttpVersion {
+        match response.version() {
+            Version::HTTP_11 => HttpVersion::one_point_one(),
+            _ => todo!(),
+        }
+    }
+
+    fn map_response_headers(response: &Response) -> HashMap<String, String> {
+        let mut headers = HashMap::new();
+        for (key, value) in response.headers() {
+            headers.insert(
+                key.to_string(),
+                value.to_str().expect("Shoud work").to_string(),
+            );
+        }
+
+        headers
+    }
+
+    fn map_response_status_code_and_text(response: &Response) -> (HttpStatusCode, String) {
+        let response_status = response.status().to_string();
+        let mut status_split = response_status.splitn(2, ' ');
+        let status_code = status_split
+            .next()
+            .unwrap()
+            .to_string()
+            .try_into()
+            .expect("Invalid status code");
+        let status_text = status_split.next().unwrap().to_string();
+
+        (status_code, status_text)
+    }
+}
+
+impl Fetch for HttpRequestFetcher {
+    async fn fetch(&self) -> std::result::Result<HttpResponse, Box<dyn std::error::Error + Send>> {
         let client = Client::new();
+
         let response = client
-            .request(request_method, url)
+            .request(self.request_method(), self.request_url())
             .send()
             .await
             .expect("Request should have executed");
 
-        let response_http_version = match response.version() {
-            Version::HTTP_11 => HttpVersion::one_point_one(),
-            _ => todo!(),
-        };
+        let http_version = Self::map_response_http_version(&response);
+        let headers = Self::map_response_headers(&response);
+        let (status_code, status_text) = Self::map_response_status_code_and_text(&response);
+        let body = response.text().await.ok();
 
-        let response_headers = {
-            let mut headers = HashMap::new();
-            for (key, value) in response.headers() {
-                headers.insert(
-                    key.to_string(),
-                    value.to_str().expect("Shoud work").to_string(),
-                );
-            }
-
-            headers
-        };
-
-        let (status_code, status_text) = {
-            let response_status = response.status().to_string();
-            let mut status_split = response_status.splitn(2, ' ');
-            let status_code = status_split
-                .next()
-                .unwrap()
-                .to_string()
-                .try_into()
-                .expect("Invalid status code");
-            let status_text = status_split.next().unwrap().to_string();
-
-            (status_code, status_text)
-        };
-
-        let response_body = response.text().await.ok();
-
-        let response = HttpResponse {
-            http_version: response_http_version,
+        Ok(HttpResponse {
+            http_version,
             status_code,
             status_text,
-            headers: response_headers,
-            body: response_body,
-        };
-
-        Ok(response)
+            headers,
+            body,
+        })
     }
 }
 
