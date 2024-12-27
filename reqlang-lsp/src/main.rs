@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::ops::Deref;
 
 use anyhow::{Context, Result};
+use assert_response::assert_response;
 use reqlang::diagnostics::{
     Diagnoser, Diagnosis, DiagnosisPosition, DiagnosisRange, DiagnosisSeverity,
 };
@@ -159,6 +160,13 @@ impl LanguageServer for Backend {
     }
 
     async fn execute_command(&self, params: ExecuteCommandParams) -> RpcResult<Option<Value>> {
+        self.client
+            .log_message(
+                MessageType::INFO,
+                format!("Executing command: {}", params.command.as_str()),
+            )
+            .await;
+
         if params.command.as_str() == "reqlang.executeRequest" {
             let from_client_params_value = params.arguments.first().expect("Should be present");
 
@@ -167,13 +175,48 @@ impl LanguageServer for Backend {
                 .await;
 
             // Get parsed params from JSON `Value`
-            let from_client_params: RequestParamsFromClient =
-                from_client_params_value.clone().into();
+            let from_client_params =
+                Into::<RequestParamsFromClient>::into(from_client_params_value.clone());
+
+            let reqfile = template(
+                &from_client_params.reqfile,
+                &from_client_params.env,
+                &from_client_params.prompts,
+                &from_client_params.secrets,
+                Default::default(),
+            )
+            .expect("Should get templated request file");
 
             let response = Into::<HttpRequestFetcher>::into(from_client_params)
                 .fetch()
                 .await
                 .expect("Request should have succeeded");
+
+            self.client
+                .log_message(
+                    MessageType::WARNING,
+                    format!("Expected response:\n{:?}", reqfile.response),
+                )
+                .await;
+
+            self.client
+                .log_message(
+                    MessageType::WARNING,
+                    format!("Actual response:\n{:?}", response),
+                )
+                .await;
+
+            let diff = reqfile
+                .response
+                .and_then(|expected_response| assert_response(expected_response, &response).err())
+                .unwrap_or_default();
+
+            self.client
+                .log_message(
+                    MessageType::WARNING,
+                    format!("Differences found in the response:\n{:?}", diff),
+                )
+                .await;
 
             return Ok(Some(
                 serde_json::to_string(&response)

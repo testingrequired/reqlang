@@ -1,0 +1,10 @@
+[package]
+name = "assert-response"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+types = { path = "../types" }
+
+[dev-dependencies]
+pretty_assertions = "1.4.1"
