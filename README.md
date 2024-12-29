@@ -11,6 +11,12 @@ A file format specification for defining HTTP requests, response assertions, and
 - Templating with variables, prompted, and secret values
 - Client/implementation agnostic
 
+### Future
+
+- Chaining requests
+- Response body mapping/transformation/extraction
+- Authenticated requests (e.g. OAuth2) configuration
+
 ## Syntax
 
 This is a living syntax subject to change wildly at anytime. The core concepts and goals will remain the same however.
