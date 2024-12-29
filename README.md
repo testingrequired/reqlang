@@ -17,17 +17,15 @@ A file format specification for defining HTTP requests, response assertions, and
 - Response body mapping/transformation/extraction
 - Authenticated requests (e.g. OAuth2) configuration
 
-## Syntax
-
-This is a living syntax subject to change wildly at anytime. The core concepts and goals will remain the same however.
-
-## Name
-
-Request Language (reqlang) was always a stand in name just to get the project started. It could and likely will change at some point.
-
 ## Request Files
 
 Request files (`*.reqfile`) are multi-document files containing a request along with an optional config and expected response. They are designed to define what the request is, not how to execute it (e.g. defining what secrets are needed instead of how to fetch them). This is left to implementing clients.
+
+### Living Syntax
+
+This is a living syntax subject to change wildly at anytime. The core concepts and goals will remain the same however.
+
+### Example
 
 [post.reqlang](./examples/valid/post.reqlang):
 
@@ -215,6 +213,10 @@ x-api-key: {{!api_key}}
 ### Examples
 
 See [all examples](./examples) for more request files.
+
+## Name
+
+Request Language (reqlang) was always a stand in name just to get the project started. It could and likely will change at some point.
 
 ## Tooling
 
