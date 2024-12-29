@@ -260,8 +260,11 @@ A directory of request files can be mounted inside the container's `/usr/local/s
 
 ```shell
 docker run --rm --read-only \
-    -v "/$PWD/examples":/usr/local/src/examples:ro reqlang:0.1.0 \
-    ./examples/valid/delay.reqlang -e default -f curl \
+    -v "/$PWD/examples":/usr/local/src/examples:ro \
+    reqlang:0.1.0 \
+    ./examples/valid/delay.reqlang \
+    -e default \
+    -f curl \
     -P seconds=5 | bash
 
 # HTTP/1.1 201 CREATED
