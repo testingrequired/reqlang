@@ -15,6 +15,18 @@ A file format specification for defining HTTP requests, response assertions, and
 
 Request files (`*.reqfile`) are multi-document files containing a request along with an optional config and expected response. They are designed to define what the request is, not how to execute it (e.g. defining what secrets are needed instead of how to fetch them). This is left to implementing clients.
 
+```reqlang
+#!/usr/bin/env reqlang
+
+[prompts]
+# Status code the response will return
+status_code = ""
+---
+GET https://httpbin.org/status/{{?status_code}} HTTP/1.1
+```
+
+See: [status_code.reqlang](./examples/valid/status_code.reqlang)
+
 ### Request
 
 The request is the request is what's executed when the request file is ran. They are written as [HTTP request messages](https://developer.mozilla.org/en-US/docs/Web/HTTP/Messages#http_requests).
