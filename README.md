@@ -15,17 +15,36 @@ A file format specification for defining HTTP requests, response assertions, and
 
 Request files (`*.reqfile`) are multi-document files containing a request along with an optional config and expected response. They are designed to define what the request is, not how to execute it (e.g. defining what secrets are needed instead of how to fetch them). This is left to implementing clients.
 
+[post.reqlang](./examples/valid/post.reqlang):
+
 ```reqlang
 #!/usr/bin/env reqlang
 
-[prompts]
-# Status code the response will return
-status_code = ""
----
-GET https://httpbin.org/status/{{?status_code}} HTTP/1.1
-```
+vars = ["test_value"]
+secrets = ["super_secret_value"]
 
-See: [status_code.reqlang](./examples/valid/status_code.reqlang)
+[prompts]
+prompt_value = ""
+
+[envs.test]
+test_value = "test_value"
+
+[envs.prod]
+test_value = "prod_value"
+
+[envs.local]
+test_value = "local_value"
+
+---
+POST https://httpbin.org/post HTTP/1.1
+
+{
+  "env": "{{@env}}",
+  "value": "{{:test_value}}",
+  "prompted_value": "{{?prompt_value}}",
+  "secret_value": "{{!super_secret_value}}"
+}
+```
 
 ### Request
 
