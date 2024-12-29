@@ -216,6 +216,8 @@ See [all examples](./examples) for more request files.
 
 ## Tooling
 
+These act as both tooling for request file and reference implementations for clients.
+
 ### CLI
 
 The [`reqlang`](./cli) CLI can parse request files as well export templated requests in to a variety of formats (`http`, `curl`, `curl_script`).
