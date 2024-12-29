@@ -16,6 +16,7 @@ A file format specification for defining HTTP requests, response assertions, and
 - Chaining requests
 - Response body mapping/transformation/extraction
 - Authenticated requests (e.g. OAuth2) configuration
+- Project workspaces
 
 ## Request Files
 
@@ -24,6 +25,10 @@ Request files (`*.reqfile`) are multi-document files containing a request along 
 ### Living Syntax
 
 This is a living syntax subject to change wildly at anytime. The core concepts and goals will remain the same however.
+
+#### Future
+
+- Alternative syntax to document delimiters `---`
 
 ### Example
 
@@ -141,14 +146,20 @@ item_id = "efgh"
 GET https://{{@env}}.example.com/users/{{:user_id}}/items/{{:item_id}} HTTP/1.1
 ```
 
-##### Future
+##### Goals
+
+- Clearly define everything the request and response will need
+- Declare environments once
+- Require variable declaration before definition
+
+###### Future
 
 - Default value (implicitly set in the `default` environment)
 - Value type
 
 #### Prompts
 
-Prompts are values provided by the user at request execution time. Clients might opt for this to be a command line flag or a form field in it's UI. They can be templated in the request and responses using the `{{?prompt_name}}` syntax.
+Prompts are values provided by the user at request execution time. These are "inputs" to the request file. They can be templated in the request and responses using the `{{?prompt_name}}` syntax.
 
 ```toml
 [prompts]
@@ -169,46 +180,30 @@ GET https://example.com/posts?tags={{?tags}} HTTP/1.1
 - Default value
 - Value type
 
-### Variables, Evironmental Values, & Template References
-
-Requests and responses support templating be declaring variables and defining environment specific values.
-
-```reqlang
-
-vars = ["base_url"]
-
-[envs.dev]
-base_url = "https://dev.example.com"
-
-[envs.prod]
-base_url = "https://example.com"
----
-GET {{:base_url}} HTTP/1.1
-```
-
-### Prompts
-
-Prompts are input values to the request file and are supplied by the user.
-
-```reqlang
-
-[prompts]
-example_id = ""
----
-GET https://example.com/?id={{?example_id}} HTTP/1.1
-```
-
-### Secrets
+#### Secrets
 
 Secrets are protected values referenced by a name and declares what secrets will be required. How secret values are fetched is up to client implementations. They can be referenced using the `{{!secret_name}}` syntax.
 
-```reqlang
+```toml
+secrets = ["api_key"]
+```
 
+##### Usage
+
+```reqlang
 secrets = ["api_key"]
 ---
 GET https://example.com HTTP/1.1
 x-api-key: {{!api_key}}
 ```
+
+##### Goals
+
+- Secret fetching is outside the scope of the request file
+
+###### Future
+
+- Configuring secret fetching in the workspace
 
 ### Examples
 
