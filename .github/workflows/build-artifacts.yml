@@ -8,28 +8,24 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+      - uses: actions/checkout@v2
+      - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy, rustfmt
           toolchain: 1.75.0
-      - name: Install Node
-        uses: actions/setup-node@v3
+      - uses: Swatinem/rust-cache@v1
+      - uses: actions/setup-node@v3
         with:
           cache: npm
           cache-dependency-path: vsc/package-lock.json
           node-version: 20
-      - name: Setup Rust cache
-        uses: Swatinem/rust-cache@v1
       - name: Install just
         uses: taiki-e/install-action@v2
         with:
           tool: just
-      - name: Run Verify
+      - name: Verify
         run: just verify
-      - name: Run Build
+      - name: Build
         run: just build_release
       - name: Upload CLI Binary
         uses: actions/upload-artifact@v3
@@ -49,28 +45,24 @@ jobs:
   build-windows:
     runs-on: windows-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+      - uses: actions/checkout@v2
+      - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy, rustfmt
           toolchain: 1.75.0
-      - name: Install Node
-        uses: actions/setup-node@v3
+      - uses: Swatinem/rust-cache@v1
+      - uses: actions/setup-node@v3
         with:
           cache: npm
           cache-dependency-path: vsc/package-lock.json
           node-version: 20
-      - name: Setup Rust cache
-        uses: Swatinem/rust-cache@v1
       - name: Install just
         uses: taiki-e/install-action@v2
         with:
           tool: just
-      - name: Run Verify
+      - name: Verify
         run: just verify
-      - name: Run Build
+      - name: Build
         run: just build_release
       - name: Upload CLI Binary
         uses: actions/upload-artifact@v3
