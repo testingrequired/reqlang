@@ -52,8 +52,8 @@ jobs:
       - name: Upload VS Code Extension Artifact
         uses: actions/upload-artifact@v3
         with:
-          name: reqlang-vsc-extension-0.1.0.vsix
-          path: vsc/out/reqlang-vsc-extension-0.1.0.vsix
+          name: reqlang-0.1.0.vsix
+          path: vsc/out/reqlang-0.1.0.vsix
   build-windows:
     runs-on: windows-latest
     steps:
