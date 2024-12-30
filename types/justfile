@@ -6,4 +6,5 @@ clean:
     rm -rf dist
 
 build: clean
+    npm ci
     cargo test export_bindings && cargo run --bin bundle_types --features bundle_types && npm run build

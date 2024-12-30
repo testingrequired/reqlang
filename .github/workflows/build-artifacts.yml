@@ -19,6 +19,8 @@ jobs:
           cache: npm
           cache-dependency-path: vsc/package-lock.json
           node-version: 20
+      - name: Install Node Dependencies
+        run: npm ci
       - name: Install just
         uses: taiki-e/install-action@v2
         with:
