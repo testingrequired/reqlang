@@ -6,6 +6,7 @@ FROM rust:1.75.0-slim-bookworm AS build
 WORKDIR /usr/local/src
 
 COPY Cargo.toml Cargo.lock ./
+COPY assert-response assert-response/
 COPY cli cli/
 COPY diagnostics diagnostics/
 COPY errors errors/
@@ -14,6 +15,7 @@ COPY integration_tests integration_tests/
 COPY parser parser/
 COPY reqlang reqlang/
 COPY reqlang-client reqlang-client/
+COPY reqlang-fetch reqlang-fetch/
 COPY reqlang-lsp reqlang-lsp/
 COPY span span/
 COPY str-idxpos str-idxpos/
