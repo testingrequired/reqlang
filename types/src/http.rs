@@ -226,8 +226,6 @@ pub struct HttpResponse {
 #[cfg(test)]
 mod tests {
     mod http_status_code {
-        use std::u16;
-
         use rstest::rstest;
 
         use crate::http::HttpStatusCode;
