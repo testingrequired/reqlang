@@ -11,17 +11,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
       - name: Install Rust
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
-          components: clippy
-          profile: minimal
+          components: clippy, rustfmt
           toolchain: 1.75.0
-      - name: Install Rust (nightly)
-        uses: actions-rs/toolchain@v1
-        with:
-          components: rustfmt
-          profile: minimal
-          toolchain: nightly
       - name: Install Node
         uses: actions/setup-node@v3
         with:
@@ -59,17 +52,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
       - name: Install Rust
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
-          components: clippy
-          profile: minimal
+          components: clippy, rustfmt
           toolchain: 1.75.0
-      - name: Install Rust (nightly)
-        uses: actions-rs/toolchain@v1
-        with:
-          components: rustfmt
-          profile: minimal
-          toolchain: nightly
       - name: Install Node
         uses: actions/setup-node@v3
         with:
