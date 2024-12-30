@@ -37,12 +37,12 @@ jobs:
       - name: Upload CLI Binary
         uses: actions/upload-artifact@v3
         with:
-          name: reqlang-cli-binary
+          name: reqlang
           path: target/release/reqlang
       - name: Upload LSP Binary
         uses: actions/upload-artifact@v3
         with:
-          name: reqlang-lsp-binary
+          name: reqlang-lsp
           path: target/release/reqlang-lsp
       - name: Upload VS Code Extension Artifact
         uses: actions/upload-artifact@v3
@@ -72,10 +72,10 @@ jobs:
       - name: Upload CLI Binary
         uses: actions/upload-artifact@v3
         with:
-          name: reqlang-cli-windows-binary
+          name: reqlang.exe
           path: target/release/reqlang.exe
       - name: Upload LSP Binary
         uses: actions/upload-artifact@v3
         with:
-          name: reqlang-lsp-windows-binary
+          name: reqlang-lsp.exe
           path: target/release/reqlang-lsp.exe
