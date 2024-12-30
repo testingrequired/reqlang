@@ -44,10 +44,15 @@ jobs:
         with:
           name: reqlang-lsp
           path: target/release/reqlang-lsp
+      - name: Upload Desktop App
+        uses: actions/upload-artifact@v3
+        with:
+          name: reqlang-client
+          path: target/release/reqlang-client
       - name: Upload VS Code Extension Artifact
         uses: actions/upload-artifact@v3
         with:
-          name: locks-vscode-extension
+          name: reqlang-vsc-extension-0.1.0.vsix
           path: vsc/out/reqlang-vsc-extension-0.1.0.vsix
   build-windows:
     runs-on: windows-latest
@@ -79,3 +84,8 @@ jobs:
         with:
           name: reqlang-lsp.exe
           path: target/release/reqlang-lsp.exe
+      - name: Upload Desktop App
+        uses: actions/upload-artifact@v3
+        with:
+          name: reqlang-client.exe
+          path: target/release/reqlang-client.exe
