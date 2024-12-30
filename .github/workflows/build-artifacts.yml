@@ -1,0 +1,96 @@
+name: build-artifacts
+on:
+  push:
+    branches: [main]
+env:
+  CARGO_TERM_COLOR: always
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          components: clippy
+          profile: minimal
+          toolchain: 1.75.0
+      - name: Install Rust (nightly)
+        uses: actions-rs/toolchain@v1
+        with:
+          components: rustfmt
+          profile: minimal
+          toolchain: nightly
+      - name: Install Node
+        uses: actions/setup-node@v3
+        with:
+          cache: npm
+          node-version: 20
+      - name: Setup Rust cache
+        uses: Swatinem/rust-cache@v1
+      - name: Install just
+        uses: taiki-e/install-action@v2
+        with:
+          tool: just
+      - name: Run Verify
+        run: just verify
+      - name: Run Build
+        run: just build_release
+      - name: Upload CLI Binary
+        uses: actions/upload-artifact@v3
+        with:
+          name: reqlang-cli-binary
+          path: target/release/reqlang
+      - name: Upload LSP Binary
+        uses: actions/upload-artifact@v3
+        with:
+          name: reqlang-lsp-binary
+          path: target/release/reqlang-lsp
+      - name: Upload VS Code Extension Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: locks-vscode-extension
+          path: vsc/out/reqlang-vsc-extension-0.1.0.vsix
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          components: clippy
+          profile: minimal
+          toolchain: 1.75.0
+      - name: Install Rust (nightly)
+        uses: actions-rs/toolchain@v1
+        with:
+          components: rustfmt
+          profile: minimal
+          toolchain: nightly
+      - name: Install Node
+        uses: actions/setup-node@v3
+        with:
+          cache: npm
+          node-version: 20
+      - name: Setup Rust cache
+        uses: Swatinem/rust-cache@v1
+      - name: Install just
+        uses: taiki-e/install-action@v2
+        with:
+          tool: just
+      - name: Run Verify
+        run: just verify
+      - name: Run Build
+        run: just build_release
+      - name: Upload CLI Binary
+        uses: actions/upload-artifact@v3
+        with:
+          name: reqlang-cli-windows-binary
+          path: target/release/reqlang.exe
+      - name: Upload LSP Binary
+        uses: actions/upload-artifact@v3
+        with:
+          name: reqlang-lsp-windows-binary
+          path: target/release/reqlang-lsp.exe
