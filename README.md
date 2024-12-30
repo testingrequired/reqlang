@@ -20,7 +20,7 @@ A file format specification for defining HTTP requests, response assertions, and
 
 ## Request Files
 
-Request files (`*.reqfile`) are multi-document files containing a request along with an optional config and expected response. They are designed to define what the request is, not how to execute it (e.g. defining what secrets are needed instead of how to fetch them). This is left to implementing clients.
+Request files (`*.reqlang`) are multi-document files containing a request along with an optional config and expected response. They are designed to define what the request is, not how to execute it (e.g. defining what secrets are needed instead of how to fetch them). This is left to implementing clients.
 
 ### Living Syntax
 
