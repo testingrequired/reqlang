@@ -23,8 +23,6 @@ jobs:
         uses: taiki-e/install-action@v2
         with:
           tool: just
-      - name: Verify
-        run: just verify
       - name: Build
         run: just build_release
       - name: Upload CLI Binary
@@ -60,8 +58,6 @@ jobs:
         uses: taiki-e/install-action@v2
         with:
           tool: just
-      - name: Verify
-        run: just verify
       - name: Build
         run: just build_release
       - name: Upload CLI Binary
