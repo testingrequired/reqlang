@@ -26,6 +26,7 @@ jobs:
         uses: actions/setup-node@v3
         with:
           cache: npm
+          cache-dependency-path: vsc/package-lock.json
           node-version: 20
       - name: Setup Rust cache
         uses: Swatinem/rust-cache@v1
@@ -73,6 +74,7 @@ jobs:
         uses: actions/setup-node@v3
         with:
           cache: npm
+          cache-dependency-path: vsc/package-lock.json
           node-version: 20
       - name: Setup Rust cache
         uses: Swatinem/rust-cache@v1
