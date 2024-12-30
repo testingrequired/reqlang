@@ -211,6 +211,8 @@ See [all examples](./examples) for more request files.
 
 ## Tooling
 
+[![build-artifacts](https://github.com/testingrequired/reqlang/actions/workflows/build-artifacts.yml/badge.svg)](https://github.com/testingrequired/reqlang/actions/workflows/build-artifacts.yml)
+
 These act as both tooling for request file and reference implementations for clients.
 
 ### CLI
