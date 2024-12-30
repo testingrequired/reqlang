@@ -3,7 +3,7 @@ name = "export"
 description = "Export request files in to other formats"
 version = "0.1.0"
 edition = "2021"
-rust-version = "1.75"
+rust-version = "1.78"
 authors = ["Kylee Tilley <kyleetilley@gmail.com>"]
 publish = false
 
