@@ -84,7 +84,21 @@ All contributions are appreciated but not all will be accepted. We will review y
 - [Just](https://just.systems/)
 - [VS Code](https://code.visualstudio.com/)
 
-#### Tests
+#### Build
+
+Builds everything.
+
+```shell
+just build
+```
+
+##### Output Directories
+
+- `target` The compiled binaries for the project
+- `types/dist` Generated typescript types from the [types](./types/) crate
+- `vsc/out` The packaged VS Code extension
+
+#### Verify
 
 Builds the project, runs all the tests, and checks for linting issues.
 
