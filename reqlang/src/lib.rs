@@ -4,6 +4,7 @@ pub use export;
 pub use parser::parse;
 pub use parser::resolve;
 pub use parser::template;
+pub use reqlang_fetch as fetch;
 pub use span::*;
 pub use types::*;
 

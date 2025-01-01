@@ -10,6 +10,7 @@ span = { path = "../span" }
 errors = { path = "../errors" }
 export = { path = "../export" }
 diagnostics = { path = "../diagnostics" }
+reqlang-fetch = { path = "../reqlang-fetch" }
 
 [dev-dependencies]
 pretty_assertions = "1.4.1"

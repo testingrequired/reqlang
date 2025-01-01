@@ -1929,6 +1929,7 @@ dependencies = [
  "pretty_assertions",
  "reqlang",
  "rstest",
+ "tokio",
 ]
 
 [[package]]
@@ -2750,6 +2751,7 @@ dependencies = [
  "export",
  "parser",
  "pretty_assertions",
+ "reqlang-fetch",
  "span",
  "types",
 ]
