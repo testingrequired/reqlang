@@ -11,14 +11,14 @@ use reqlang::{
 
 #[rstest::rstest]
 fn integration_valid(#[files("../examples/valid/*.reqlang")] path: PathBuf) {
-    let source = fs::read_to_string(path).expect("unable to read test file");
+    let source = fs::read_to_string(path).expect("Should get text from file");
 
     assert!(reqlang::parse(&source).is_ok());
 }
 
 #[rstest::rstest]
 fn integration_invalid(#[files("../examples/invalid/*.reqlang")] path: PathBuf) {
-    let source = fs::read_to_string(path).expect("unable to read test file");
+    let source = fs::read_to_string(path).expect("Should get text from file");
 
     assert!(reqlang::parse(&source).is_err());
 }
@@ -34,11 +34,11 @@ async fn integration_status_code_reqfile() {
     let provider_values = HashMap::from([("env".to_string(), "default".to_string())]);
 
     let reqfile = template(&source, env, &prompts, &secrets, provider_values)
-        .expect("Unable to template request file");
+        .expect("Request files should have templated");
 
     let fetcher: HttpRequestFetcher = reqfile.request.into();
 
-    let response: HttpResponse = fetcher.fetch().await.unwrap();
+    let response: HttpResponse = fetcher.fetch().await.expect("Request should have executed");
 
     assert_eq!(HttpVersion::one_point_one(), response.http_version);
     assert_eq!(HttpStatusCode::new(201), response.status_code);
