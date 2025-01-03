@@ -144,12 +144,12 @@ mod tests {
             .arg("-e")
             .arg("default")
             .arg("-P")
-            .arg("status_code=201")
+            .arg("status_code=404")
             .assert();
 
         assert
             .success()
-            .stdout("GET https://httpbin.org/status/201 HTTP/1.1\n\n");
+            .stdout("GET https://httpbin.org/status/404 HTTP/1.1\n\n");
     }
 
     #[test]
@@ -163,12 +163,12 @@ mod tests {
             .arg("-f")
             .arg("http")
             .arg("-P")
-            .arg("status_code=201")
+            .arg("status_code=200")
             .assert();
 
         assert
             .success()
-            .stdout("GET https://httpbin.org/status/201 HTTP/1.1\n\n");
+            .stdout("GET https://httpbin.org/status/200 HTTP/1.1\n\n");
     }
 
     #[test]
@@ -182,12 +182,12 @@ mod tests {
             .arg("-f")
             .arg("curl")
             .arg("-P")
-            .arg("status_code=201")
+            .arg("status_code=204")
             .assert();
 
         assert
             .success()
-            .stdout("curl https://httpbin.org/status/201 --http1.1 -v\n");
+            .stdout("curl https://httpbin.org/status/204 --http1.1 -v\n");
     }
 
     #[test]
@@ -200,8 +200,6 @@ mod tests {
             .arg("default")
             .arg("-f")
             .arg("invalid")
-            .arg("-P")
-            .arg("status_code=201")
             .assert();
 
         assert
