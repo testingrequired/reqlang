@@ -217,7 +217,15 @@ These act as both tooling for request file and reference implementations for cli
 
 ### CLI
 
-The [`reqlang`](./cli) CLI can parse request files as well export templated requests in to a variety of formats (`http`, `curl`, `curl_script`).
+The [`reqlang`](./cli) CLI parse, template, and export requests in to a variety of formats (`http`, `curl`).
+
+```shell
+reqlang ./examples/valid/status_code.reqlang -e default -P status_code=201
+
+# GET https://httpbin.org/status/201 HTTP/1.1
+```
+
+#### Shebang
 
 Adding `#!/usr/bin/env reqlang` to the top of request files allows easy usage of the CLI:
 
@@ -231,7 +239,7 @@ status_code = ""
 GET https://httpbin.org/status/{{?status_code}} HTTP/1.1
 ```
 
-Calling it:
+Then you can call it:
 
 ```shell
 ./examples/valid/status_code.reqlang -e default -f curl -P status_code=201 | bash

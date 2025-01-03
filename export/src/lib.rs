@@ -1,22 +1,20 @@
 use std::{fmt::Display, str::FromStr};
 
 use serde::{Deserialize, Serialize};
-use types::http::{HttpRequest, HttpVerb};
+use types::http::HttpRequest;
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug, Serialize, Deserialize, Default)]
 pub enum Format {
-    Http,
-    Curl,
     #[default]
-    CurlScript,
+    HttpMessage,
+    CurlCommand,
 }
 
 impl Display for Format {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Format::Http => write!(f, "http"),
-            Format::Curl => write!(f, "curl"),
-            Format::CurlScript => write!(f, "curl_script"),
+            Format::HttpMessage => write!(f, "http"),
+            Format::CurlCommand => write!(f, "curl"),
         }
     }
 }
@@ -26,29 +24,30 @@ impl FromStr for Format {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "http" => Ok(Self::Http),
-            "curl" => Ok(Self::Curl),
-            "curl_script" => Ok(Self::CurlScript),
+            "http" => Ok(Self::HttpMessage),
+            "curl" => Ok(Self::CurlCommand),
             _ => Err(format!("Unknown format: {s}")),
         }
     }
 }
 
+/// Export a request in to a desired format
 pub fn export(request: &HttpRequest, format: Format) -> String {
     match format {
-        Format::Http => {
+        // HTTP Request message
+        Format::HttpMessage => {
             format!("{}", request)
         }
-        Format::Curl => {
-            let verb = if request.verb == HttpVerb::get() {
-                "".to_string()
-            } else {
-                format!("-X {} ", request.verb)
+        // Curl command
+        Format::CurlCommand => {
+            let request_verb_flag = match request.verb.0.as_str() {
+                "GET" => String::new(),
+                verb => format!("-X {} ", verb),
             };
 
-            let target = &request.target;
+            let request_url = &request.target;
 
-            let h = if request.headers.is_empty() {
+            let header_args = if request.headers.is_empty() {
                 None
             } else {
                 Some(
@@ -63,7 +62,7 @@ pub fn export(request: &HttpRequest, format: Format) -> String {
                 )
             };
 
-            let b = request.body.clone().and_then(|x| {
+            let body_arg = request.body.clone().and_then(|x| {
                 if x.is_empty() {
                     None
                 } else {
@@ -71,7 +70,7 @@ pub fn export(request: &HttpRequest, format: Format) -> String {
                 }
             });
 
-            let the_rest = match (&h, &b) {
+            let headers_and_body_args = match (&header_args, &body_arg) {
                 (Some(headers), Some(body)) => format!(" {headers} {body}"),
                 (Some(headers), None) => format!(" {headers}"),
                 (None, Some(body)) => format!(" {body}"),
@@ -80,14 +79,8 @@ pub fn export(request: &HttpRequest, format: Format) -> String {
 
             format!(
                 "curl {}{} --http{}{} -v",
-                verb, target, request.http_version, the_rest
+                request_verb_flag, request_url, request.http_version, headers_and_body_args
             )
-        }
-        Format::CurlScript => {
-            let shebang = "#!/usr/bin/env bash";
-            let curl = export(request, Format::Curl);
-
-            format!("{shebang}\n\n{curl}")
         }
     }
 }
@@ -111,21 +104,21 @@ mod test {
     export_test!(
         format_to_curl_get_request,
         HttpRequest::get("/", "1.1", vec![]),
-        crate::Format::Curl,
+        crate::Format::CurlCommand,
         "curl / --http1.1 -v"
     );
 
     export_test!(
         format_to_curl_get_request_with_single_header,
         HttpRequest::get("/", "1.1", vec![("test".to_string(), "value".to_string())]),
-        crate::Format::Curl,
+        crate::Format::CurlCommand,
         "curl / --http1.1 -H \"test: value\" -v"
     );
 
     export_test!(
         format_to_curl_post_request,
         HttpRequest::post("/", "1.1", vec![], Some("")),
-        crate::Format::Curl,
+        crate::Format::CurlCommand,
         "curl -X POST / --http1.1 -v"
     );
 
@@ -137,7 +130,7 @@ mod test {
             vec![("test".to_string(), "value".to_string())],
             None
         ),
-        crate::Format::Curl,
+        crate::Format::CurlCommand,
         "curl -X POST / --http1.1 -H \"test: value\" -v"
     );
 
@@ -149,28 +142,21 @@ mod test {
             vec![("test".to_string(), "value".to_string())],
             Some("testing")
         ),
-        crate::Format::Curl,
+        crate::Format::CurlCommand,
         "curl -X POST / --http1.1 -H \"test: value\" -d 'testing' -v"
     );
 
     export_test!(
         format_to_http_get_request,
         HttpRequest::get("/", "1.1", vec![]),
-        crate::Format::Http,
+        crate::Format::HttpMessage,
         "GET / HTTP/1.1\n"
     );
 
     export_test!(
         format_to_http_post_request,
         HttpRequest::post("/", "1.1", vec![], Some("[1, 2, 3]\n")),
-        crate::Format::Http,
+        crate::Format::HttpMessage,
         "POST / HTTP/1.1\n\n[1, 2, 3]\n"
-    );
-
-    export_test!(
-        format_to_curl_script_get_request,
-        HttpRequest::get("/", "1.1", vec![]),
-        crate::Format::CurlScript,
-        "#!/usr/bin/env bash\n\ncurl / --http1.1 -v"
     );
 }

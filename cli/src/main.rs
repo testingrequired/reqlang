@@ -34,8 +34,8 @@ struct Args {
     #[arg(
         short,
         long,
-        default_value_t = Format::Http,
-        value_parser = clap::builder::PossibleValuesParser::new(["http", "curl", "curl_script"])
+        default_value_t = Format::HttpMessage,
+        value_parser = clap::builder::PossibleValuesParser::new(["http", "curl"])
             .map(|s| s.parse::<Format>().unwrap()),
     )]
     format: Format,
@@ -120,4 +120,92 @@ fn main() {
             println!("{:#?}", reqfile);
         }
     };
+}
+
+#[cfg(test)]
+mod tests {
+    use assert_cmd::Command;
+
+    #[test]
+    fn no_args() {
+        let mut cmd = Command::cargo_bin("reqlang").unwrap();
+
+        let assert = cmd.assert();
+
+        assert.failure().stderr("error: the following required arguments were not provided:\n  <PATH>\n\nUsage: reqlang <PATH>\n\nFor more information, try \'--help\'.\n");
+    }
+
+    #[test]
+    fn export_to_default_format() {
+        let mut cmd = Command::cargo_bin("reqlang").unwrap();
+
+        let assert = cmd
+            .arg("../examples/valid/status_code.reqlang")
+            .arg("-e")
+            .arg("default")
+            .arg("-P")
+            .arg("status_code=201")
+            .assert();
+
+        assert
+            .success()
+            .stdout("GET https://httpbin.org/status/201 HTTP/1.1\n\n");
+    }
+
+    #[test]
+    fn export_to_http() {
+        let mut cmd = Command::cargo_bin("reqlang").unwrap();
+
+        let assert = cmd
+            .arg("../examples/valid/status_code.reqlang")
+            .arg("-e")
+            .arg("default")
+            .arg("-f")
+            .arg("http")
+            .arg("-P")
+            .arg("status_code=201")
+            .assert();
+
+        assert
+            .success()
+            .stdout("GET https://httpbin.org/status/201 HTTP/1.1\n\n");
+    }
+
+    #[test]
+    fn export_to_curl() {
+        let mut cmd = Command::cargo_bin("reqlang").unwrap();
+
+        let assert = cmd
+            .arg("../examples/valid/status_code.reqlang")
+            .arg("-e")
+            .arg("default")
+            .arg("-f")
+            .arg("curl")
+            .arg("-P")
+            .arg("status_code=201")
+            .assert();
+
+        assert
+            .success()
+            .stdout("curl https://httpbin.org/status/201 --http1.1 -v\n");
+    }
+
+    #[test]
+    fn export_to_invalid_format() {
+        let mut cmd = Command::cargo_bin("reqlang").unwrap();
+
+        let assert = cmd
+            .arg("../examples/valid/status_code.reqlang")
+            .arg("-e")
+            .arg("default")
+            .arg("-f")
+            .arg("invalid")
+            .arg("-P")
+            .arg("status_code=201")
+            .assert();
+
+        assert
+            .failure()
+            .stderr("error: invalid value \'invalid\' for \'--format <FORMAT>\'\n  [possible values: http, curl]\n\nFor more information, try \'--help\'.\n");
+    }
 }

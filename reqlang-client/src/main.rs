@@ -81,7 +81,7 @@ impl ViewState {
         };
 
         let request_string = match request {
-            Some(request) => export(request, Format::Http),
+            Some(request) => export(request, Format::HttpMessage),
             None => String::new(),
         };
 
@@ -306,7 +306,7 @@ impl ResolvedState {
 
         let request = &self.reqfile.request.0;
 
-        let request_string = export(request, Format::Http);
+        let request_string = export(request, Format::HttpMessage);
 
         egui::CentralPanel::default().show(egui_ctx, |ui| {
             if ui.button("Back").clicked() {
@@ -368,7 +368,7 @@ impl ExecutingRequestState {
             .expect("Should be a valid reqfile");
 
         let request = &templated_reqfile.request;
-        let request_string = export(request, Format::Http);
+        let request_string = export(request, Format::HttpMessage);
 
         egui::CentralPanel::default().show(egui_ctx, |ui| {
             ui.heading("Request");

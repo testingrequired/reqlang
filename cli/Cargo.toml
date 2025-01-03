@@ -13,6 +13,9 @@ publish = false
 clap = { version = "4.4.16", features = ["derive"] }
 reqlang = { path = "../reqlang" }
 
+[dev-dependencies]
+assert_cmd = { version = "2" }
+
 [[bin]]
 name = "reqlang"
 path = "src/main.rs"
