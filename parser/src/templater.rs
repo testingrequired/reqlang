@@ -31,12 +31,15 @@ impl RequestFileTemplater {
         reqfile: &ResolvedRequestFile,
         provider_values: HashMap<String, String>,
     ) -> Result<TemplatedRequestFile, Vec<Spanned<ReqlangError>>> {
+        // Gather list of template references along with each reference's type
         //
+        // e.g. ("{{:var_name}}", ReferenceType::Variable("var_name"))
         let template_refs_to_replace: Vec<(String, ReferenceType)> = reqfile
             .refs
-            .clone()
-            .into_iter()
-            .map(|(template_reference, _)| (format!("{template_reference}"), template_reference))
+            .iter()
+            .map(|(template_reference, _)| {
+                (format!("{template_reference}"), template_reference.clone())
+            })
             .collect();
 
         // Swap out variable, prompt, and secret references
