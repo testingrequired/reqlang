@@ -1,4 +1,6 @@
-# [Request Language](https://github.com/testingrequired/reqlang)
+# Request Language
+
+[Github](https://github.com/testingrequired/reqlang)
 
 A file format specification for defining HTTP requests, response assertions, and associated data/configuration in "request files".
 
