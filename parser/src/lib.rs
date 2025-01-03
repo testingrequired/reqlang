@@ -5,7 +5,7 @@ use export::Format;
 use parser::{RequestFileParser, RequestFileSplitUp};
 use resolver::RequestFileResolver;
 use span::Spanned;
-use templater::RequestFileTemplater;
+use templater::template as template_reqfile;
 use types::{ResolvedRequestFile, TemplatedRequestFile, UnresolvedRequestFile};
 
 mod parser;
@@ -38,36 +38,32 @@ pub fn resolve(
 
 /// Parse a string in to a request file, resolve values, and template the request/response
 pub fn template(
-    input: &str,
+    reqfile_string: &str,
     env: &str,
     prompts: &HashMap<String, String>,
     secrets: &HashMap<String, String>,
     provider_values: HashMap<String, String>,
 ) -> Result<TemplatedRequestFile, Vec<Spanned<ReqlangError>>> {
-    let reqfile = RequestFileParser::parse_string(input);
+    let unresolved_reqfile = RequestFileParser::parse_string(reqfile_string);
 
-    let reqfile = RequestFileResolver::resolve_request_file(&reqfile?, env, prompts, secrets);
+    let resolved_reqfile =
+        RequestFileResolver::resolve_request_file(&unresolved_reqfile?, env, prompts, secrets);
 
-    RequestFileTemplater::template_reqfile(input, &reqfile?, provider_values)
+    template_reqfile(reqfile_string, &resolved_reqfile?, provider_values)
 }
 
 /// Export a request file in to another format
 pub fn export(
-    input: &str,
+    reqfile_string: &str,
     env: &str,
     prompts: &HashMap<String, String>,
     secrets: &HashMap<String, String>,
     provider_values: HashMap<String, String>,
     format: Format,
 ) -> Result<String, Vec<Spanned<ReqlangError>>> {
-    let reqfile = RequestFileParser::parse_string(input);
+    let templated_reqfile = template(reqfile_string, env, prompts, secrets, provider_values)?;
 
-    let reqfile = RequestFileResolver::resolve_request_file(&reqfile?, env, prompts, secrets);
-
-    let reqfile =
-        RequestFileTemplater::template_reqfile(input, &reqfile?, provider_values).unwrap();
-
-    Ok(export::export(&reqfile.request, format))
+    Ok(export::export(&templated_reqfile.request, format))
 }
 
 #[cfg(test)]

@@ -6,84 +6,63 @@ use types::{ReferenceType, ResolvedRequestFile, TemplatedRequestFile};
 
 use crate::{parser::RequestFileParser, split};
 
-pub struct RequestFileTemplater {}
+/// Template a request file with the resolved values
+pub fn template(
+    input: &str,
+    reqfile: &ResolvedRequestFile,
+    provider_values: HashMap<String, String>,
+) -> Result<TemplatedRequestFile, Vec<Spanned<ReqlangError>>> {
+    // Gather list of template references along with each reference's type
+    //
+    // e.g. ("{{:var_name}}", ReferenceType::Variable("var_name"))
+    let template_refs_to_replace: Vec<(String, ReferenceType)> = reqfile
+        .refs
+        .iter()
+        .map(|(template_reference, _)| {
+            (format!("{template_reference}"), template_reference.clone())
+        })
+        .collect();
 
-impl RequestFileTemplater {
-    pub fn new() -> Self {
-        Self {}
-    }
+    // Replace template references with the resolved values
+    let templated_input = {
+        let mut input = input.to_string();
 
-    /// Template a request file with the resolved values
-    pub fn template_reqfile(
-        input: &str,
-        reqfile: &ResolvedRequestFile,
-        provider_values: HashMap<String, String>,
-    ) -> Result<TemplatedRequestFile, Vec<Spanned<ReqlangError>>> {
-        let templater = RequestFileTemplater::new();
+        for (template_ref, ref_type) in &template_refs_to_replace {
+            let value = match ref_type {
+                ReferenceType::Variable(name) => {
+                    Some(reqfile.config.0.vars.get(name).unwrap().to_owned())
+                }
+                ReferenceType::Prompt(name) => {
+                    Some(reqfile.config.0.prompts.get(name).unwrap().to_owned())
+                }
+                ReferenceType::Secret(name) => {
+                    Some(reqfile.config.0.secrets.get(name).unwrap().to_owned())
+                }
+                ReferenceType::Provider(name) => provider_values.get(name).cloned(),
+                _ => None,
+            };
 
-        templater.template(input, reqfile, provider_values)
-    }
+            input = input.replace(template_ref, &value.unwrap_or(template_ref.clone()));
+        }
 
-    /// Template a request file with the resolved values
-    pub fn template(
-        &self,
-        input: &str,
-        reqfile: &ResolvedRequestFile,
-        provider_values: HashMap<String, String>,
-    ) -> Result<TemplatedRequestFile, Vec<Spanned<ReqlangError>>> {
-        // Gather list of template references along with each reference's type
-        //
-        // e.g. ("{{:var_name}}", ReferenceType::Variable("var_name"))
-        let template_refs_to_replace: Vec<(String, ReferenceType)> = reqfile
-            .refs
-            .iter()
-            .map(|(template_reference, _)| {
-                (format!("{template_reference}"), template_reference.clone())
-            })
-            .collect();
+        input
+    };
 
-        // Replace template references with the resolved values
-        let templated_input = {
-            let mut input = input.to_string();
+    // Split the templated input to pull out the request and response parts
+    let reqfile_split = split(&templated_input).unwrap();
 
-            for (template_ref, ref_type) in &template_refs_to_replace {
-                let value = match ref_type {
-                    ReferenceType::Variable(name) => {
-                        Some(reqfile.config.0.vars.get(name).unwrap().to_owned())
-                    }
-                    ReferenceType::Prompt(name) => {
-                        Some(reqfile.config.0.prompts.get(name).unwrap().to_owned())
-                    }
-                    ReferenceType::Secret(name) => {
-                        Some(reqfile.config.0.secrets.get(name).unwrap().to_owned())
-                    }
-                    ReferenceType::Provider(name) => provider_values.get(name).cloned(),
-                    _ => None,
-                };
+    // Parse the templated request
+    let request = {
+        let (request, request_span) = reqfile_split.request;
+        RequestFileParser::parse_request(&(request, request_span.clone()))
+            .unwrap()
+            .0
+    };
 
-                input = input.replace(template_ref, &value.unwrap_or(template_ref.clone()));
-            }
+    // Parse the templated response
+    let response = RequestFileParser::parse_response(&reqfile_split.response).map(|x| x.unwrap().0);
 
-            input
-        };
-
-        // Split the templated input to pull out the request and response parts
-        let reqfile_split = split(&templated_input).unwrap();
-
-        // Parse the templated request
-        let request = {
-            let (request, request_span) = reqfile_split.request;
-            RequestFileParser::parse_request(&(request, request_span.clone()))
-                .unwrap()
-                .0
-        };
-
-        // Parse the templated response
-        let response =
-            RequestFileParser::parse_response(&reqfile_split.response).map(|x| x.unwrap().0);
-
-        Ok(TemplatedRequestFile { request, response })
-    }
+    Ok(TemplatedRequestFile { request, response })
 }
 
 #[cfg(test)]
@@ -95,15 +74,13 @@ mod test {
         TemplatedRequestFile,
     };
 
-    use crate::{
-        parser::RequestFileParser, resolver::RequestFileResolver, templater::RequestFileTemplater,
-    };
+    use crate::{parser::RequestFileParser, resolver::RequestFileResolver, templater::template};
 
     macro_rules! templater_test {
-        ($test_name:ident, $reqfile:expr, $env:expr, $prompts:expr, $secrets:expr, $provider_values: expr, $result:expr) => {
+        ($test_name:ident, $reqfile_string:expr, $env:expr, $prompts:expr, $secrets:expr, $provider_values: expr, $result:expr) => {
             #[test]
             fn $test_name() {
-                let unresolved_reqfile = RequestFileParser::parse_string(&$reqfile);
+                let unresolved_reqfile = RequestFileParser::parse_string(&$reqfile_string);
 
                 // assert_eq!(unresolved_reqfile.is_ok(), true);
 
@@ -120,11 +97,8 @@ mod test {
 
                 let resolved_reqfile = resolved_reqfile.unwrap();
 
-                let templated_reqfile = RequestFileTemplater::template_reqfile(
-                    &$reqfile,
-                    &resolved_reqfile,
-                    $provider_values,
-                );
+                let templated_reqfile =
+                    template(&$reqfile_string, &resolved_reqfile, $provider_values);
 
                 assert_eq!(templated_reqfile, $result);
             }
