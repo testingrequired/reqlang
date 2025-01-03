@@ -42,17 +42,25 @@ struct Args {
 }
 
 /// Parse a single key-value pair
-fn parse_key_val<T, U>(s: &str) -> Result<(T, U), Box<dyn Error + Send + Sync + 'static>>
+fn parse_key_val<T, U>(value: &str) -> Result<(T, U), Box<dyn Error + Send + Sync + 'static>>
 where
     T: std::str::FromStr,
     T::Err: Error + Send + Sync + 'static,
     U: std::str::FromStr,
     U::Err: Error + Send + Sync + 'static,
 {
-    let pos = s
-        .find('=')
-        .ok_or_else(|| format!("invalid KEY=value: no `=` found in `{s}`"))?;
-    Ok((s[..pos].parse()?, s[pos + 1..].parse()?))
+    let n = 2;
+
+    let parts: Vec<&str> = value.splitn(n, '=').collect();
+
+    if parts.len() != n {
+        return Err(format!("should be formatted as key=value pair: `{value}`").into());
+    }
+
+    let key = parts[0].parse()?;
+    let value = parts[1].parse()?;
+
+    Ok((key, value))
 }
 
 fn map_errs(errs: &[Spanned<ReqlangError>]) -> String {
@@ -150,6 +158,57 @@ mod tests {
         assert
             .success()
             .stdout("GET https://httpbin.org/status/404 HTTP/1.1\n\n");
+    }
+
+    #[test]
+    fn export_invalid_prompt_value_using_space() {
+        let mut cmd = Command::cargo_bin("reqlang").unwrap();
+
+        let assert = cmd
+            .arg("../examples/valid/status_code.reqlang")
+            .arg("-e")
+            .arg("default")
+            .arg("-P")
+            .arg("status_code 404")
+            .assert();
+
+        assert
+            .failure()
+            .stderr("error: invalid value \'status_code 404\' for \'-P <PROMPTS>\': should be formatted as key=value pair: `status_code 404`\n\nFor more information, try \'--help\'.\n");
+    }
+
+    #[test]
+    fn export_invalid_prompt_value_just_key() {
+        let mut cmd = Command::cargo_bin("reqlang").unwrap();
+
+        let assert = cmd
+            .arg("../examples/valid/status_code.reqlang")
+            .arg("-e")
+            .arg("default")
+            .arg("-P")
+            .arg("status_code")
+            .assert();
+
+        assert
+            .failure()
+            .stderr("error: invalid value \'status_code\' for \'-P <PROMPTS>\': should be formatted as key=value pair: `status_code`\n\nFor more information, try \'--help\'.\n");
+    }
+
+    #[test]
+    fn export_invalid_prompt_value_just_value() {
+        let mut cmd = Command::cargo_bin("reqlang").unwrap();
+
+        let assert = cmd
+            .arg("../examples/valid/status_code.reqlang")
+            .arg("-e")
+            .arg("default")
+            .arg("-P")
+            .arg("404")
+            .assert();
+
+        assert
+            .failure()
+            .stderr("error: invalid value \'404\' for \'-P <PROMPTS>\': should be formatted as key=value pair: `404`\n\nFor more information, try \'--help\'.\n");
     }
 
     #[test]
