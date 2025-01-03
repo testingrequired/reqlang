@@ -42,38 +42,47 @@ impl RequestFileTemplater {
             })
             .collect();
 
-        // Swap out variable, prompt, and secret references
-        let mut input = input.to_string();
-        for (template_ref, ref_type) in &template_refs_to_replace {
-            let value: Option<String> = match ref_type {
-                ReferenceType::Variable(name) => {
-                    Some(reqfile.config.0.vars.get(name).unwrap().to_owned())
-                }
-                ReferenceType::Prompt(name) => {
-                    Some(reqfile.config.0.prompts.get(name).unwrap().to_owned())
-                }
-                ReferenceType::Secret(name) => {
-                    Some(reqfile.config.0.secrets.get(name).unwrap().to_owned())
-                }
-                ReferenceType::Provider(name) => provider_values.get(name).cloned(),
-                _ => None,
-            };
+        // Replace template references with the resolved values
+        let templated_input = {
+            let mut input = input.to_string();
 
-            input = input.replace(template_ref, &value.unwrap_or(template_ref.clone()));
-        }
+            for (template_ref, ref_type) in &template_refs_to_replace {
+                let value = match ref_type {
+                    ReferenceType::Variable(name) => {
+                        Some(reqfile.config.0.vars.get(name).unwrap().to_owned())
+                    }
+                    ReferenceType::Prompt(name) => {
+                        Some(reqfile.config.0.prompts.get(name).unwrap().to_owned())
+                    }
+                    ReferenceType::Secret(name) => {
+                        Some(reqfile.config.0.secrets.get(name).unwrap().to_owned())
+                    }
+                    ReferenceType::Provider(name) => provider_values.get(name).cloned(),
+                    _ => None,
+                };
 
-        let reqfile_split = split(&input).unwrap();
+                input = input.replace(template_ref, &value.unwrap_or(template_ref.clone()));
+            }
 
-        let request =
-            RequestFileParser::parse_request(&(reqfile_split.request.0, reqfile.request.1.clone()))
-                .unwrap();
+            input
+        };
+
+        // Split the templated input to pull out the request and response parts
+        let reqfile_split = split(&templated_input).unwrap();
+
+        // Parse the templated request
+        let request = {
+            let (request, request_span) = reqfile_split.request;
+            RequestFileParser::parse_request(&(request, request_span.clone()))
+                .unwrap()
+                .0
+        };
+
+        // Parse the templated response
         let response =
             RequestFileParser::parse_response(&reqfile_split.response).map(|x| x.unwrap().0);
 
-        Ok(TemplatedRequestFile {
-            request: request.0,
-            response,
-        })
+        Ok(TemplatedRequestFile { request, response })
     }
 }
 
