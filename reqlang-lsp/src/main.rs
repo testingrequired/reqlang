@@ -8,7 +8,7 @@ use reqlang::diagnostics::{
 };
 use reqlang::errors::ReqlangError;
 use reqlang::RequestParamsFromClient;
-use reqlang::{http::HttpRequest, parse, template, Spanned, UnresolvedRequestFile};
+use reqlang::{http::HttpRequest, parse, template, ParsedRequestFile, Spanned};
 use reqlang_fetch::{Fetch, HttpRequestFetcher};
 use reqwest::Url;
 use serde::{Deserialize, Serialize};
@@ -269,8 +269,8 @@ impl LanguageServer for Backend {
     }
 }
 
-impl From<UnresolvedRequestFile> for ParseResult {
-    fn from(value: UnresolvedRequestFile) -> Self {
+impl From<ParsedRequestFile> for ParseResult {
+    fn from(value: ParsedRequestFile) -> Self {
         let vars = value
             .config
             .clone()
@@ -279,35 +279,11 @@ impl From<UnresolvedRequestFile> for ParseResult {
             .vars
             .unwrap_or_default();
 
-        let envs: Vec<String> = value
-            .config
-            .clone()
-            .unwrap_or_default()
-            .0
-            .envs
-            .unwrap_or_default()
-            .keys()
-            .cloned()
-            .collect();
+        let envs: Vec<String> = value.envs();
 
-        let prompts: Vec<String> = value
-            .config
-            .clone()
-            .unwrap_or_default()
-            .0
-            .prompts
-            .unwrap_or_default()
-            .keys()
-            .cloned()
-            .collect();
+        let prompts: Vec<String> = value.prompts();
 
-        let secrets = value
-            .config
-            .clone()
-            .unwrap_or_default()
-            .0
-            .secrets
-            .unwrap_or_default();
+        let secrets = value.secrets();
 
         Self {
             vars,
@@ -330,7 +306,7 @@ struct ParseResult {
     prompts: Vec<String>,
     secrets: Vec<String>,
     request: HttpRequest,
-    full: UnresolvedRequestFile,
+    full: ParsedRequestFile,
 }
 
 /// Command parameters from client to export request

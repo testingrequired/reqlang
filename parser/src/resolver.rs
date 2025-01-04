@@ -2,10 +2,7 @@ use std::collections::HashMap;
 
 use errors::ReqlangError;
 use span::{Spanned, NO_SPAN};
-use types::{
-    ResolvedRequestFile, ResolvedRequestFileConfig, UnresolvedRequestFile,
-    UnresolvedRequestFileConfig,
-};
+use types::{ParsedConfig, ParsedRequestFile, ResolvedRequestFile, ResolvedRequestFileConfig};
 
 /// Resolve env vars, prompts and secrets in a request file
 pub struct RequestFileResolver {}
@@ -16,7 +13,7 @@ impl RequestFileResolver {
     }
 
     pub fn resolve_request_file(
-        reqfile: &UnresolvedRequestFile,
+        reqfile: &ParsedRequestFile,
         env: &str,
         prompts: &HashMap<String, String>,
         secrets: &HashMap<String, String>,
@@ -26,15 +23,15 @@ impl RequestFileResolver {
 
     pub fn resolve(
         &self,
-        reqfile: &UnresolvedRequestFile,
+        reqfile: &ParsedRequestFile,
         env: &str,
         prompts: &HashMap<String, String>,
         secrets: &HashMap<String, String>,
     ) -> Result<ResolvedRequestFile, Vec<Spanned<ReqlangError>>> {
-        let env_names = reqfile.env_names();
+        let env_names = reqfile.envs();
 
         if let Some((config, span)) = &reqfile.config {
-            if !env_names.contains(&&env.to_owned()) {
+            if !env_names.contains(&env.to_owned()) {
                 return Err(vec![(
                     ReqlangError::ResolverError(errors::ResolverError::InvalidEnvError(
                         env.to_string(),
@@ -45,33 +42,25 @@ impl RequestFileResolver {
 
             let mut missing_inputs = vec![];
 
-            if let Some(config_prompts) = &config.prompts {
-                let keys = config_prompts.keys();
-
-                for key in keys {
-                    if !prompts.contains_key(key) {
-                        missing_inputs.push((
-                            ReqlangError::ResolverError(
-                                errors::ResolverError::PromptValueNotPassed(key.to_string()),
-                            ),
-                            NO_SPAN,
-                        ));
-                    }
+            for key in config.prompts() {
+                if !prompts.contains_key(&key) {
+                    missing_inputs.push((
+                        ReqlangError::ResolverError(errors::ResolverError::PromptValueNotPassed(
+                            key.to_string(),
+                        )),
+                        NO_SPAN,
+                    ));
                 }
             }
 
-            if let Some(config_secrets) = &config.secrets {
-                for config_secret in config_secrets {
-                    if !secrets.contains_key(config_secret) {
-                        missing_inputs.push((
-                            ReqlangError::ResolverError(
-                                errors::ResolverError::SecretValueNotPassed(
-                                    config_secret.to_string(),
-                                ),
-                            ),
-                            NO_SPAN,
-                        ));
-                    }
+            for config_secret in &config.secrets() {
+                if !secrets.contains_key(config_secret) {
+                    missing_inputs.push((
+                        ReqlangError::ResolverError(errors::ResolverError::SecretValueNotPassed(
+                            config_secret.to_string(),
+                        )),
+                        NO_SPAN,
+                    ));
                 }
             }
 
@@ -102,13 +91,13 @@ impl RequestFileResolver {
 
     fn resolve_vars_from_envs(
         &self,
-        reqfile: &UnresolvedRequestFile,
+        reqfile: &ParsedRequestFile,
         env: &str,
     ) -> HashMap<String, String> {
         let vars = reqfile
             .config
             .clone()
-            .unwrap_or((UnresolvedRequestFileConfig::default(), NO_SPAN))
+            .unwrap_or((ParsedConfig::default(), NO_SPAN))
             .clone()
             .0
             .envs

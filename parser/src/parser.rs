@@ -4,7 +4,7 @@ use span::{Spanned, NO_SPAN};
 use std::{collections::HashMap, vec};
 use types::{
     http::{HttpRequest, HttpResponse},
-    ReferenceType, UnresolvedRequestFile, UnresolvedRequestFileConfig,
+    ParsedConfig, ParsedRequestFile, ReferenceType,
 };
 
 use crate::TEMPLATE_REFERENCE_PATTERN;
@@ -43,12 +43,12 @@ impl RequestFileParser {
     }
 
     /// Parse a string in to an request file with unresolved template values.
-    pub fn parse_string(input: &str) -> Result<UnresolvedRequestFile, Vec<Spanned<ReqlangError>>> {
+    pub fn parse_string(input: &str) -> Result<ParsedRequestFile, Vec<Spanned<ReqlangError>>> {
         RequestFileParser::new().parse(input)
     }
 
     /// Parse a string in to an request file with unresolved template values.
-    pub fn parse(&self, input: &str) -> Result<UnresolvedRequestFile, Vec<Spanned<ReqlangError>>> {
+    pub fn parse(&self, input: &str) -> Result<ParsedRequestFile, Vec<Spanned<ReqlangError>>> {
         let mut parse_errors: Vec<Spanned<ReqlangError>> = vec![];
 
         RequestFileParser::split(input).and_then(|reqfile| {
@@ -119,18 +119,7 @@ impl RequestFileParser {
                 match ref_type {
                     ReferenceType::Variable(name) => {
                         if let Some((config, _)) = &config {
-                            if let Some(vars) = &config.vars {
-                                if !vars.contains(name) {
-                                    parse_errors.push((
-                                        ReqlangError::ParseError(
-                                            ParseError::UndefinedReferenceError(
-                                                ReferenceType::Variable(name.to_string()),
-                                            ),
-                                        ),
-                                        span.clone(),
-                                    ));
-                                }
-                            } else {
+                            if !config.vars().contains(name) {
                                 parse_errors.push((
                                     ReqlangError::ParseError(ParseError::UndefinedReferenceError(
                                         ReferenceType::Variable(name.to_string()),
@@ -149,18 +138,7 @@ impl RequestFileParser {
                     }
                     ReferenceType::Prompt(name) => {
                         if let Some((config, _)) = &config {
-                            if let Some(prompts) = &config.prompts {
-                                if !prompts.contains_key(name) {
-                                    parse_errors.push((
-                                        ReqlangError::ParseError(
-                                            ParseError::UndefinedReferenceError(
-                                                ReferenceType::Prompt(name.to_string()),
-                                            ),
-                                        ),
-                                        span.clone(),
-                                    ));
-                                }
-                            } else {
+                            if !config.prompts().contains(name) {
                                 parse_errors.push((
                                     ReqlangError::ParseError(ParseError::UndefinedReferenceError(
                                         ReferenceType::Prompt(name.to_string()),
@@ -179,18 +157,7 @@ impl RequestFileParser {
                     }
                     ReferenceType::Secret(name) => {
                         if let Some((config, _)) = &config {
-                            if let Some(secrets) = &config.secrets {
-                                if !secrets.contains(name) {
-                                    parse_errors.push((
-                                        ReqlangError::ParseError(
-                                            ParseError::UndefinedReferenceError(
-                                                ReferenceType::Secret(name.to_string()),
-                                            ),
-                                        ),
-                                        span.clone(),
-                                    ));
-                                }
-                            } else {
+                            if !config.secrets().contains(name) {
                                 parse_errors.push((
                                     ReqlangError::ParseError(ParseError::UndefinedReferenceError(
                                         ReferenceType::Secret(name.to_string()),
@@ -225,44 +192,36 @@ impl RequestFileParser {
                     })
                     .collect();
 
-                if let Some(vars) = &config.vars {
-                    for var in vars {
-                        if !ref_names.contains(var) {
-                            parse_errors.push((
-                                ReqlangError::ParseError(ParseError::UnusedValueError(
-                                    ReferenceType::Variable(var.clone()),
-                                )),
-                                span.clone(),
-                            ))
-                        }
+                for var in &config.vars() {
+                    if !ref_names.contains(var) {
+                        parse_errors.push((
+                            ReqlangError::ParseError(ParseError::UnusedValueError(
+                                ReferenceType::Variable(var.clone()),
+                            )),
+                            span.clone(),
+                        ))
                     }
                 }
 
-                if let Some(prompts) = &config.prompts {
-                    let keys = prompts.keys();
-
-                    for key in keys {
-                        if !ref_names.contains(key) {
-                            parse_errors.push((
-                                ReqlangError::ParseError(ParseError::UnusedValueError(
-                                    ReferenceType::Prompt(key.clone()),
-                                )),
-                                span.clone(),
-                            ))
-                        }
+                for key in &config.prompts() {
+                    if !ref_names.contains(key) {
+                        parse_errors.push((
+                            ReqlangError::ParseError(ParseError::UnusedValueError(
+                                ReferenceType::Prompt(key.clone()),
+                            )),
+                            span.clone(),
+                        ))
                     }
                 }
 
-                if let Some(secrets) = &config.secrets {
-                    for secret in secrets {
-                        if !ref_names.contains(secret) {
-                            parse_errors.push((
-                                ReqlangError::ParseError(ParseError::UnusedValueError(
-                                    ReferenceType::Secret(secret.clone()),
-                                )),
-                                span.clone(),
-                            ))
-                        }
+                for secret in &config.secrets() {
+                    if !ref_names.contains(secret) {
+                        parse_errors.push((
+                            ReqlangError::ParseError(ParseError::UnusedValueError(
+                                ReferenceType::Secret(secret.clone()),
+                            )),
+                            span.clone(),
+                        ))
                     }
                 }
             }
@@ -271,7 +230,7 @@ impl RequestFileParser {
                 return Err(parse_errors);
             }
 
-            Ok(UnresolvedRequestFile {
+            Ok(ParsedRequestFile {
                 request: request.unwrap(),
                 response,
                 config,
@@ -367,9 +326,9 @@ impl RequestFileParser {
 
     pub fn parse_config(
         config: &Option<Spanned<String>>,
-    ) -> Option<Result<Spanned<UnresolvedRequestFileConfig>, Vec<Spanned<ReqlangError>>>> {
+    ) -> Option<Result<Spanned<ParsedConfig>, Vec<Spanned<ReqlangError>>>> {
         config.as_ref().map(|(config, span)| {
-            let config: Result<UnresolvedRequestFileConfig, _> = toml::from_str(config);
+            let config: Result<ParsedConfig, _> = toml::from_str(config);
 
             config.map(|x| (x, span.clone())).map_err(|x| {
                 let toml_span = x.span().unwrap_or(NO_SPAN);
@@ -1148,15 +1107,15 @@ mod test {
 
         use types::{
             http::{HttpRequest, HttpResponse, HttpStatusCode, HttpVerb},
-            ReferenceType, UnresolvedRequestFile, UnresolvedRequestFileConfig,
+            ParsedConfig, ParsedRequestFile, ReferenceType,
         };
 
         parser_test!(
             just_request_ends_with_no_newline,
             concat!("---\n", "GET http://example.com HTTP/1.1", "---\n"),
-            Ok(UnresolvedRequestFile {
+            Ok(ParsedRequestFile {
                 config: Some((
-                    UnresolvedRequestFileConfig {
+                    ParsedConfig {
                         vars: None,
                         envs: Some(HashMap::from([("default".to_string(), HashMap::new())])),
                         prompts: None,
@@ -1174,9 +1133,9 @@ mod test {
         parser_test!(
             just_request_ends_with_no_newline_with_envs,
             concat!("[envs]\n---\n", "GET http://example.com HTTP/1.1", "---\n"),
-            Ok(UnresolvedRequestFile {
+            Ok(ParsedRequestFile {
                 config: Some((
-                    UnresolvedRequestFileConfig {
+                    ParsedConfig {
                         vars: None,
                         envs: Some(HashMap::from([("default".to_string(), HashMap::new())])),
                         prompts: None,
@@ -1200,9 +1159,9 @@ mod test {
                 "#!/usr/bin/env reqlang\n---\n",
                 "GET http://example.com HTTP/1.1"
             ),
-            Ok(UnresolvedRequestFile {
+            Ok(ParsedRequestFile {
                 config: Some((
-                    UnresolvedRequestFileConfig {
+                    ParsedConfig {
                         vars: None,
                         envs: Some(HashMap::from([("default".to_string(), HashMap::new())])),
                         prompts: None,
@@ -1223,9 +1182,9 @@ mod test {
         parser_test!(
             just_request_ends_with_single_newline,
             concat!("---\n", "GET http://example.com HTTP/1.1\n", "---\n"),
-            Ok(UnresolvedRequestFile {
+            Ok(ParsedRequestFile {
                 config: Some((
-                    UnresolvedRequestFileConfig {
+                    ParsedConfig {
                         vars: None,
                         envs: Some(HashMap::from([("default".to_string(), HashMap::new())])),
                         prompts: None,
@@ -1252,9 +1211,9 @@ mod test {
         parser_test!(
             just_request_ends_with_multiple_newlines,
             concat!("---\n", "GET http://example.com HTTP/1.1\n\n", "---\n"),
-            Ok(UnresolvedRequestFile {
+            Ok(ParsedRequestFile {
                 config: Some((
-                    UnresolvedRequestFileConfig {
+                    ParsedConfig {
                         vars: None,
                         envs: Some(HashMap::from([("default".to_string(), HashMap::new())])),
                         prompts: None,
@@ -1289,9 +1248,9 @@ mod test {
                 "---\n",
                 "---\n"
             ),
-            Ok(UnresolvedRequestFile {
+            Ok(ParsedRequestFile {
                 config: Some((
-                    UnresolvedRequestFileConfig {
+                    ParsedConfig {
                         vars: Some(vec!["foo".to_string(), "bar".to_string()]),
                         envs: Some(HashMap::from([(
                             "dev".to_string(),
@@ -1350,9 +1309,9 @@ mod test {
                 "---\n",
                 "\n",
             ),
-            Ok(UnresolvedRequestFile {
+            Ok(ParsedRequestFile {
                 config: Some((
-                    UnresolvedRequestFileConfig {
+                    ParsedConfig {
                         vars: Some(vec!["access_token_url".to_string()]),
                         envs: Some(HashMap::from([(
                             "dev".to_string(),
@@ -1443,7 +1402,7 @@ mod test {
                 "\n",
                 "---\n"
             ),
-            Ok(UnresolvedRequestFile {
+            Ok(ParsedRequestFile {
                 request: (
                     HttpRequest {
                         verb: HttpVerb::post(),
@@ -1469,7 +1428,7 @@ mod test {
                     318..364
                 )),
                 config: Some((
-                    UnresolvedRequestFileConfig {
+                    ParsedConfig {
                         vars: Some(vec!["query_value".to_string()]),
                         envs: Some(HashMap::from([
                             (

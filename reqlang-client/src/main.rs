@@ -10,7 +10,7 @@ use eframe::egui;
 use reqlang::{
     export::{export, Format},
     http::HttpRequest,
-    parse, resolve, template, ResolvedRequestFile, UnresolvedRequestFile,
+    parse, resolve, template, ParsedRequestFile, ResolvedRequestFile,
 };
 
 #[allow(dead_code)]
@@ -85,23 +85,23 @@ impl ViewState {
             None => String::new(),
         };
 
-        let env_names: Vec<&String> = match &client_ctx.reqfile {
-            Some(reqfile) => reqfile.env_names(),
+        let env_names: Vec<String> = match &client_ctx.reqfile {
+            Some(reqfile) => reqfile.envs(),
             None => vec![],
         };
 
-        let var_names: Vec<&String> = match &client_ctx.reqfile {
-            Some(reqfile) => reqfile.var_names(),
+        let var_names: Vec<String> = match &client_ctx.reqfile {
+            Some(reqfile) => reqfile.vars(),
             None => vec![],
         };
 
-        let prompt_names: Vec<&String> = match &client_ctx.reqfile {
-            Some(reqfile) => reqfile.prompt_names(),
+        let prompt_names: Vec<String> = match &client_ctx.reqfile {
+            Some(reqfile) => reqfile.prompts(),
             None => vec![],
         };
 
-        let secret_names: Vec<&String> = match &client_ctx.reqfile {
-            Some(reqfile) => reqfile.secret_names(),
+        let secret_names: Vec<String> = match &client_ctx.reqfile {
+            Some(reqfile) => reqfile.secrets(),
             None => vec![],
         };
 
@@ -158,8 +158,8 @@ struct ResolvingState {
 impl ResolvingState {
     fn new(
         env: String,
-        prompt_names: Vec<&String>,
-        secret_names: Vec<&String>,
+        prompt_names: Vec<String>,
+        secret_names: Vec<String>,
         mut prompts: HashMap<String, String>,
         mut secrets: HashMap<String, String>,
     ) -> Self {
@@ -189,18 +189,18 @@ impl ResolvingState {
 
         // let reqfile = &client_ctx.reqfile.unwrap();
 
-        let env_names: Vec<&String> = match &client_ctx.reqfile {
-            Some(reqfile) => reqfile.env_names(),
+        let env_names: Vec<String> = match &client_ctx.reqfile {
+            Some(reqfile) => reqfile.envs(),
             None => vec![],
         };
 
-        let prompt_names: Vec<&String> = match &client_ctx.reqfile {
-            Some(reqfile) => reqfile.prompt_names(),
+        let prompt_names: Vec<String> = match &client_ctx.reqfile {
+            Some(reqfile) => reqfile.prompts(),
             None => vec![],
         };
 
-        let secret_names: Vec<&String> = match &client_ctx.reqfile {
-            Some(reqfile) => reqfile.secret_names(),
+        let secret_names: Vec<String> = match &client_ctx.reqfile {
+            Some(reqfile) => reqfile.secrets(),
             None => vec![],
         };
 
@@ -488,7 +488,7 @@ enum Download {
 struct ClientContext {
     path: Option<String>,
     source: Option<String>,
-    reqfile: Option<Box<UnresolvedRequestFile>>,
+    reqfile: Option<Box<ParsedRequestFile>>,
 }
 
 #[allow(dead_code)]

@@ -37,73 +37,103 @@ impl Display for ReferenceType {
     }
 }
 
-/// An unresolved request file represents the raw parsed request file without and resolving environmental, prompts or secrets.
+/// Request file parsed from a string input
 ///
-/// This is before templating has been applied as well.
+/// All template references are still in place
 #[derive(Clone, Debug, PartialEq, Default, Serialize, Deserialize, TS)]
 #[ts(export)]
-pub struct UnresolvedRequestFile {
-    pub config: Option<Spanned<UnresolvedRequestFileConfig>>,
+pub struct ParsedRequestFile {
+    pub config: Option<Spanned<ParsedConfig>>,
     pub request: Spanned<HttpRequest>,
     pub response: Option<Spanned<HttpResponse>>,
-
     pub refs: Vec<Spanned<ReferenceType>>,
 }
 
-impl UnresolvedRequestFile {
-    pub fn var_names(&self) -> Vec<&String> {
-        match &self.config {
-            Some((config, _)) => match &config.vars {
-                Some(envs) => envs.iter().collect(),
-                None => vec![],
-            },
-            None => vec![],
-        }
+impl ParsedRequestFile {
+    /// The variable names declared in the config
+    pub fn vars(&self) -> Vec<String> {
+        self.config
+            .as_ref()
+            .map(|(config, _)| config.vars())
+            .unwrap_or_default()
     }
 
-    pub fn env_names(&self) -> Vec<&String> {
-        match &self.config {
-            Some((config, _)) => match &config.envs {
-                Some(envs) => Vec::from_iter(envs.keys()),
-                None => vec![],
-            },
-            None => vec![],
-        }
+    /// The environment names defined in the config
+    pub fn envs(&self) -> Vec<String> {
+        self.config
+            .as_ref()
+            .map(|(config, _)| config.envs())
+            .unwrap_or_default()
     }
 
-    pub fn prompt_names(&self) -> Vec<&String> {
-        let prompt_names = match &self.config {
-            Some((config, _)) => match &config.prompts {
-                Some(prompts) => prompts.keys().collect(),
-                None => vec![],
-            },
-            None => vec![],
-        };
-
-        prompt_names
+    /// The prompt names declared in the config
+    pub fn prompts(&self) -> Vec<String> {
+        self.config
+            .as_ref()
+            .map(|(config, _)| config.prompts())
+            .unwrap_or_default()
     }
 
-    pub fn secret_names(&self) -> Vec<&String> {
-        let prompt_names = match &self.config {
-            Some((config, _)) => match &config.secrets {
-                Some(prompts) => prompts.iter().collect(),
-                None => vec![],
-            },
-            None => vec![],
-        };
-
-        prompt_names
+    /// The secret names declared in the config
+    pub fn secrets(&self) -> Vec<String> {
+        self.config
+            .as_ref()
+            .map(|(config, _)| config.secrets())
+            .unwrap_or_default()
     }
 }
 
+/// Request file config parsed from a string input
+///
+/// All template references are still in place
 #[derive(Clone, Debug, PartialEq, Default, Serialize, Deserialize, TS)]
 #[ts(export)]
-pub struct UnresolvedRequestFileConfig {
+pub struct ParsedConfig {
+    /// The variable names declared in the config
     pub vars: Option<Vec<String>>,
+    /// Environments with values
+    ///
+    /// These values match the variable names in the config
     pub envs: Option<HashMap<String, HashMap<String, String>>>,
+    /// The prompt names declared in the config
     pub prompts: Option<HashMap<String, Option<String>>>,
+    /// The secret names declared in the config
     pub secrets: Option<Vec<String>>,
     pub auth: Option<HashMap<String, HashMap<String, String>>>,
+}
+
+impl ParsedConfig {
+    /// The variable names declared
+    pub fn vars(&self) -> Vec<String> {
+        match &self.vars {
+            Some(envs) => envs.to_vec(),
+            None => vec![],
+        }
+    }
+
+    /// The enviroment names defined
+    pub fn envs(&self) -> Vec<String> {
+        match &self.envs {
+            Some(envs) => Vec::from_iter(envs.keys().cloned()),
+            None => vec![],
+        }
+    }
+
+    /// The prompt names declared
+    pub fn prompts(&self) -> Vec<String> {
+        match &self.prompts {
+            Some(prompts) => prompts.keys().cloned().collect(),
+            None => vec![],
+        }
+    }
+
+    /// The secret names declared
+    pub fn secrets(&self) -> Vec<String> {
+        match &self.secrets {
+            Some(secrets) => secrets.to_vec(),
+            None => vec![],
+        }
+    }
 }
 
 /// A resolved request file with resolved environmental, prompts and secrets values.
@@ -224,13 +254,13 @@ mod tests {
 
         use span::NO_SPAN;
 
-        use crate::{HttpRequest, UnresolvedRequestFile, UnresolvedRequestFileConfig};
+        use crate::{HttpRequest, ParsedConfig, ParsedRequestFile};
 
         #[test]
         fn get_prompt_names_when_defined() {
-            let reqfile = UnresolvedRequestFile {
+            let reqfile = ParsedRequestFile {
                 config: Some((
-                    UnresolvedRequestFileConfig {
+                    ParsedConfig {
                         vars: None,
                         envs: None,
                         prompts: Some(HashMap::from_iter([(
@@ -247,14 +277,14 @@ mod tests {
                 refs: vec![],
             };
 
-            assert_eq!(vec!["key"], reqfile.prompt_names());
+            assert_eq!(vec!["key"], reqfile.prompts());
         }
 
         #[test]
         fn get_prompt_names_when_config_defined_without_prompts() {
-            let reqfile = UnresolvedRequestFile {
+            let reqfile = ParsedRequestFile {
                 config: Some((
-                    UnresolvedRequestFileConfig {
+                    ParsedConfig {
                         vars: None,
                         envs: None,
                         prompts: None,
@@ -270,12 +300,12 @@ mod tests {
 
             let expected: Vec<&str> = vec![];
 
-            assert_eq!(expected, reqfile.prompt_names());
+            assert_eq!(expected, reqfile.prompts());
         }
 
         #[test]
         fn get_prompt_names_when_config_undefined() {
-            let reqfile = UnresolvedRequestFile {
+            let reqfile = ParsedRequestFile {
                 config: None,
                 request: (HttpRequest::get("/", "1.1", vec![]), NO_SPAN),
                 response: None,
@@ -284,14 +314,14 @@ mod tests {
 
             let expected: Vec<&str> = vec![];
 
-            assert_eq!(expected, reqfile.prompt_names());
+            assert_eq!(expected, reqfile.prompts());
         }
 
         #[test]
         fn get_secret_names_when_defined() {
-            let reqfile = UnresolvedRequestFile {
+            let reqfile = ParsedRequestFile {
                 config: Some((
-                    UnresolvedRequestFileConfig {
+                    ParsedConfig {
                         vars: None,
                         envs: None,
                         prompts: None,
@@ -305,14 +335,14 @@ mod tests {
                 refs: vec![],
             };
 
-            assert_eq!(vec!["secret_name"], reqfile.secret_names());
+            assert_eq!(vec!["secret_name"], reqfile.secrets());
         }
 
         #[test]
         fn get_secret_names_when_config_defined_without_prompts() {
-            let reqfile = UnresolvedRequestFile {
+            let reqfile = ParsedRequestFile {
                 config: Some((
-                    UnresolvedRequestFileConfig {
+                    ParsedConfig {
                         vars: None,
                         envs: None,
                         prompts: None,
@@ -328,12 +358,12 @@ mod tests {
 
             let expected: Vec<&str> = vec![];
 
-            assert_eq!(expected, reqfile.secret_names());
+            assert_eq!(expected, reqfile.secrets());
         }
 
         #[test]
         fn get_secret_names_when_config_undefined() {
-            let reqfile = UnresolvedRequestFile {
+            let reqfile = ParsedRequestFile {
                 config: None,
                 request: (HttpRequest::get("/", "1.1", vec![]), NO_SPAN),
                 response: None,
@@ -342,14 +372,14 @@ mod tests {
 
             let expected: Vec<&str> = vec![];
 
-            assert_eq!(expected, reqfile.secret_names());
+            assert_eq!(expected, reqfile.secrets());
         }
 
         #[test]
         fn get_envs_when_config_is_defined() {
-            let reqfile = UnresolvedRequestFile {
+            let reqfile = ParsedRequestFile {
                 config: Some((
-                    UnresolvedRequestFileConfig {
+                    ParsedConfig {
                         vars: Some(vec!["var".to_string()]),
                         envs: Some(HashMap::from([
                             (
@@ -372,7 +402,7 @@ mod tests {
                 refs: vec![],
             };
 
-            let mut actual = reqfile.env_names();
+            let mut actual = reqfile.envs();
 
             actual.sort();
 
@@ -381,9 +411,9 @@ mod tests {
 
         #[test]
         fn get_envs_when_config_is_defined_empty() {
-            let reqfile = UnresolvedRequestFile {
+            let reqfile = ParsedRequestFile {
                 config: Some((
-                    UnresolvedRequestFileConfig {
+                    ParsedConfig {
                         vars: Some(vec!["var".to_string()]),
                         envs: Some(HashMap::new()),
                         prompts: None,
@@ -397,16 +427,16 @@ mod tests {
                 refs: vec![],
             };
 
-            let empty: Vec<&String> = Vec::new();
+            let empty: Vec<String> = Vec::new();
 
-            assert_eq!(empty, reqfile.env_names());
+            assert_eq!(empty, reqfile.envs());
         }
 
         #[test]
         fn get_envs_when_config_is_defined_but_envs_none() {
-            let reqfile = UnresolvedRequestFile {
+            let reqfile = ParsedRequestFile {
                 config: Some((
-                    UnresolvedRequestFileConfig {
+                    ParsedConfig {
                         vars: Some(vec!["var".to_string()]),
                         envs: None,
                         prompts: None,
@@ -420,23 +450,23 @@ mod tests {
                 refs: vec![],
             };
 
-            let empty: Vec<&String> = Vec::new();
+            let empty: Vec<String> = Vec::new();
 
-            assert_eq!(empty, reqfile.env_names());
+            assert_eq!(empty, reqfile.envs());
         }
 
         #[test]
         fn get_envs_when_config_is_missing() {
-            let reqfile = UnresolvedRequestFile {
+            let reqfile = ParsedRequestFile {
                 config: None,
                 request: (HttpRequest::get("/", "1.1", vec![]), NO_SPAN),
                 response: None,
                 refs: vec![],
             };
 
-            let empty: Vec<&String> = Vec::new();
+            let empty: Vec<String> = Vec::new();
 
-            assert_eq!(empty, reqfile.env_names());
+            assert_eq!(empty, reqfile.envs());
         }
     }
 

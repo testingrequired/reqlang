@@ -14,8 +14,8 @@ mod tests {
 
     use types::{
         http::{HttpRequest, HttpResponse, HttpStatusCode},
-        ReferenceType, ResolvedRequestFile, ResolvedRequestFileConfig, TemplatedRequestFile,
-        UnresolvedRequestFile, UnresolvedRequestFileConfig,
+        ParsedConfig, ParsedRequestFile, ReferenceType, ResolvedRequestFile,
+        ResolvedRequestFileConfig, TemplatedRequestFile,
     };
 
     use pretty_assertions::assert_eq;
@@ -56,7 +56,7 @@ mod tests {
         let reqfile = parse(REQFILE_STRING);
 
         assert_eq!(
-            Ok(UnresolvedRequestFile {
+            Ok(ParsedRequestFile {
                 request: (
                     HttpRequest {
                         verb: "POST".into(),
@@ -81,7 +81,7 @@ mod tests {
                     291..337
                 )),
                 config: Some((
-                    UnresolvedRequestFileConfig {
+                    ParsedConfig {
                         vars: Some(vec!["query_value".to_string()]),
                         envs: Some(HashMap::from([
                             (

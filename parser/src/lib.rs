@@ -6,7 +6,7 @@ use parser::{RequestFileParser, RequestFileSplitUp};
 use resolver::RequestFileResolver;
 use span::Spanned;
 use templater::template as template_reqfile;
-use types::{ResolvedRequestFile, TemplatedRequestFile, UnresolvedRequestFile};
+use types::{ParsedRequestFile, ResolvedRequestFile, TemplatedRequestFile};
 
 mod parser;
 mod resolver;
@@ -20,7 +20,7 @@ pub fn split(input: &str) -> Result<RequestFileSplitUp, Vec<Spanned<ReqlangError
 }
 
 /// Parse a string in to a request file
-pub fn parse(input: &str) -> Result<UnresolvedRequestFile, Vec<Spanned<ReqlangError>>> {
+pub fn parse(input: &str) -> Result<ParsedRequestFile, Vec<Spanned<ReqlangError>>> {
     RequestFileParser::parse_string(input)
 }
 
@@ -72,8 +72,8 @@ mod parserlib {
 
     use types::{
         http::{HttpRequest, HttpResponse, HttpStatusCode},
-        ReferenceType, ResolvedRequestFile, ResolvedRequestFileConfig, TemplatedRequestFile,
-        UnresolvedRequestFile, UnresolvedRequestFileConfig,
+        ParsedConfig, ParsedRequestFile, ReferenceType, ResolvedRequestFile,
+        ResolvedRequestFileConfig, TemplatedRequestFile,
     };
 
     use pretty_assertions::assert_eq;
@@ -114,7 +114,7 @@ mod parserlib {
         let reqfile = parse(REQFILE_STRING);
 
         assert_eq!(
-            Ok(UnresolvedRequestFile {
+            Ok(ParsedRequestFile {
                 request: (
                     HttpRequest {
                         verb: "POST".into(),
@@ -139,7 +139,7 @@ mod parserlib {
                     291..337
                 )),
                 config: Some((
-                    UnresolvedRequestFileConfig {
+                    ParsedConfig {
                         vars: Some(vec!["query_value".to_string()]),
                         envs: Some(HashMap::from([
                             (
