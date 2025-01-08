@@ -2,14 +2,17 @@ use std::collections::HashMap;
 
 use errors::ReqlangError;
 use span::Spanned;
-use types::{ReferenceType, ResolvedRequestFile, TemplatedRequestFile};
+use types::{ParsedRequestFile, ReferenceType, TemplatedRequestFile};
 
 use crate::{parser::RequestFileParser, split};
 
 /// Template a request file with the resolved values
 pub fn template(
     input: &str,
-    reqfile: &ResolvedRequestFile,
+    reqfile: &ParsedRequestFile,
+    env: &str,
+    prompts: HashMap<String, String>,
+    secrets: HashMap<String, String>,
     provider_values: HashMap<String, String>,
 ) -> Result<TemplatedRequestFile, Vec<Spanned<ReqlangError>>> {
     // Gather list of template references along with each reference's type
@@ -26,18 +29,13 @@ pub fn template(
     // Replace template references with the resolved values
     let templated_input = {
         let mut input = input.to_string();
+        let vars = reqfile.env(env).unwrap_or_default();
 
         for (template_ref, ref_type) in &template_refs_to_replace {
             let value = match ref_type {
-                ReferenceType::Variable(name) => {
-                    Some(reqfile.config.0.vars.get(name).unwrap().to_owned())
-                }
-                ReferenceType::Prompt(name) => {
-                    Some(reqfile.config.0.prompts.get(name).unwrap().to_owned())
-                }
-                ReferenceType::Secret(name) => {
-                    Some(reqfile.config.0.secrets.get(name).unwrap().to_owned())
-                }
+                ReferenceType::Variable(name) => Some(vars.get(name).unwrap().to_owned()),
+                ReferenceType::Prompt(name) => Some(prompts.get(name).unwrap().to_owned()),
+                ReferenceType::Secret(name) => Some(secrets.get(name).unwrap().to_owned()),
                 ReferenceType::Provider(name) => provider_values.get(name).cloned(),
                 _ => None,
             };
@@ -74,7 +72,7 @@ mod test {
         TemplatedRequestFile,
     };
 
-    use crate::{parser::RequestFileParser, resolver::RequestFileResolver, templater::template};
+    use crate::{parser::RequestFileParser, templater::template};
 
     macro_rules! templater_test {
         ($test_name:ident, $reqfile_string:expr, $env:expr, $prompts:expr, $secrets:expr, $provider_values: expr, $result:expr) => {
@@ -86,19 +84,14 @@ mod test {
 
                 let unresolved_reqfile = unresolved_reqfile.unwrap();
 
-                let resolved_reqfile = RequestFileResolver::resolve_request_file(
+                let templated_reqfile = template(
+                    &$reqfile_string,
                     &unresolved_reqfile,
                     $env,
-                    &$prompts,
-                    &$secrets,
+                    $prompts,
+                    $secrets,
+                    $provider_values,
                 );
-
-                assert_eq!(resolved_reqfile.is_ok(), true);
-
-                let resolved_reqfile = resolved_reqfile.unwrap();
-
-                let templated_reqfile =
-                    template(&$reqfile_string, &resolved_reqfile, $provider_values);
 
                 assert_eq!(templated_reqfile, $result);
             }

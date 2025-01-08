@@ -66,6 +66,10 @@ impl ParsedRequestFile {
             .unwrap_or_default()
     }
 
+    pub fn env(&self, env: impl Into<String>) -> Option<HashMap<String, String>> {
+        self.config.as_ref().and_then(|(config, _)| config.env(env))
+    }
+
     /// The prompt names declared in the config
     pub fn prompts(&self) -> Vec<String> {
         self.config
@@ -119,6 +123,14 @@ impl ParsedConfig {
         }
     }
 
+    pub fn env(&self, env: impl Into<String>) -> Option<HashMap<String, String>> {
+        self.envs
+            .as_ref()
+            .unwrap_or(&HashMap::new())
+            .get(&env.into())
+            .cloned()
+    }
+
     /// The prompt names declared
     pub fn prompts(&self) -> Vec<String> {
         match &self.prompts {
@@ -134,27 +146,6 @@ impl ParsedConfig {
             None => vec![],
         }
     }
-}
-
-/// A resolved request file with resolved environmental, prompts and secrets values.
-#[derive(Clone, Debug, PartialEq, Default, Serialize, Deserialize, TS)]
-#[ts(export)]
-pub struct ResolvedRequestFile {
-    pub request: Spanned<HttpRequest>,
-    pub response: Option<Spanned<HttpResponse>>,
-    pub config: Spanned<ResolvedRequestFileConfig>,
-
-    pub refs: Vec<Spanned<ReferenceType>>,
-}
-
-#[derive(Clone, Debug, PartialEq, Default, Serialize, Deserialize, TS)]
-#[ts(export)]
-pub struct ResolvedRequestFileConfig {
-    pub env: String,
-    pub vars: HashMap<String, String>,
-    pub prompts: HashMap<String, String>,
-    pub secrets: HashMap<String, String>,
-    pub auth: Option<HashMap<String, HashMap<String, String>>>,
 }
 
 /// Parameters sent from the client to execute a request.
@@ -249,7 +240,7 @@ pub struct TemplatedRequestFile {
 
 #[cfg(test)]
 mod tests {
-    mod unresolved_requestfile {
+    mod parsed_reqfile {
         use std::{collections::HashMap, vec};
 
         use span::NO_SPAN;

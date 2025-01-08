@@ -2,7 +2,6 @@ pub use diagnostics;
 pub use errors;
 pub use export;
 pub use parser::parse;
-pub use parser::resolve;
 pub use parser::template;
 pub use reqlang_fetch as fetch;
 pub use span::*;
@@ -14,13 +13,12 @@ mod tests {
 
     use types::{
         http::{HttpRequest, HttpResponse, HttpStatusCode},
-        ParsedConfig, ParsedRequestFile, ReferenceType, ResolvedRequestFile,
-        ResolvedRequestFileConfig, TemplatedRequestFile,
+        ParsedConfig, ParsedRequestFile, ReferenceType, TemplatedRequestFile,
     };
 
     use pretty_assertions::assert_eq;
 
-    use crate::{parse, resolve, template};
+    use crate::{parse, template};
 
     const REQFILE_STRING: &str = concat!(
         "vars = [\"query_value\"]\n",
@@ -119,79 +117,6 @@ mod tests {
                 ],
             }),
             reqfile
-        );
-    }
-
-    #[test]
-    fn resolve_full_request_file() {
-        let resolved_reqfile = resolve(
-            REQFILE_STRING,
-            "dev",
-            &HashMap::from([
-                ("test_value".to_string(), "test_value_value".to_string()),
-                (
-                    "expected_response_body".to_string(),
-                    "expected_response_body_value".to_string(),
-                ),
-            ]),
-            &HashMap::from([("api_key".to_string(), "api_key_value".to_string())]),
-        );
-
-        assert_eq!(
-            Ok(ResolvedRequestFile {
-                request: (
-                    HttpRequest {
-                        verb: "POST".into(),
-                        target: "/?query={{:query_value}}".to_string(),
-                        http_version: "1.1".into(),
-                        headers: vec![
-                            ("x-test".to_string(), "{{?test_value}}".to_string()),
-                            ("x-api-key".to_string(), "{{!api_key}}".to_string()),
-                        ],
-                        body: Some("[1, 2, 3]\n\n".to_string())
-                    },
-                    188..287
-                ),
-                response: Some((
-                    HttpResponse {
-                        http_version: "1.1".into(),
-                        status_code: HttpStatusCode::new(200),
-                        status_text: "OK".to_string(),
-                        headers: HashMap::new(),
-                        body: Some("{{?expected_response_body}}\n\n".to_string())
-                    },
-                    291..337
-                )),
-                config: (
-                    ResolvedRequestFileConfig {
-                        env: "dev".to_string(),
-                        vars: HashMap::from([("query_value".to_string(), "dev_value".to_string())]),
-                        prompts: HashMap::from([
-                            (
-                                "expected_response_body".to_string(),
-                                "expected_response_body_value".to_string()
-                            ),
-                            ("test_value".to_string(), "test_value_value".to_string()),
-                        ]),
-                        secrets: HashMap::from([(
-                            "api_key".to_string(),
-                            "api_key_value".to_string()
-                        )]),
-                        auth: None
-                    },
-                    0..184
-                ),
-                refs: vec![
-                    (ReferenceType::Variable("query_value".to_string()), 188..287),
-                    (ReferenceType::Prompt("test_value".to_string()), 188..287),
-                    (ReferenceType::Secret("api_key".to_string()), 188..287),
-                    (
-                        ReferenceType::Prompt("expected_response_body".to_string()),
-                        291..337
-                    )
-                ],
-            }),
-            resolved_reqfile
         );
     }
 

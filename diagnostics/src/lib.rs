@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use codespan_reporting::diagnostic::{Diagnostic, Label};
 use errors::{ParseError, ReqlangError, ResolverError};
+use parser::template;
 use serde::{Deserialize, Serialize};
 use span::Span;
 use str_idxpos::index_to_position;
@@ -32,7 +33,7 @@ impl Diagnoser {
         prompts: &HashMap<String, String>,
         secrets: &HashMap<String, String>,
     ) -> Vec<Diagnosis> {
-        match parser::resolve(source, env, prompts, secrets) {
+        match template(source, env, prompts, secrets, HashMap::new()) {
             Ok(_) => vec![],
             Err(errs) => {
                 return errs

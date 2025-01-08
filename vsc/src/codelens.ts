@@ -15,9 +15,10 @@ import {
 } from "./state";
 import { expect } from "rsresult";
 import { RequestToBeExecuted } from "./types";
-import { UnresolvedRequestFile } from "reqlang-types";
+import { ParsedRequestFile } from "reqlang-types";
 import { formatDistance, formatDuration, intervalToDuration } from "date-fns";
 import { Commands } from "./commands";
+import { getClient } from "./client";
 
 /**
  * A codelens provider for request files
@@ -45,6 +46,18 @@ export class ReqlangCodeLensProvider implements CodeLensProvider {
      */
     const uri = `file://${document.fileName}`;
 
+    const parseResultFromFile = getParseResults(uri, this.context);
+
+    if (parseResultFromFile === null) {
+      const client = getClient();
+
+      client.outputChannel.appendLine(
+        `No parsed request file found for '${uri}'`
+      );
+
+      return lenses;
+    }
+
     /**
      * The full (not simplified) parsed request file.
      *
@@ -53,8 +66,8 @@ export class ReqlangCodeLensProvider implements CodeLensProvider {
      * The span is used to calculate the lens's postition
      */
     const { full: reqFile } = expect(
-      getParseResults(uri, this.context)!,
-      "There should be a parsed request file in the workspace state. This is sent by the language server to the client."
+      parseResultFromFile,
+      `should have a parsed request file for '${uri}'`
     );
 
     /**
@@ -183,6 +196,6 @@ class EnvPickerCodeLens extends CodeLens {
  * @param reqFile The request file to get environments from
  * @returns Array of environment names
  */
-function getEnvsFromReqfile(reqFile: UnresolvedRequestFile) {
+function getEnvsFromReqfile(reqFile: ParsedRequestFile) {
   return Object.keys(reqFile.config?.[0]?.envs ?? {});
 }

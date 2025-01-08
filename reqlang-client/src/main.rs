@@ -10,23 +10,23 @@ use eframe::egui;
 use reqlang::{
     export::{export, Format},
     http::HttpRequest,
-    parse, resolve, template, ParsedRequestFile, ResolvedRequestFile,
+    parse, template, ParsedRequestFile, TemplatedRequestFile,
 };
 
 #[allow(dead_code)]
 #[derive(Clone)]
 enum ClientState {
-    Init(InitState),
-    View(ViewState),
-    Resolving(ResolvingState),
-    Resolved(ResolvedState),
+    LoadReqfile(LoadReqfileState),
+    ViewReqfile(ViewReqfileState),
+    InputParams(InputParamsState),
+    ReviewRequest(ReviewRequestState),
     ExecutingRequest(ExecutingRequestState),
 }
 
 #[derive(Debug, Default, Clone)]
-struct InitState {}
+struct LoadReqfileState {}
 
-impl InitState {
+impl LoadReqfileState {
     pub fn ui(
         &mut self,
         egui_ctx: &egui::Context,
@@ -56,7 +56,7 @@ impl InitState {
                 .map(|source| Box::new(parse(source).unwrap()));
 
             if client_ctx.reqfile.is_some() {
-                next_state = StateTransition::New(ClientState::View(ViewState {}));
+                next_state = StateTransition::New(ClientState::ViewReqfile(ViewReqfileState {}));
             }
         });
 
@@ -65,9 +65,9 @@ impl InitState {
 }
 
 #[derive(Debug, PartialEq, Clone)]
-struct ViewState {}
+struct ViewReqfileState {}
 
-impl ViewState {
+impl ViewReqfileState {
     pub fn ui(
         &mut self,
         egui_ctx: &egui::Context,
@@ -112,11 +112,11 @@ impl ViewState {
                 return;
             }
 
-            if ui.button("Resolve").clicked() {
+            if ui.button("Run").clicked() {
                 match &client_ctx.source {
                     Some(_) => {
                         next_state =
-                            StateTransition::New(ClientState::Resolving(ResolvingState::new(
+                            StateTransition::New(ClientState::InputParams(InputParamsState::new(
                                 "".to_owned(),
                                 prompt_names.clone(),
                                 secret_names.clone(),
@@ -149,13 +149,13 @@ impl ViewState {
 }
 
 #[derive(Debug, PartialEq, Clone)]
-struct ResolvingState {
+struct InputParamsState {
     env: String,
     prompts: HashMap<String, String>,
     secrets: HashMap<String, String>,
 }
 
-impl ResolvingState {
+impl InputParamsState {
     fn new(
         env: String,
         prompt_names: Vec<String>,
@@ -179,7 +179,7 @@ impl ResolvingState {
     }
 }
 
-impl ResolvingState {
+impl InputParamsState {
     pub fn ui(
         &mut self,
         egui_ctx: &egui::Context,
@@ -189,20 +189,23 @@ impl ResolvingState {
 
         // let reqfile = &client_ctx.reqfile.unwrap();
 
-        let env_names: Vec<String> = match &client_ctx.reqfile {
-            Some(reqfile) => reqfile.envs(),
-            None => vec![],
-        };
+        let env_names = client_ctx
+            .reqfile
+            .as_ref()
+            .map(|reqfile| reqfile.envs())
+            .unwrap_or_default();
 
-        let prompt_names: Vec<String> = match &client_ctx.reqfile {
-            Some(reqfile) => reqfile.prompts(),
-            None => vec![],
-        };
+        let prompt_names: Vec<String> = client_ctx
+            .reqfile
+            .as_ref()
+            .map(|reqfile| reqfile.prompts())
+            .unwrap_or_default();
 
-        let secret_names: Vec<String> = match &client_ctx.reqfile {
-            Some(reqfile) => reqfile.secrets(),
-            None => vec![],
-        };
+        let secret_names: Vec<String> = client_ctx
+            .reqfile
+            .as_ref()
+            .map(|reqfile| reqfile.secrets())
+            .unwrap_or_default();
 
         egui::CentralPanel::default().show(egui_ctx, |ui| {
             if ui.button("Back").clicked() {
@@ -268,18 +271,19 @@ impl ResolvingState {
 
             ui.separator();
 
-            if ui.button("Resolve").clicked() {
-                let reqfile = resolve(
+            if ui.button("Run").clicked() {
+                let reqfile = template(
                     &client_ctx.source.clone().unwrap(),
                     &self.env,
-                    &self.prompts,
-                    &self.secrets,
+                    &self.prompts.clone(),
+                    &self.secrets.clone(),
+                    HashMap::new(),
                 )
                 .unwrap();
 
-                next_state = StateTransition::New(ClientState::Resolved(ResolvedState::new(
-                    Box::new(reqfile),
-                )));
+                next_state = StateTransition::New(ClientState::ReviewRequest(
+                    ReviewRequestState::new(Box::new(reqfile)),
+                ));
             }
         });
 
@@ -288,12 +292,12 @@ impl ResolvingState {
 }
 
 #[derive(Clone)]
-struct ResolvedState {
-    reqfile: Box<ResolvedRequestFile>,
+struct ReviewRequestState {
+    reqfile: Box<TemplatedRequestFile>,
 }
 
-impl ResolvedState {
-    pub fn new(reqfile: Box<ResolvedRequestFile>) -> Self {
+impl ReviewRequestState {
+    pub fn new(reqfile: Box<TemplatedRequestFile>) -> Self {
         Self { reqfile }
     }
 
@@ -304,7 +308,7 @@ impl ResolvedState {
     ) -> Result<StateTransition, &str> {
         let mut next_state: StateTransition = StateTransition::None;
 
-        let request = &self.reqfile.request.0;
+        let request = &self.reqfile.request;
 
         let request_string = export(request, Format::HttpMessage);
 
@@ -331,12 +335,12 @@ impl ResolvedState {
 
 #[derive(Clone)]
 struct ExecutingRequestState {
-    reqfile: Box<ResolvedRequestFile>,
+    reqfile: Box<TemplatedRequestFile>,
     download: Arc<Mutex<Download>>,
 }
 
 impl ExecutingRequestState {
-    pub fn new(reqfile: Box<ResolvedRequestFile>) -> Self {
+    pub fn new(reqfile: Box<TemplatedRequestFile>) -> Self {
         Self {
             reqfile,
             download: Arc::new(Mutex::new(Download::None)),
@@ -346,28 +350,11 @@ impl ExecutingRequestState {
     pub fn ui(
         &mut self,
         egui_ctx: &egui::Context,
-        client_ctx: &ClientContext,
+        _client_ctx: &ClientContext,
     ) -> Result<StateTransition, &str> {
         let mut next_state: StateTransition = StateTransition::None;
 
-        let env = self.reqfile.config.0.env.as_str();
-        let prompts = &self.reqfile.config.0.prompts;
-        let secrets = &self.reqfile.config.0.secrets;
-
-        let provider_values = {
-            let mut values = HashMap::new();
-
-            values.insert("env".to_string(), env.to_string());
-
-            values
-        };
-
-        let input = client_ctx.source.as_ref().unwrap().as_str();
-
-        let templated_reqfile = template(input, env, prompts, secrets, provider_values)
-            .expect("Should be a valid reqfile");
-
-        let request = &templated_reqfile.request;
+        let request = &self.reqfile.as_ref().request;
         let request_string = export(request, Format::HttpMessage);
 
         egui::CentralPanel::default().show(egui_ctx, |ui| {
@@ -505,7 +492,7 @@ impl Default for Client {
         Self {
             streaming: true,
             context: Box::<ClientContext>::default(),
-            states: vec![ClientState::Init(InitState::default())],
+            states: vec![ClientState::LoadReqfile(LoadReqfileState::default())],
         }
     }
 }
@@ -521,10 +508,10 @@ impl eframe::App for Client {
         match self.states.last_mut() {
             Some(latest_state) => {
                 let next_state = match &mut *latest_state {
-                    ClientState::Init(state) => state.ui(egui_ctx, &mut self.context),
-                    ClientState::View(state) => state.ui(egui_ctx, &mut self.context),
-                    ClientState::Resolving(state) => state.ui(egui_ctx, &self.context),
-                    ClientState::Resolved(state) => state.ui(egui_ctx, &self.context),
+                    ClientState::LoadReqfile(state) => state.ui(egui_ctx, &mut self.context),
+                    ClientState::ViewReqfile(state) => state.ui(egui_ctx, &mut self.context),
+                    ClientState::InputParams(state) => state.ui(egui_ctx, &self.context),
+                    ClientState::ReviewRequest(state) => state.ui(egui_ctx, &self.context),
                     ClientState::ExecutingRequest(state) => state.ui(egui_ctx, &self.context),
                 };
 
