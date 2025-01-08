@@ -24,7 +24,7 @@ export function initStatus() {
   }
 }
 
-export const updateStatusText = (context: ExtensionContext) => () => {
+export const updateStatusText = (context: ExtensionContext) => {
   const status = getStatus();
 
   if (!window.activeTextEditor) {

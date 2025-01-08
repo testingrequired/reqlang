@@ -26,7 +26,6 @@ import {
   startLanguageServer,
   stopLanguageServer,
 } from "./src/commands";
-import * as statusBar from "./src/status";
 import { ReqlangCodeLensProvider } from "./src/codelens";
 
 let activeTextEditorHandler: Disposable;
@@ -34,13 +33,6 @@ let visibleTextEditorHandler: Disposable;
 
 export async function activate(context: ExtensionContext) {
   await startLanguageServer();
-
-  // Initialize and update the status bar
-  const updateStatusText = statusBar.updateStatusText(context);
-  updateStatusText();
-  const initCurrentFileState = state.initCurrentFileState(context);
-
-  initCurrentFileState();
 
   context.subscriptions.push(
     commands.registerCommand(Commands.StartLanguageServer, startLanguageServer),
@@ -77,11 +69,15 @@ export async function activate(context: ExtensionContext) {
     )
   );
 
-  activeTextEditorHandler =
-    window.onDidChangeActiveTextEditor(initCurrentFileState);
+  state.initCurrentFileState(context);
 
-  visibleTextEditorHandler =
-    window.onDidChangeVisibleTextEditors(initCurrentFileState);
+  activeTextEditorHandler = window.onDidChangeActiveTextEditor(() =>
+    state.initCurrentFileState(context)
+  );
+
+  visibleTextEditorHandler = window.onDidChangeVisibleTextEditors(() =>
+    state.initCurrentFileState(context)
+  );
 
   subscribeToParseNotificationsFromServer(context);
 }

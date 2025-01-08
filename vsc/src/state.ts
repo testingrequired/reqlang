@@ -57,7 +57,7 @@ export function debugResetWorkspaceState(
   return initState;
 }
 
-export const initCurrentFileState = (context: ExtensionContext) => () => {
+export const initCurrentFileState = (context: ExtensionContext) => {
   if (!window.activeTextEditor) {
     updateStatusText(context);
     return;
