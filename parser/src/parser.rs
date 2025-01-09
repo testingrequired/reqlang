@@ -1448,3 +1448,93 @@ mod test {
         );
     }
 }
+
+#[cfg(test)]
+mod resolve_tests {
+    use std::collections::HashMap;
+
+    macro_rules! resolve_test {
+        ($test_name:ident, $reqfile:expr, $env:expr, $result:expr) => {
+            #[test]
+            fn $test_name() {
+                let resolved_reqfile = $crate::parse(&$reqfile).unwrap();
+
+                pretty_assertions::assert_eq!($result, resolved_reqfile.env($env));
+            }
+        };
+    }
+
+    resolve_test!(
+        get_default_env_when_no_config_declared,
+        concat!("---\n", "GET https://example.com HTTP/1.1\n"),
+        "default",
+        Some(HashMap::new())
+    );
+
+    resolve_test!(
+        get_default_env_when_default_env_defined,
+        concat!(
+            "vars = [\"value\"]\n",
+            "envs.default.value = \"foo\"\n",
+            "---\n",
+            "GET https://example.com?{{:value}} HTTP/1.1\n"
+        ),
+        "default",
+        Some(HashMap::from([("value".to_string(), "foo".to_string())]))
+    );
+
+    resolve_test!(
+        get_default_env_when_user_env_defined,
+        concat!(
+            "vars = [\"value\"]\n",
+            "envs.test.value = \"foo\"\n",
+            "---\n",
+            "GET https://example.com?{{:value}} HTTP/1.1\n"
+        ),
+        "default",
+        None
+    );
+
+    resolve_test!(
+        get_user_env_when_no_config_declared,
+        concat!("---\n", "GET https://example.com HTTP/1.1\n"),
+        "test",
+        None
+    );
+
+    resolve_test!(
+        get_user_env_when_default_env_defined,
+        concat!(
+            "vars = [\"value\"]\n",
+            "envs.default.value = \"foo\"\n",
+            "---\n",
+            "GET https://example.com?{{:value}} HTTP/1.1\n"
+        ),
+        "test",
+        None
+    );
+
+    resolve_test!(
+        get_user_env_when_user_env_defined,
+        concat!(
+            "vars = [\"value\"]\n",
+            "envs.test.value = \"foo\"\n",
+            "---\n",
+            "GET https://example.com?{{:value}} HTTP/1.1\n"
+        ),
+        "test",
+        Some(HashMap::from([("value".to_string(), "foo".to_string())]))
+    );
+
+    resolve_test!(
+        get_non_existent_env_when_user_env_defined,
+        concat!(
+            "vars = [\"value\"]\n",
+            "envs.test.value = \"foo\"\n",
+            "---\n",
+            "GET https://example.com?{{:value}} HTTP/1.1\n"
+        ),
+        "doesnt_exist",
+        None
+    );
+}
