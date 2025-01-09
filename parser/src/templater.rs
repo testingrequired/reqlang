@@ -4,7 +4,7 @@ use errors::ReqlangError;
 use span::Spanned;
 use types::{ParsedRequestFile, ReferenceType, TemplatedRequestFile};
 
-use crate::{parser::RequestFileParser, split};
+use crate::parser::RequestFileParser;
 
 /// Template a request file with the resolved values
 pub fn template(
@@ -47,7 +47,7 @@ pub fn template(
     };
 
     // Split the templated input to pull out the request and response parts
-    let reqfile_split = split(&templated_input).unwrap();
+    let reqfile_split = RequestFileParser::split(&templated_input).unwrap();
 
     // Parse the templated request
     let request = {
