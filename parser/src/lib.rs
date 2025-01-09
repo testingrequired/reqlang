@@ -1,36 +1,10 @@
-use std::collections::HashMap;
-
-use errors::ReqlangError;
-use span::Spanned;
-use templater::template as template_reqfile;
-use types::TemplatedRequestFile;
-
 pub use parser::parse;
+pub use templater::template;
 
 mod parser;
 mod templater;
 
 pub const TEMPLATE_REFERENCE_PATTERN: &str = r"\{\{([:?!@]{1})([a-zA-Z][_a-zA-Z0-9.]+)\}\}";
-
-/// Parse a string in to a request file, resolve values, and template the request/response
-pub fn template(
-    reqfile_string: &str,
-    env: &str,
-    prompts: &HashMap<String, String>,
-    secrets: &HashMap<String, String>,
-    provider_values: HashMap<String, String>,
-) -> Result<TemplatedRequestFile, Vec<Spanned<ReqlangError>>> {
-    let parsed_reqfile = parse(reqfile_string)?;
-
-    template_reqfile(
-        reqfile_string,
-        &parsed_reqfile,
-        env,
-        prompts.clone(),
-        secrets.clone(),
-        provider_values,
-    )
-}
 
 #[cfg(test)]
 mod parserlib {

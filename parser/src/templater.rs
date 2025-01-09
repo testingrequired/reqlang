@@ -4,17 +4,21 @@ use errors::ReqlangError;
 use span::Spanned;
 use types::{ParsedRequestFile, ReferenceType, TemplatedRequestFile};
 
-use crate::parser::{parse_request, parse_response, split};
+use crate::parser::{parse, parse_request, parse_response, split};
 
-/// Template a request file with the resolved values
+/// Parse a string in to a request file, resolve values, and template the request/response
 pub fn template(
-    input: &str,
-    reqfile: &ParsedRequestFile,
+    reqfile_string: &str,
     env: &str,
-    prompts: HashMap<String, String>,
-    secrets: HashMap<String, String>,
+    prompts: &HashMap<String, String>,
+    secrets: &HashMap<String, String>,
     provider_values: HashMap<String, String>,
 ) -> Result<TemplatedRequestFile, Vec<Spanned<ReqlangError>>> {
+    let parsed_reqfile = parse(reqfile_string)?;
+
+    let reqfile: &ParsedRequestFile = &parsed_reqfile;
+    let prompts = prompts.clone();
+    let secrets = secrets.clone();
     // Gather list of template references along with each reference's type
     //
     // e.g. ("{{:var_name}}", ReferenceType::Variable("var_name"))
@@ -28,7 +32,7 @@ pub fn template(
 
     // Replace template references with the resolved values
     let templated_input = {
-        let mut input = input.to_string();
+        let mut input = reqfile_string.to_string();
         let vars = reqfile.env(env).unwrap_or_default();
 
         for (template_ref, ref_type) in &template_refs_to_replace {
@@ -70,25 +74,17 @@ mod test {
         TemplatedRequestFile,
     };
 
-    use crate::parser::parse;
     use crate::templater::template;
 
     macro_rules! templater_test {
         ($test_name:ident, $reqfile_string:expr, $env:expr, $prompts:expr, $secrets:expr, $provider_values: expr, $result:expr) => {
             #[test]
             fn $test_name() {
-                let unresolved_reqfile = parse(&$reqfile_string);
-
-                // assert_eq!(unresolved_reqfile.is_ok(), true);
-
-                let unresolved_reqfile = unresolved_reqfile.unwrap();
-
                 let templated_reqfile = template(
                     &$reqfile_string,
-                    &unresolved_reqfile,
                     $env,
-                    $prompts,
-                    $secrets,
+                    &$prompts,
+                    &$secrets,
                     $provider_values,
                 );
 
