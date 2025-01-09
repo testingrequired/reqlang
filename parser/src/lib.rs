@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 
 use errors::ReqlangError;
-use export::Format;
 use span::Spanned;
 use templater::template as template_reqfile;
 use types::TemplatedRequestFile;
@@ -31,20 +30,6 @@ pub fn template(
         secrets.clone(),
         provider_values,
     )
-}
-
-/// Export a request file in to another format
-pub fn export(
-    reqfile_string: &str,
-    env: &str,
-    prompts: &HashMap<String, String>,
-    secrets: &HashMap<String, String>,
-    provider_values: HashMap<String, String>,
-    format: Format,
-) -> Result<String, Vec<Spanned<ReqlangError>>> {
-    let templated_reqfile = template(reqfile_string, env, prompts, secrets, provider_values)?;
-
-    Ok(export::export(&templated_reqfile.request, format))
 }
 
 #[cfg(test)]

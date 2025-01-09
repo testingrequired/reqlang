@@ -11,7 +11,6 @@ publish = false
 
 [dependencies]
 types = { path = "../types" }
-export = { path = "../export" }
 span = { path = "../span" }
 errors = { path = "../errors" }
 httparse = "1.8.0"
