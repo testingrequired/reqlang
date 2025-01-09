@@ -35,7 +35,7 @@ mod integration_tests {
         let secrets = HashMap::new();
         let provider_values = HashMap::from([("env".to_string(), "default".to_string())]);
 
-        let reqfile = template(&source, env, &prompts, &secrets, provider_values)
+        let reqfile = template(&source, env, &prompts, &secrets, &provider_values)
             .expect("request file should have been templated");
 
         let fetcher: HttpRequestFetcher = reqfile.request.into();

@@ -12,7 +12,7 @@ pub fn template(
     env: &str,
     prompts: &HashMap<String, String>,
     secrets: &HashMap<String, String>,
-    provider_values: HashMap<String, String>,
+    provider_values: &HashMap<String, String>,
 ) -> Result<TemplatedRequestFile, Vec<Spanned<ReqlangError>>> {
     let parsed_reqfile = parse(reqfile_string)?;
 
@@ -133,7 +133,7 @@ mod test {
             )
         ]),
         HashMap::from([("api_key".to_string(), "api_key_value".to_string())]),
-        HashMap::default(),
+        &HashMap::default(),
         Ok(TemplatedRequestFile {
             request: HttpRequest {
                 verb: "POST".into(),
@@ -172,7 +172,7 @@ mod test {
         "dev",
         HashMap::new(),
         HashMap::from([("api_key".to_string(), "api_key_value".to_string())]),
-        HashMap::default(),
+        &HashMap::default(),
         Ok(TemplatedRequestFile {
             request: HttpRequest {
                 verb: "GET".into(),

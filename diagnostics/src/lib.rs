@@ -33,7 +33,7 @@ impl Diagnoser {
         prompts: &HashMap<String, String>,
         secrets: &HashMap<String, String>,
     ) -> Vec<Diagnosis> {
-        match template(source, env, prompts, secrets, HashMap::new()) {
+        match template(source, env, prompts, secrets, &HashMap::new()) {
             Ok(_) => vec![],
             Err(errs) => {
                 return errs

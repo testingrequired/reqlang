@@ -183,7 +183,7 @@ impl LanguageServer for Backend {
                 &from_client_params.env,
                 &from_client_params.prompts,
                 &from_client_params.secrets,
-                Default::default(),
+                &Default::default(),
             )
             .expect("Should get templated request file");
 
@@ -252,7 +252,7 @@ impl LanguageServer for Backend {
                 env,
                 &from_client_params.prompts,
                 &from_client_params.secrets,
-                provider,
+                &provider,
             )
             .expect("Should have templated");
 

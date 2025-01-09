@@ -116,7 +116,7 @@ impl From<RequestParamsFromClient> for HttpRequestFetcher {
             &params.env,
             &params.prompts,
             &params.secrets,
-            HashMap::new(),
+            &HashMap::new(),
         )
         .unwrap();
 

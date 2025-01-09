@@ -277,7 +277,7 @@ impl InputParamsState {
                     &self.env,
                     &self.prompts.clone(),
                     &self.secrets.clone(),
-                    HashMap::new(),
+                    &HashMap::new(),
                 )
                 .unwrap();
 
