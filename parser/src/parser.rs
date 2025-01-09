@@ -34,100 +34,75 @@ static FORBIDDEN_REQUEST_HEADER_NAMES: &[&str] = &[
 /// Delimiter used to split request files
 const DELIMITER: &str = "---\n";
 
-/// Parse a string in to a request file
-pub struct RequestFileParser {}
+pub fn parse(input: &str) -> Result<ParsedRequestFile, Vec<Spanned<ReqlangError>>> {
+    let mut parse_errors: Vec<Spanned<ReqlangError>> = vec![];
 
-impl RequestFileParser {
-    pub fn new() -> Self {
-        Self {}
-    }
+    split(input).and_then(|reqfile| {
+        let request_refs = parse_references(&reqfile.request);
+        let response_refs = parse_references(&reqfile.response.clone().unwrap_or_default());
+        let config_refs = parse_references(&reqfile.config.clone().unwrap_or_default());
+        let mut refs: Vec<(ReferenceType, std::ops::Range<usize>)> = vec![];
+        refs.extend(request_refs);
+        refs.extend(response_refs);
+        refs.extend(config_refs);
 
-    /// Parse a string in to an request file with unresolved template values.
-    pub fn parse_string(input: &str) -> Result<ParsedRequestFile, Vec<Spanned<ReqlangError>>> {
-        RequestFileParser::new().parse(input)
-    }
-
-    /// Parse a string in to an request file with unresolved template values.
-    pub fn parse(&self, input: &str) -> Result<ParsedRequestFile, Vec<Spanned<ReqlangError>>> {
-        let mut parse_errors: Vec<Spanned<ReqlangError>> = vec![];
-
-        RequestFileParser::split(input).and_then(|reqfile| {
-            let request_refs = RequestFileParser::parse_references(&reqfile.request);
-            let response_refs =
-                RequestFileParser::parse_references(&reqfile.response.clone().unwrap_or_default());
-            let config_refs =
-                RequestFileParser::parse_references(&reqfile.config.clone().unwrap_or_default());
-            let mut refs: Vec<(ReferenceType, std::ops::Range<usize>)> = vec![];
-            refs.extend(request_refs);
-            refs.extend(response_refs);
-            refs.extend(config_refs);
-
-            let request = match RequestFileParser::parse_request(&reqfile.request) {
-                Ok((request, span)) => {
-                    for key in request.headers.iter().map(|x| &x.0) {
-                        if FORBIDDEN_REQUEST_HEADER_NAMES.contains(&key.to_lowercase().as_str()) {
-                            parse_errors.push((
-                                ParseError::ForbiddenRequestHeaderNameError(key.to_lowercase())
-                                    .into(),
-                                span.clone(),
-                            ))
-                        }
+        let request = match parse_request(&reqfile.request) {
+            Ok((request, span)) => {
+                for key in request.headers.iter().map(|x| &x.0) {
+                    if FORBIDDEN_REQUEST_HEADER_NAMES.contains(&key.to_lowercase().as_str()) {
+                        parse_errors.push((
+                            ParseError::ForbiddenRequestHeaderNameError(key.to_lowercase()).into(),
+                            span.clone(),
+                        ))
                     }
-
-                    Some((request, span))
                 }
-                Err(err) => {
-                    parse_errors.extend(err);
-                    None
-                }
-            };
 
-            let response = match RequestFileParser::parse_response(&reqfile.response) {
-                Some(Ok(response)) => Some(response),
-                Some(Err(err)) => {
-                    parse_errors.extend(err);
-                    None
-                }
-                None => None,
-            };
+                Some((request, span))
+            }
+            Err(err) => {
+                parse_errors.extend(err);
+                None
+            }
+        };
 
-            let config = match RequestFileParser::parse_config(&reqfile.config) {
-                Some(Ok((mut config, config_span))) => {
-                    if let Some(envs) = &mut config.envs {
-                        if envs.keys().len() == 0 {
-                            envs.insert("default".to_string(), HashMap::new());
-                        }
-                    } else {
-                        let mut envs: HashMap<String, HashMap<String, String>> = HashMap::new();
+        let response = match parse_response(&reqfile.response) {
+            Some(Ok(response)) => Some(response),
+            Some(Err(err)) => {
+                parse_errors.extend(err);
+                None
+            }
+            None => None,
+        };
 
+        let config = match parse_config(&reqfile.config) {
+            Some(Ok((mut config, config_span))) => {
+                if let Some(envs) = &mut config.envs {
+                    if envs.keys().len() == 0 {
                         envs.insert("default".to_string(), HashMap::new());
-
-                        config.envs = Some(envs);
                     }
+                } else {
+                    let mut envs: HashMap<String, HashMap<String, String>> = HashMap::new();
 
-                    Some((config, config_span))
-                }
-                Some(Err(err)) => {
-                    parse_errors.extend(err);
-                    None
-                }
-                None => None,
-            };
+                    envs.insert("default".to_string(), HashMap::new());
 
-            // Validate template references are declared/defined vars, secrets, prompts, etc.
-            for (ref_type, span) in refs.iter() {
-                match ref_type {
-                    ReferenceType::Variable(name) => {
-                        if let Some((config, _)) = &config {
-                            if !config.vars().contains(name) {
-                                parse_errors.push((
-                                    ReqlangError::ParseError(ParseError::UndefinedReferenceError(
-                                        ReferenceType::Variable(name.to_string()),
-                                    )),
-                                    span.clone(),
-                                ));
-                            }
-                        } else {
+                    config.envs = Some(envs);
+                }
+
+                Some((config, config_span))
+            }
+            Some(Err(err)) => {
+                parse_errors.extend(err);
+                None
+            }
+            None => None,
+        };
+
+        // Validate template references are declared/defined vars, secrets, prompts, etc.
+        for (ref_type, span) in refs.iter() {
+            match ref_type {
+                ReferenceType::Variable(name) => {
+                    if let Some((config, _)) = &config {
+                        if !config.vars().contains(name) {
                             parse_errors.push((
                                 ReqlangError::ParseError(ParseError::UndefinedReferenceError(
                                     ReferenceType::Variable(name.to_string()),
@@ -135,18 +110,18 @@ impl RequestFileParser {
                                 span.clone(),
                             ));
                         }
+                    } else {
+                        parse_errors.push((
+                            ReqlangError::ParseError(ParseError::UndefinedReferenceError(
+                                ReferenceType::Variable(name.to_string()),
+                            )),
+                            span.clone(),
+                        ));
                     }
-                    ReferenceType::Prompt(name) => {
-                        if let Some((config, _)) = &config {
-                            if !config.prompts().contains(name) {
-                                parse_errors.push((
-                                    ReqlangError::ParseError(ParseError::UndefinedReferenceError(
-                                        ReferenceType::Prompt(name.to_string()),
-                                    )),
-                                    span.clone(),
-                                ));
-                            }
-                        } else {
+                }
+                ReferenceType::Prompt(name) => {
+                    if let Some((config, _)) = &config {
+                        if !config.prompts().contains(name) {
                             parse_errors.push((
                                 ReqlangError::ParseError(ParseError::UndefinedReferenceError(
                                     ReferenceType::Prompt(name.to_string()),
@@ -154,18 +129,18 @@ impl RequestFileParser {
                                 span.clone(),
                             ));
                         }
+                    } else {
+                        parse_errors.push((
+                            ReqlangError::ParseError(ParseError::UndefinedReferenceError(
+                                ReferenceType::Prompt(name.to_string()),
+                            )),
+                            span.clone(),
+                        ));
                     }
-                    ReferenceType::Secret(name) => {
-                        if let Some((config, _)) = &config {
-                            if !config.secrets().contains(name) {
-                                parse_errors.push((
-                                    ReqlangError::ParseError(ParseError::UndefinedReferenceError(
-                                        ReferenceType::Secret(name.to_string()),
-                                    )),
-                                    span.clone(),
-                                ));
-                            }
-                        } else {
+                }
+                ReferenceType::Secret(name) => {
+                    if let Some((config, _)) = &config {
+                        if !config.secrets().contains(name) {
                             parse_errors.push((
                                 ReqlangError::ParseError(ParseError::UndefinedReferenceError(
                                     ReferenceType::Secret(name.to_string()),
@@ -173,324 +148,289 @@ impl RequestFileParser {
                                 span.clone(),
                             ));
                         }
-                    }
-                    ReferenceType::Provider(_name) => {}
-                    ReferenceType::Unknown(_name) => {}
-                }
-            }
-
-            if let Some((ref config, ref span)) = config {
-                let ref_names: Vec<String> = refs
-                    .clone()
-                    .into_iter()
-                    .map(|(x, _)| match x {
-                        ReferenceType::Variable(name) => name,
-                        ReferenceType::Prompt(name) => name,
-                        ReferenceType::Secret(name) => name,
-                        ReferenceType::Provider(name) => name,
-                        ReferenceType::Unknown(name) => name,
-                    })
-                    .collect();
-
-                for var in &config.vars() {
-                    if !ref_names.contains(var) {
+                    } else {
                         parse_errors.push((
-                            ReqlangError::ParseError(ParseError::UnusedValueError(
-                                ReferenceType::Variable(var.clone()),
+                            ReqlangError::ParseError(ParseError::UndefinedReferenceError(
+                                ReferenceType::Secret(name.to_string()),
                             )),
                             span.clone(),
-                        ))
+                        ));
                     }
                 }
-
-                for key in &config.prompts() {
-                    if !ref_names.contains(key) {
-                        parse_errors.push((
-                            ReqlangError::ParseError(ParseError::UnusedValueError(
-                                ReferenceType::Prompt(key.clone()),
-                            )),
-                            span.clone(),
-                        ))
-                    }
-                }
-
-                for secret in &config.secrets() {
-                    if !ref_names.contains(secret) {
-                        parse_errors.push((
-                            ReqlangError::ParseError(ParseError::UnusedValueError(
-                                ReferenceType::Secret(secret.clone()),
-                            )),
-                            span.clone(),
-                        ))
-                    }
-                }
+                ReferenceType::Provider(_name) => {}
+                ReferenceType::Unknown(_name) => {}
             }
-
-            if !parse_errors.is_empty() {
-                return Err(parse_errors);
-            }
-
-            Ok(ParsedRequestFile {
-                request: request.unwrap(),
-                response,
-                config,
-                refs,
-            })
-        })
-    }
-
-    /// Split string in to a request, and optional response, config
-    pub fn split(input: &str) -> Result<RequestFileSplitUp, Vec<Spanned<ReqlangError>>> {
-        let mut parse_errors: Vec<Spanned<ReqlangError>> = vec![];
-
-        if input.is_empty() {
-            parse_errors.push((
-                ReqlangError::ParseError(ParseError::EmptyFileError),
-                NO_SPAN,
-            ));
-
-            return Err(parse_errors);
         }
 
-        let documents: Vec<&str> = input.split(DELIMITER).collect();
+        if let Some((ref config, ref span)) = config {
+            let ref_names: Vec<String> = refs
+                .clone()
+                .into_iter()
+                .map(|(x, _)| match x {
+                    ReferenceType::Variable(name) => name,
+                    ReferenceType::Prompt(name) => name,
+                    ReferenceType::Secret(name) => name,
+                    ReferenceType::Provider(name) => name,
+                    ReferenceType::Unknown(name) => name,
+                })
+                .collect();
 
-        if documents.len() < 2 {
-            parse_errors.push((
-                ReqlangError::ParseError(ParseError::NoDividersError),
-                0..input.len(),
-            ));
-        }
+            for var in &config.vars() {
+                if !ref_names.contains(var) {
+                    parse_errors.push((
+                        ReqlangError::ParseError(ParseError::UnusedValueError(
+                            ReferenceType::Variable(var.clone()),
+                        )),
+                        span.clone(),
+                    ))
+                }
+            }
 
-        if documents.len() > 4 {
-            parse_errors.push((
-                ReqlangError::ParseError(ParseError::TooManyDividersError),
-                0..input.len(),
-            ));
+            for key in &config.prompts() {
+                if !ref_names.contains(key) {
+                    parse_errors.push((
+                        ReqlangError::ParseError(ParseError::UnusedValueError(
+                            ReferenceType::Prompt(key.clone()),
+                        )),
+                        span.clone(),
+                    ))
+                }
+            }
+
+            for secret in &config.secrets() {
+                if !ref_names.contains(secret) {
+                    parse_errors.push((
+                        ReqlangError::ParseError(ParseError::UnusedValueError(
+                            ReferenceType::Secret(secret.clone()),
+                        )),
+                        span.clone(),
+                    ))
+                }
+            }
         }
 
         if !parse_errors.is_empty() {
             return Err(parse_errors);
         }
 
-        let first_divider = input.find(DELIMITER).unwrap_or_default();
-
-        let mut request = documents.get(1).map(|x| x.to_string()).unwrap();
-
-        let request_start = first_divider + 4;
-        let request_end = request_start + request.len();
-
-        // Fixes requests that doesn't end in correct number of new lines
-        if !request.ends_with('\n') {
-            request = format!("{request}\n\n");
-        }
-
-        if request.ends_with('\n') && !request.ends_with("\n\n") {
-            request = format!("{request}\n");
-        }
-
-        let request = (request, request_start..request_end);
-
-        let response_start = request_end + 4;
-
-        let response = documents.get(2);
-
-        let response_end = match response {
-            Some(response) => response_start + response.len(),
-            None => response_start,
-        };
-
-        let response = response
-            .map(|x| x.trim_start().to_string())
-            .filter(|x| !x.is_empty())
-            .map(|x| (x, response_start..response_end));
-
-        let config_start = 0;
-
-        let config = documents.first();
-
-        let config_end = match config {
-            Some(config) => config_start + config.len(),
-            None => config_start,
-        };
-
-        let config = config
-            .map(|x| x.to_string())
-            .map(|x| (x, config_start..config_end));
-
-        Ok(RequestFileSplitUp {
-            request,
+        Ok(ParsedRequestFile {
+            request: request.unwrap(),
             response,
             config,
+            refs,
         })
+    })
+}
+
+/// Split string in to a request, and optional response, config
+pub fn split(input: &str) -> Result<RequestFileSplitUp, Vec<Spanned<ReqlangError>>> {
+    let mut parse_errors: Vec<Spanned<ReqlangError>> = vec![];
+
+    if input.is_empty() {
+        parse_errors.push((
+            ReqlangError::ParseError(ParseError::EmptyFileError),
+            NO_SPAN,
+        ));
+
+        return Err(parse_errors);
     }
 
-    pub fn parse_config(
-        config: &Option<Spanned<String>>,
-    ) -> Option<Result<Spanned<ParsedConfig>, Vec<Spanned<ReqlangError>>>> {
-        config.as_ref().map(|(config, span)| {
-            let config: Result<ParsedConfig, _> = toml::from_str(config);
+    let documents: Vec<&str> = input.split(DELIMITER).collect();
 
-            config.map(|x| (x, span.clone())).map_err(|x| {
-                let toml_span = x.span().unwrap_or(NO_SPAN);
-                let err = ReqlangError::ParseError(ParseError::InvalidConfigError {
-                    message: x.message().to_string(),
-                });
-                let err_span = span.start + toml_span.start..span.start + toml_span.end;
+    if documents.len() < 2 {
+        parse_errors.push((
+            ReqlangError::ParseError(ParseError::NoDividersError),
+            0..input.len(),
+        ));
+    }
 
-                vec![(err, err_span)]
-            })
+    if documents.len() > 4 {
+        parse_errors.push((
+            ReqlangError::ParseError(ParseError::TooManyDividersError),
+            0..input.len(),
+        ));
+    }
+
+    if !parse_errors.is_empty() {
+        return Err(parse_errors);
+    }
+
+    let first_divider = input.find(DELIMITER).unwrap_or_default();
+
+    let mut request = documents.get(1).map(|x| x.to_string()).unwrap();
+
+    let request_start = first_divider + 4;
+    let request_end = request_start + request.len();
+
+    // Fixes requests that doesn't end in correct number of new lines
+    if !request.ends_with('\n') {
+        request = format!("{request}\n\n");
+    }
+
+    if request.ends_with('\n') && !request.ends_with("\n\n") {
+        request = format!("{request}\n");
+    }
+
+    let request = (request, request_start..request_end);
+
+    let response_start = request_end + 4;
+
+    let response = documents.get(2);
+
+    let response_end = match response {
+        Some(response) => response_start + response.len(),
+        None => response_start,
+    };
+
+    let response = response
+        .map(|x| x.trim_start().to_string())
+        .filter(|x| !x.is_empty())
+        .map(|x| (x, response_start..response_end));
+
+    let config_start = 0;
+
+    let config = documents.first();
+
+    let config_end = match config {
+        Some(config) => config_start + config.len(),
+        None => config_start,
+    };
+
+    let config = config
+        .map(|x| x.to_string())
+        .map(|x| (x, config_start..config_end));
+
+    Ok(RequestFileSplitUp {
+        request,
+        response,
+        config,
+    })
+}
+
+pub fn parse_config(
+    config: &Option<Spanned<String>>,
+) -> Option<Result<Spanned<ParsedConfig>, Vec<Spanned<ReqlangError>>>> {
+    config.as_ref().map(|(config, span)| {
+        let config: Result<ParsedConfig, _> = toml::from_str(config);
+
+        config.map(|x| (x, span.clone())).map_err(|x| {
+            let toml_span = x.span().unwrap_or(NO_SPAN);
+            let err = ReqlangError::ParseError(ParseError::InvalidConfigError {
+                message: x.message().to_string(),
+            });
+            let err_span = span.start + toml_span.start..span.start + toml_span.end;
+
+            vec![(err, err_span)]
         })
+    })
+}
+
+/// Extract template references from a string
+pub fn parse_references((input, span): &Spanned<String>) -> Vec<Spanned<ReferenceType>> {
+    let re = Regex::new(TEMPLATE_REFERENCE_PATTERN).unwrap();
+
+    let mut captured_refs: Vec<Spanned<ReferenceType>> = vec![];
+
+    for (_, [prefix, name]) in re.captures_iter(input).map(|cap| cap.extract()) {
+        captured_refs.push(match prefix {
+            ":" => (ReferenceType::Variable(name.to_string()), span.to_owned()),
+            "?" => (ReferenceType::Prompt(name.to_string()), span.to_owned()),
+            "!" => (ReferenceType::Secret(name.to_string()), span.to_owned()),
+            "@" => (ReferenceType::Provider(name.to_string()), span.to_owned()),
+            _ => (ReferenceType::Unknown(name.to_string()), span.to_owned()),
+        });
     }
 
-    /// Extract template references from a string
-    pub fn parse_references((input, span): &Spanned<String>) -> Vec<Spanned<ReferenceType>> {
-        let re = Regex::new(TEMPLATE_REFERENCE_PATTERN).unwrap();
+    captured_refs
+}
 
-        let mut captured_refs: Vec<Spanned<ReferenceType>> = vec![];
+pub fn parse_request(
+    (request, span): &Spanned<String>,
+) -> Result<Spanned<HttpRequest>, Vec<Spanned<ReqlangError>>> {
+    let mut parse_errors: Vec<Spanned<ReqlangError>> = vec![];
 
-        for (_, [prefix, name]) in re.captures_iter(input).map(|cap| cap.extract()) {
-            captured_refs.push(match prefix {
-                ":" => (ReferenceType::Variable(name.to_string()), span.to_owned()),
-                "?" => (ReferenceType::Prompt(name.to_string()), span.to_owned()),
-                "!" => (ReferenceType::Secret(name.to_string()), span.to_owned()),
-                "@" => (ReferenceType::Provider(name.to_string()), span.to_owned()),
-                _ => (ReferenceType::Unknown(name.to_string()), span.to_owned()),
-            });
-        }
+    let mut headers = [httparse::EMPTY_HEADER; 64];
+    let mut req = httparse::Request::new(&mut headers);
 
-        captured_refs
-    }
+    let parse_result = req.parse(request.as_bytes());
 
-    pub fn parse_request(
-        (request, span): &Spanned<String>,
-    ) -> Result<Spanned<HttpRequest>, Vec<Spanned<ReqlangError>>> {
-        let mut parse_errors: Vec<Spanned<ReqlangError>> = vec![];
-
-        let mut headers = [httparse::EMPTY_HEADER; 64];
-        let mut req = httparse::Request::new(&mut headers);
-
-        let parse_result = req.parse(request.as_bytes());
-
-        if let Err(error) = parse_result {
-            parse_errors.push((
-                ParseError::InvalidRequestError {
-                    message: format!("{error}"),
-                }
-                .into(),
-                span.clone(),
-            ));
-        }
-
-        if !parse_errors.is_empty() {
-            return Err(parse_errors);
-        }
-
-        if let httparse::Status::Partial = parse_result.unwrap() {
-            parse_errors.push((
-                ParseError::InvalidRequestError {
-                    message: "Unable to parse a partial request".to_string(),
-                }
-                .into(),
-                span.clone(),
-            ));
-        }
-
-        if !parse_errors.is_empty() {
-            return Err(parse_errors);
-        }
-
-        let size_minus_body = parse_result.unwrap().unwrap();
-
-        let body = &request[size_minus_body..];
-
-        let mut mapped_headers = vec![];
-
-        req.headers
-            .iter_mut()
-            .filter(|x| !x.name.is_empty())
-            .for_each(|x| {
-                mapped_headers.push((
-                    x.name.to_string(),
-                    std::str::from_utf8(x.value).unwrap().to_string(),
-                ));
-            });
-
-        Ok((
-            HttpRequest {
-                verb: req.method.unwrap().into(),
-                target: req.path.unwrap().to_string(),
-                http_version: format!("1.{}", req.version.unwrap()).into(),
-                headers: mapped_headers,
-                body: Some(body.to_string()),
-            },
+    if let Err(error) = parse_result {
+        parse_errors.push((
+            ParseError::InvalidRequestError {
+                message: format!("{error}"),
+            }
+            .into(),
             span.clone(),
-        ))
+        ));
     }
 
-    pub fn parse_response(
-        response: &Option<Spanned<String>>,
-    ) -> Option<Result<Spanned<HttpResponse>, Vec<Spanned<ReqlangError>>>> {
-        let mut parse_errors: Vec<Spanned<ReqlangError>> = vec![];
+    if !parse_errors.is_empty() {
+        return Err(parse_errors);
+    }
 
-        let mut headers = [httparse::EMPTY_HEADER; 64];
-        let mut res = httparse::Response::new(&mut headers);
+    if let httparse::Status::Partial = parse_result.unwrap() {
+        parse_errors.push((
+            ParseError::InvalidRequestError {
+                message: "Unable to parse a partial request".to_string(),
+            }
+            .into(),
+            span.clone(),
+        ));
+    }
 
-        let (response, span) = match response {
-            Some(x) => x,
-            None => return None,
-        };
+    if !parse_errors.is_empty() {
+        return Err(parse_errors);
+    }
 
-        let parse_result = res.parse(response.as_bytes());
+    let size_minus_body = parse_result.unwrap().unwrap();
 
-        match parse_result {
-            Ok(result) => match result {
-                httparse::Status::Partial => {
-                    parse_errors.push((
-                        ParseError::InvalidRequestError {
-                            message: "Unable to parse a partial response".to_string(),
-                        }
-                        .into(),
-                        span.clone(),
-                    ));
+    let body = &request[size_minus_body..];
 
-                    None
-                }
-                httparse::Status::Complete(size_minus_body) => {
-                    let body = &response[size_minus_body..];
+    let mut mapped_headers = vec![];
 
-                    let mut mapped_headers = HashMap::new();
+    req.headers
+        .iter_mut()
+        .filter(|x| !x.name.is_empty())
+        .for_each(|x| {
+            mapped_headers.push((
+                x.name.to_string(),
+                std::str::from_utf8(x.value).unwrap().to_string(),
+            ));
+        });
 
-                    res.headers
-                        .iter_mut()
-                        .filter(|x| !x.name.is_empty())
-                        .for_each(|x| {
-                            mapped_headers.insert(
-                                x.name.to_string(),
-                                std::str::from_utf8(x.value).unwrap().to_string(),
-                            );
-                        });
+    Ok((
+        HttpRequest {
+            verb: req.method.unwrap().into(),
+            target: req.path.unwrap().to_string(),
+            http_version: format!("1.{}", req.version.unwrap()).into(),
+            headers: mapped_headers,
+            body: Some(body.to_string()),
+        },
+        span.clone(),
+    ))
+}
 
-                    Some(Ok((
-                        HttpResponse {
-                            http_version: format!("1.{}", res.version.unwrap()).into(),
-                            status_code: res
-                                .code
-                                .unwrap()
-                                .to_string()
-                                .try_into()
-                                .expect("Invalid status code in response"),
-                            status_text: res.reason.unwrap().to_string(),
-                            headers: mapped_headers,
-                            body: Some(body.to_string()),
-                        },
-                        span.clone(),
-                    )))
-                }
-            },
-            Err(error) => {
+pub fn parse_response(
+    response: &Option<Spanned<String>>,
+) -> Option<Result<Spanned<HttpResponse>, Vec<Spanned<ReqlangError>>>> {
+    let mut parse_errors: Vec<Spanned<ReqlangError>> = vec![];
+
+    let mut headers = [httparse::EMPTY_HEADER; 64];
+    let mut res = httparse::Response::new(&mut headers);
+
+    let (response, span) = match response {
+        Some(x) => x,
+        None => return None,
+    };
+
+    let parse_result = res.parse(response.as_bytes());
+
+    match parse_result {
+        Ok(result) => match result {
+            httparse::Status::Partial => {
                 parse_errors.push((
                     ParseError::InvalidRequestError {
-                        message: format!("{error}"),
+                        message: "Unable to parse a partial response".to_string(),
                     }
                     .into(),
                     span.clone(),
@@ -498,6 +438,48 @@ impl RequestFileParser {
 
                 None
             }
+            httparse::Status::Complete(size_minus_body) => {
+                let body = &response[size_minus_body..];
+
+                let mut mapped_headers = HashMap::new();
+
+                res.headers
+                    .iter_mut()
+                    .filter(|x| !x.name.is_empty())
+                    .for_each(|x| {
+                        mapped_headers.insert(
+                            x.name.to_string(),
+                            std::str::from_utf8(x.value).unwrap().to_string(),
+                        );
+                    });
+
+                Some(Ok((
+                    HttpResponse {
+                        http_version: format!("1.{}", res.version.unwrap()).into(),
+                        status_code: res
+                            .code
+                            .unwrap()
+                            .to_string()
+                            .try_into()
+                            .expect("Invalid status code in response"),
+                        status_text: res.reason.unwrap().to_string(),
+                        headers: mapped_headers,
+                        body: Some(body.to_string()),
+                    },
+                    span.clone(),
+                )))
+            }
+        },
+        Err(error) => {
+            parse_errors.push((
+                ParseError::InvalidRequestError {
+                    message: format!("{error}"),
+                }
+                .into(),
+                span.clone(),
+            ));
+
+            None
         }
     }
 }
@@ -514,10 +496,7 @@ mod test {
         ($test_name:ident, $reqfile:expr, $result:expr) => {
             #[test]
             fn $test_name() {
-                pretty_assertions::assert_eq!(
-                    $result,
-                    $crate::RequestFileParser::parse_string(&$reqfile)
-                );
+                pretty_assertions::assert_eq!($result, $crate::parse(&$reqfile));
             }
         };
     }

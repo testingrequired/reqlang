@@ -4,7 +4,7 @@ use errors::ReqlangError;
 use span::Spanned;
 use types::{ParsedRequestFile, ReferenceType, TemplatedRequestFile};
 
-use crate::parser::RequestFileParser;
+use crate::parser::{parse_request, parse_response, split};
 
 /// Template a request file with the resolved values
 pub fn template(
@@ -47,18 +47,16 @@ pub fn template(
     };
 
     // Split the templated input to pull out the request and response parts
-    let reqfile_split = RequestFileParser::split(&templated_input).unwrap();
+    let reqfile_split = split(&templated_input).unwrap();
 
     // Parse the templated request
     let request = {
         let (request, request_span) = reqfile_split.request;
-        RequestFileParser::parse_request(&(request, request_span.clone()))
-            .unwrap()
-            .0
+        parse_request(&(request, request_span.clone())).unwrap().0
     };
 
     // Parse the templated response
-    let response = RequestFileParser::parse_response(&reqfile_split.response).map(|x| x.unwrap().0);
+    let response = parse_response(&reqfile_split.response).map(|x| x.unwrap().0);
 
     Ok(TemplatedRequestFile { request, response })
 }
@@ -72,13 +70,14 @@ mod test {
         TemplatedRequestFile,
     };
 
-    use crate::{parser::RequestFileParser, templater::template};
+    use crate::parser::parse;
+    use crate::templater::template;
 
     macro_rules! templater_test {
         ($test_name:ident, $reqfile_string:expr, $env:expr, $prompts:expr, $secrets:expr, $provider_values: expr, $result:expr) => {
             #[test]
             fn $test_name() {
-                let unresolved_reqfile = RequestFileParser::parse_string(&$reqfile_string);
+                let unresolved_reqfile = parse(&$reqfile_string);
 
                 // assert_eq!(unresolved_reqfile.is_ok(), true);
 

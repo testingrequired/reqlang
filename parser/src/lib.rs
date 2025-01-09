@@ -2,20 +2,16 @@ use std::collections::HashMap;
 
 use errors::ReqlangError;
 use export::Format;
-use parser::RequestFileParser;
 use span::Spanned;
 use templater::template as template_reqfile;
-use types::{ParsedRequestFile, TemplatedRequestFile};
+use types::TemplatedRequestFile;
+
+pub use parser::parse;
 
 mod parser;
 mod templater;
 
 pub const TEMPLATE_REFERENCE_PATTERN: &str = r"\{\{([:?!@]{1})([a-zA-Z][_a-zA-Z0-9.]+)\}\}";
-
-/// Parse a string in to a request file
-pub fn parse(input: &str) -> Result<ParsedRequestFile, Vec<Spanned<ReqlangError>>> {
-    RequestFileParser::parse_string(input)
-}
 
 /// Parse a string in to a request file, resolve values, and template the request/response
 pub fn template(
@@ -25,11 +21,11 @@ pub fn template(
     secrets: &HashMap<String, String>,
     provider_values: HashMap<String, String>,
 ) -> Result<TemplatedRequestFile, Vec<Spanned<ReqlangError>>> {
-    let unresolved_reqfile = RequestFileParser::parse_string(reqfile_string)?;
+    let parsed_reqfile = parse(reqfile_string)?;
 
     template_reqfile(
         reqfile_string,
-        &unresolved_reqfile,
+        &parsed_reqfile,
         env,
         prompts.clone(),
         secrets.clone(),
