@@ -66,6 +66,7 @@ lint-fix:
 # Format code
 format:
     cargo fmt --all
+    just lint-fix
 
 # Check that the code is formatted correctly
 format-check:
