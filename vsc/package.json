@@ -135,6 +135,7 @@
     "@vscode/test-electron": "2.3.6",
     "@vscode/vsce": "3.2.1",
     "esbuild": "^0.19.5",
+    "prettier": "3.4.2",
     "reqlang-types": "file:../types",
     "typescript": "^4.6.4"
   },
@@ -147,6 +148,8 @@
     "build": "tsc --noEmit && node ./esbuild-build.mjs",
     "package": "vsce package --out out",
     "watch": "node ./esbuild-build.mjs --watch",
-    "update-vscode": "node ./node_modules/vscode/bin/install"
+    "update-vscode": "node ./node_modules/vscode/bin/install",
+    "format": "npx prettier . --write",
+    "check": "npx prettier . --check"
   }
 }

@@ -67,6 +67,7 @@ lint-fix:
 format:
     cargo fmt --all
     just lint-fix
+    cd vsc && just format
 
 # Check that the code is formatted correctly
 format-check:
@@ -77,6 +78,7 @@ check:
     cargo check --workspace --all-targets
     just format-check
     just lint
+    cd vsc && just check
 
 # Run all checks, tests, and build the code
 verify:

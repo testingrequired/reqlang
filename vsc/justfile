@@ -15,8 +15,8 @@ uninstall:
 clean:
     rm -rf out/* node_modules/
 
-fmt:
-    echo "No formatter in place"
+format:
+    npm run format
 
-lint:
-    echo "No linter in place"
+check:
+    npm run check
