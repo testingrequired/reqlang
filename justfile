@@ -60,19 +60,23 @@ install-vsc:
 uninstall-vsc:
     cd vsc && just uninstall
 
-lint *args:
-    cargo clippy --workspace --all-targets --all-features -- {{args}}
+lint:
+    cargo clippy --workspace --all-targets --all-features -- -D warnings -W clippy::all
 
-lint-fix *args:
-    cargo clippy --workspace --all-targets --all-features --fix -- {{args}}
+lint-fix:
+    cargo clippy --workspace --all-targets --all-features --fix -- -D warnings -W clippy::all
 
 format *args:
     cargo fmt --all -- {{args}}
+    just lint-fix
 
-verify:
+check:
     cargo check --workspace --all-targets
     just format --check
-    just lint -D warnings -W clippy::all
+    just lint
+
+verify:
+    just check
     just test
     just build
 
