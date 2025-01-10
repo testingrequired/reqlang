@@ -18,7 +18,7 @@ import { updateStatusText } from "./status";
 export function setParseResult(
   fileKey: string,
   context: ExtensionContext,
-  result: RsResult.Result<ParsedReqfileFromServer>
+  result: RsResult.Result<ParsedReqfileFromServer>,
 ): ReqfileState {
   return updateState(fileKey, context, (state) => {
     state.parsedReqfileFromServer = result;
@@ -34,7 +34,7 @@ export function setParseResult(
  */
 export function getParseResults(
   fileKey: string,
-  context: ExtensionContext
+  context: ExtensionContext,
 ): RsResult.Result<ParsedReqfileFromServer> | null {
   const state = getOrInitState(fileKey, context);
 
@@ -43,7 +43,7 @@ export function getParseResults(
 
 export function debugResetWorkspaceState(
   fileKey: string,
-  context: ExtensionContext
+  context: ExtensionContext,
 ) {
   const initState: ReqfileState = {
     env: null,
@@ -108,7 +108,7 @@ export const debugResetCurrentFileState = (context: ExtensionContext) => () => {
  */
 export function getOrInitState(
   fileKey: string,
-  context: ExtensionContext
+  context: ExtensionContext,
 ): ReqfileState {
   const state = context.workspaceState.get<ReqfileState>(fileKey);
 
@@ -138,7 +138,7 @@ export function getOrInitState(
 export function updateState(
   fileKey: string,
   context: ExtensionContext,
-  fn: (state: ReqfileState) => ReqfileState
+  fn: (state: ReqfileState) => ReqfileState,
 ): ReqfileState {
   const state = fn(getOrInitState(fileKey, context));
   context.workspaceState.update(fileKey, state);
@@ -155,7 +155,7 @@ export function updateState(
 export function setEnv(
   fileKey: string,
   context: ExtensionContext,
-  env: string | null
+  env: string | null,
 ): ReqfileState {
   return updateState(fileKey, context, (state) => {
     state.env = env;
@@ -171,7 +171,7 @@ export function setEnv(
  */
 export function getEnv(
   fileKey: string,
-  context: ExtensionContext
+  context: ExtensionContext,
 ): string | null {
   const state = getOrInitState(fileKey, context);
 
@@ -188,7 +188,7 @@ export function getEnv(
  */
 export function getIsWaitingForResponse(
   fileKey: string,
-  context: ExtensionContext
+  context: ExtensionContext,
 ): boolean {
   const state = getOrInitState(fileKey, context);
 
@@ -207,7 +207,7 @@ export function getIsWaitingForResponse(
 export function setIsWaitingForResponse(
   fileKey: string,
   context: ExtensionContext,
-  isWaitingForResponse: boolean
+  isWaitingForResponse: boolean,
 ): ReqfileState {
   return updateState(fileKey, context, (state) => {
     state.isWaitingForResponse = isWaitingForResponse;
@@ -224,7 +224,7 @@ export function setIsWaitingForResponse(
  */
 export function getLastResponse(
   fileKey: string,
-  context: ExtensionContext
+  context: ExtensionContext,
 ): RequestToBeExecuted | null {
   const state = getOrInitState(fileKey, context);
   return state.requestExecutions.at(-1) ?? null;
@@ -241,7 +241,7 @@ export function getLastResponse(
 export function setLastResponse(
   fileKey: string,
   context: ExtensionContext,
-  response: RequestToBeExecuted
+  response: RequestToBeExecuted,
 ): ReqfileState {
   return updateState(fileKey, context, (state) => {
     state.requestExecutions.push(response);

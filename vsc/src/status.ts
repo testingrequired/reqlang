@@ -62,6 +62,6 @@ export const updateStatusText = (context: ExtensionContext) => {
     (_err) => {
       status.show();
       status.text = `http $(error) Error Parsing`;
-    }
+    },
   );
 };

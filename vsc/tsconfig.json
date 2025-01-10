@@ -9,9 +9,7 @@
     "stripInternal": true,
     "strict": true,
     "skipLibCheck": true,
-    "lib": [
-      "es6"
-    ],
+    "lib": ["es6"],
     "outDir": "out"
   }
 }

@@ -31,7 +31,7 @@ function initClient() {
     client = new LanguageClient(
       "reqlang-language-server",
       serverOptions,
-      clientOptions
+      clientOptions,
     );
   }
 }

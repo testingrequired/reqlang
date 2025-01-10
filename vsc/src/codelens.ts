@@ -31,7 +31,7 @@ export class ReqlangCodeLensProvider implements CodeLensProvider {
    */
   provideCodeLenses(
     document: TextDocument,
-    _token: CancellationToken
+    _token: CancellationToken,
   ): ProviderResult<CodeLens[]> {
     const lenses = [];
 
@@ -52,7 +52,7 @@ export class ReqlangCodeLensProvider implements CodeLensProvider {
       const client = getClient();
 
       client.outputChannel.appendLine(
-        `No parsed request file found for '${uri}'`
+        `No parsed request file found for '${uri}'`,
       );
 
       return lenses;
@@ -67,7 +67,7 @@ export class ReqlangCodeLensProvider implements CodeLensProvider {
      */
     const { full: reqFile } = expect(
       parseResultFromFile,
-      `should have a parsed request file for '${uri}'`
+      `should have a parsed request file for '${uri}'`,
     );
 
     /**
@@ -78,7 +78,7 @@ export class ReqlangCodeLensProvider implements CodeLensProvider {
 
     const requestLensRange = new Range(
       document.positionAt(requestSpan.start),
-      document.positionAt(requestSpan.end)
+      document.positionAt(requestSpan.end),
     );
 
     /**
@@ -98,7 +98,7 @@ export class ReqlangCodeLensProvider implements CodeLensProvider {
     // If an environment is set, add a run request lens
     if (env !== null) {
       lenses.push(
-        new RunRequestCodeLens(requestLensRange, isWaitingForResponse)
+        new RunRequestCodeLens(requestLensRange, isWaitingForResponse),
       );
     }
 
@@ -156,7 +156,7 @@ class LastReponseCodeLens extends CodeLens {
       intervalToDuration({
         start: lastResponse.startDateIso,
         end: lastResponse.endDateIso,
-      })
+      }),
     );
     const duration =
       durationMs < 1000 ? `${durationMs} ms` : durationSecondsOrMore;

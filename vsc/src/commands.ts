@@ -193,7 +193,7 @@ export const showResponse = async (response: HttpResponse | null) => {
     window
       .showInformationMessage(
         `Success! Status: ${response.status_code}`,
-        ...actions
+        ...actions,
       )
       .then(async (action) => {
         switch (action) {
@@ -246,7 +246,7 @@ export const showResponse = async (response: HttpResponse | null) => {
     const action = await window.showErrorMessage(
       `Failed! Status: ${response.status_code}`,
       "Show Response",
-      "Ok"
+      "Ok",
     );
 
     switch (action) {
@@ -272,21 +272,21 @@ export const showResponse = async (response: HttpResponse | null) => {
 
 export const openMdnHttpDocs = () => {
   env.openExternal(
-    Uri.parse("https://developer.mozilla.org/en-US/docs/Web/HTTP")
+    Uri.parse("https://developer.mozilla.org/en-US/docs/Web/HTTP"),
   );
 };
 
 export const openMdnHttpDocsMessages = () => {
   env.openExternal(
-    Uri.parse("https://developer.mozilla.org/en-US/docs/Web/HTTP/Messages")
+    Uri.parse("https://developer.mozilla.org/en-US/docs/Web/HTTP/Messages"),
   );
 };
 
 export const openMdnHttpDocsSpecs = () => {
   env.openExternal(
     Uri.parse(
-      "https://developer.mozilla.org/en-US/docs/Web/HTTP/Resources_and_specifications"
-    )
+      "https://developer.mozilla.org/en-US/docs/Web/HTTP/Resources_and_specifications",
+    ),
   );
 };
 
@@ -400,7 +400,7 @@ export const runRequest =
        */
       const responseJson = await commands.executeCommand<string>(
         Commands.Execute,
-        requestParamsToServer
+        requestParamsToServer,
       );
 
       const response: HttpResponse = JSON.parse(responseJson);
@@ -480,7 +480,7 @@ export const exportToFile = (context: ExtensionContext) => async () => {
         secrets,
         secretValues,
         providerValues,
-      })
+      }),
     );
 
     const uri = window.activeTextEditor.document.uri.toString()!;
@@ -516,7 +516,7 @@ export const exportToFile = (context: ExtensionContext) => async () => {
 
     const response = await commands.executeCommand<string>(
       Commands.Export,
-      params
+      params,
     );
 
     // Put response string in to a new file in the workspace

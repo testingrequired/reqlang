@@ -39,7 +39,7 @@ export async function activate(context: ExtensionContext) {
     commands.registerCommand(Commands.StopLanguageServer, stopLanguageServer),
     commands.registerCommand(
       Commands.RestartLanguageServer,
-      restartLanguageServer
+      restartLanguageServer,
     ),
     commands.registerCommand(Commands.Menu, menuHandler(context)),
     commands.registerCommand(Commands.PickEnv, pickCurrentEnv(context)),
@@ -48,35 +48,35 @@ export async function activate(context: ExtensionContext) {
     commands.registerCommand(Commands.OpenMdnDocsHttp, openMdnHttpDocs),
     commands.registerCommand(
       Commands.OpenMdnDocsHttpMessages,
-      openMdnHttpDocsMessages
+      openMdnHttpDocsMessages,
     ),
     commands.registerCommand(
       Commands.OpenMdnDocsHttpSpecs,
-      openMdnHttpDocsSpecs
+      openMdnHttpDocsSpecs,
     ),
     commands.registerCommand(Commands.ExportToFile, exportToFile(context)),
     commands.registerCommand(Commands.ShowResponse, showResponse),
     commands.registerCommand(
       Commands.DebugResetWorkspaceState,
-      state.debugResetCurrentFileState(context)
-    )
+      state.debugResetCurrentFileState(context),
+    ),
   );
 
   context.subscriptions.push(
     languages.registerCodeLensProvider(
       "reqlang",
-      new ReqlangCodeLensProvider(context)
-    )
+      new ReqlangCodeLensProvider(context),
+    ),
   );
 
   state.initCurrentFileState(context);
 
   activeTextEditorHandler = window.onDidChangeActiveTextEditor(() =>
-    state.initCurrentFileState(context)
+    state.initCurrentFileState(context),
   );
 
   visibleTextEditorHandler = window.onDidChangeVisibleTextEditors(() =>
-    state.initCurrentFileState(context)
+    state.initCurrentFileState(context),
   );
 
   subscribeToParseNotificationsFromServer(context);
@@ -104,14 +104,14 @@ function subscribeToParseNotificationsFromServer(context: ExtensionContext) {
         const newState = state.setParseResult(
           params.file_id,
           context,
-          params.result
+          params.result,
         );
 
         getClient().outputChannel.appendLine(params.file_id);
         getClient().outputChannel.appendLine(
-          JSON.stringify(newState.parsedReqfileFromServer, null, 2)
+          JSON.stringify(newState.parsedReqfileFromServer, null, 2),
         );
-      }
-    )
+      },
+    ),
   );
 }
