@@ -31,7 +31,7 @@ impl FromStr for Format {
     }
 }
 
-/// Export a request in to a desired format
+/// Export an HTTP Request in a specified format.
 pub fn export(request: &HttpRequest, format: Format) -> String {
     match format {
         // HTTP Request message
