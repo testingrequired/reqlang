@@ -31,72 +31,80 @@ move-bins-release:
     cp target/release/reqlang-lsp.exe ~/.cargo/bin/reqlang-lsp.exe
     cp target/release/reqlang-client.exe ~/.cargo/bin/reqlang-client.exe
 
+# Build typescript types from Rust types required for VS Code extension
 build_types:
     cd types && just build
 
+# Build the code
 build: build_types
     cargo build
-    just build-vsc
+    cd vsc && just build
 
+# Build the code for release
 build_release: build_types
     cargo build --release
-    just build-vsc
+    cd vsc && just build
 
+# Build the code, install binaries and VS Code extension
 install: build && move-bins
     echo 'Installed Bins (Debug)'
-    cd vsc && just uninstall
-    cd vsc && just install
+    cd vsc && just uninstall && just install
 
+# Build the code for release, install binaries and VS Code extension
 install_release: build_release && move-bins-release
     echo 'Installed Bins (Release)'
     cd vsc && just uninstall && just install
 
-build-vsc:
-    cd vsc && just build
-
-install-vsc:
-    cd vsc && just install
-
-uninstall-vsc:
-    cd vsc && just uninstall
-
+# Check linters against code
 lint:
     cargo clippy --workspace --all-targets --all-features -- -D warnings -W clippy::all
 
+# Automatically fix linting errors in code
 lint-fix:
     cargo clippy --workspace --all-targets --all-features --fix -- -D warnings -W clippy::all
 
-format *args:
-    cargo fmt --all -- {{args}}
-    just lint-fix
+# Format code
+format:
+    cargo fmt --all
 
+# Check that the code is formatted correctly
+format-check:
+    cargo fmt --all -- --check
+
+# Run all non-test checks against code
 check:
     cargo check --workspace --all-targets
-    just format --check
+    just format-check
     just lint
 
+# Run all checks, tests, and build the code
 verify:
     just check
     just test
     just build
 
+# Run all tests
 test:
     cargo test --workspace --all-targets --all-features
 
+# Remove local branches that have been merged upstream
 clean-git-branches:
     git branch -d $(git branch --merged=main | grep -v main) && git fetch --prune
 
+# Build docker image for reqlang cli
 build-docker:
     docker build -t {{docker_image}} .
 
 build-docker-no-cache:
     docker build --no-cache -t {{docker_image}} .
 
-run-docker *args:
-    docker run --rm --read-only -v "/$PWD/examples":/usr/local/src/examples:ro {{docker_image}} {{args}}
+# Run docker image for reqlang cli
+run-docker *cli_args:
+    docker run --rm --read-only -v "/$PWD/examples":/usr/local/src/examples:ro {{docker_image}} {{cli_args}}
 
 run-mock-oauth:
     docker run --rm -p 8080:8080 -h localhost ghcr.io/navikt/mock-oauth2-server:2.1.2
 
+# Run the status_code request file
 run-status-request status_code:
     ./examples/valid/status_code.reqlang -e default -f curl -P status_code={{status_code}} | bash
