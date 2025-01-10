@@ -48,9 +48,9 @@ export const pickCurrentEnv = (context: ExtensionContext) => async () => {
     return;
   }
 
-  let uri = window.activeTextEditor.document.uri.toString()!;
+  const uri = window.activeTextEditor.document.uri.toString()!;
 
-  let parseResult = state.getParseResults(uri, context);
+  const parseResult = state.getParseResults(uri, context);
 
   if (parseResult === null) {
     return;
@@ -197,9 +197,8 @@ export const showResponse = async (response: HttpResponse | null) => {
       )
       .then(async (action) => {
         switch (action) {
-          case "Show Response":
-            // Put response string in to a new file in the workspace
-            // Create a new untitled document
+          case "Show Response": {
+            // Create a new untitled document // Put response string in to a new file in the workspace
             const responseDocument = await workspace.openTextDocument({
               content: JSON.stringify(response, null, 2), // Initial content for the document
               language: "json", // Specify the language mode, e.g., 'plaintext', 'javascript', etc.
@@ -208,7 +207,8 @@ export const showResponse = async (response: HttpResponse | null) => {
             // Show the document in the editor
             await window.showTextDocument(responseDocument);
             break;
-          case "Show Body":
+          }
+          case "Show Body": {
             // Try to get content type of the response
             const contentType =
               response.headers["content-type"] ??
@@ -238,6 +238,7 @@ export const showResponse = async (response: HttpResponse | null) => {
             // Show the document in the editor
             await window.showTextDocument(document);
             break;
+          }
           default:
             break;
         }
@@ -250,9 +251,7 @@ export const showResponse = async (response: HttpResponse | null) => {
     );
 
     switch (action) {
-      case "Show Response":
-        // Put response string in to a new file in the workspace
-        // Create a new untitled document
+      case "Show Response": { // Create a new untitled document // Put response string in to a new file in the workspace
         const document = await workspace.openTextDocument({
           content: JSON.stringify(response, null, 2), // Initial content for the document
           language: "json", // Specify the language mode, e.g., 'plaintext', 'javascript', etc.
@@ -264,6 +263,7 @@ export const showResponse = async (response: HttpResponse | null) => {
         // Format the response json
         await commands.executeCommand("editor.action.formatDocument");
         break;
+      }
       case "Ok":
         break;
     }
@@ -309,7 +309,7 @@ export const runRequest =
 
     const lastResponse = state.getLastResponse(uri, context);
 
-    let parseResult = state.getParseResults(uri, context);
+    const parseResult = state.getParseResults(uri, context);
 
     if (parseResult === null) {
       return;
@@ -326,7 +326,6 @@ export const runRequest =
 
       const promptValues: (string | null)[] = [];
       const secretValues: (string | null)[] = [];
-      const providerValues: (string | null)[] = [];
 
       for (const prompt of prompts) {
         const promptValue = await window.showInputBox({
@@ -426,9 +425,9 @@ export const exportToFile = (context: ExtensionContext) => async () => {
     return;
   }
 
-  let uri = window.activeTextEditor.document.uri.toString()!;
+  const uri = window.activeTextEditor.document.uri.toString()!;
 
-  let parseResult = state.getParseResults(uri, context);
+  const parseResult = state.getParseResults(uri, context);
 
   if (parseResult === null) {
     return;

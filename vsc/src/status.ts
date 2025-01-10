@@ -39,7 +39,7 @@ export const updateStatusText = (context: ExtensionContext) => {
     return;
   }
 
-  let parseResult = getParseResults(uri, context);
+  const parseResult = getParseResults(uri, context);
 
   if (parseResult === null) {
     const client = getClient();

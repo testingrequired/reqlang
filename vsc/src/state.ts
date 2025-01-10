@@ -63,7 +63,7 @@ export const initCurrentFileState = (context: ExtensionContext) => {
     return;
   }
 
-  let filename = window.activeTextEditor.document.uri.toString();
+  const filename = window.activeTextEditor.document.uri.toString();
 
   if (!filename.endsWith(".reqlang")) {
     updateStatusText(context);
@@ -88,7 +88,7 @@ export const debugResetCurrentFileState = (context: ExtensionContext) => () => {
     return;
   }
 
-  let filename = window.activeTextEditor.document.uri.toString();
+  const filename = window.activeTextEditor.document.uri.toString();
 
   if (!filename.endsWith(".reqlang")) {
     updateStatusText(context);
