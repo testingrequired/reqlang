@@ -1,7 +1,7 @@
 import {
   HttpRequest,
   HttpResponse,
-  UnresolvedRequestFile,
+  ParsedRequestFile,
   RequestParamsFromClient,
 } from "reqlang-types";
 import * as RsResult from "rsresult";
@@ -81,7 +81,7 @@ export type ParsedReqfileFromServer = {
   /**
    * Full parsed request file
    */
-  full: UnresolvedRequestFile;
+  full: ParsedRequestFile;
 };
 
 export type ExportRequestParams = {

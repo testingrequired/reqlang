@@ -81,7 +81,7 @@ export const pickCurrentEnv = (context: ExtensionContext) => async () => {
 
     state.setEnv(window.activeTextEditor.document.uri.toString(), context, env);
 
-    updateStatusText(context)();
+    updateStatusText(context);
   });
 };
 
@@ -92,7 +92,7 @@ export const clearCurrentEnv = (context: ExtensionContext) => async () => {
 
   state.setEnv(window.activeTextEditor.document.uri.toString(), context, null);
 
-  updateStatusText(context)();
+  updateStatusText(context);
 };
 
 export const restartLanguageServer = async () => {
