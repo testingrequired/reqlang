@@ -226,16 +226,16 @@ reqlang parse ./examples/valid/status_code.reqlang
 
 ```json
 {
-  "vars": [],
-  "envs": ["default"],
-  "prompts": ["status_code"],
-  "secrets": [],
+  "vars": ["test_value"],
+  "envs": ["prod", "test", "local"],
+  "prompts": ["prompt_value"],
+  "secrets": ["super_secret_value"],
   "request": {
-    "verb": "GET",
-    "target": "https://httpbin.org/status/{{?status_code}}",
+    "verb": "POST",
+    "target": "https://httpbin.org/post",
     "http_version": "1.1",
     "headers": [],
-    "body": ""
+    "body": "{\n  \"env\": \"{{@env}}\",\n  \"value\": \"{{:test_value}}\",\n  \"prompted_value\": \"{{?prompt_value}}\",\n  \"secret_value\": \"{{!super_secret_value}}\"\n}\n\n"
   }
 }
 ```
