@@ -230,6 +230,47 @@ impl From<Value> for RequestParamsFromClient {
     }
 }
 
+/// A simplified version of the parsed file
+///
+/// This is useful for language server clients
+#[derive(Debug, Deserialize, Serialize, PartialEq, TS)]
+#[ts(export)]
+pub struct ParseResult {
+    pub vars: Vec<String>,
+    pub envs: Vec<String>,
+    pub prompts: Vec<String>,
+    pub secrets: Vec<String>,
+    pub request: HttpRequest,
+    pub full: ParsedRequestFile,
+}
+
+impl From<ParsedRequestFile> for ParseResult {
+    fn from(value: ParsedRequestFile) -> Self {
+        let vars = value
+            .config
+            .clone()
+            .unwrap_or_default()
+            .0
+            .vars
+            .unwrap_or_default();
+
+        let envs: Vec<String> = value.envs();
+
+        let prompts: Vec<String> = value.prompts();
+
+        let secrets = value.secrets();
+
+        Self {
+            vars,
+            envs,
+            prompts,
+            secrets,
+            request: value.clone().request.0,
+            full: value,
+        }
+    }
+}
+
 /// A templated request file.
 #[derive(Clone, Debug, PartialEq, Default, Serialize, Deserialize, TS)]
 #[ts(export)]

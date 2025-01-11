@@ -1,5 +1,6 @@
 use clap::builder::PossibleValuesParser;
 use clap::{Arg, ArgMatches, Command};
+use reqlang::{parse, ParseResult};
 use std::{collections::HashMap, fs, process::exit};
 
 use reqlang::{
@@ -91,7 +92,7 @@ fn export_command(matches: &ArgMatches) {
     println!("{}", exported_request);
 }
 
-fn validate_command(matches: &ArgMatches) {
+fn parse_command(matches: &ArgMatches) {
     let path = matches.get_one::<String>("path").unwrap();
     let contents = fs::read_to_string(path).expect("Should have been able to read the file");
 
@@ -102,7 +103,12 @@ fn validate_command(matches: &ArgMatches) {
         exit(1);
     }
 
-    println!("Valid!");
+    let parsed_reqfile = parse(&contents).unwrap();
+    let parse_results: ParseResult = parsed_reqfile.into();
+
+    let json = serde_json::to_string_pretty(&parse_results).unwrap();
+
+    println!("{json}");
 }
 
 fn main() {
@@ -144,22 +150,25 @@ fn main() {
                 ),
         )
         .subcommand(
-            Command::new("validate")
-                .about("Validate a request file")
+            Command::new("parse")
+                .about("Parse a request file")
                 .arg(Arg::new("path").required(true).help("Path to request file")),
         )
         .get_matches();
 
     match matches.subcommand() {
         Some(("export", sub_matches)) => export_command(sub_matches),
-        Some(("validate", sub_matches)) => validate_command(sub_matches),
+        Some(("parse", sub_matches)) => parse_command(sub_matches),
         _ => eprintln!("No valid subcommand provided. Use --help for more information."),
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use std::fs;
+
     use assert_cmd::Command;
+    use reqlang::{parse, ParseResult};
 
     #[test]
     fn no_args() {
@@ -170,6 +179,68 @@ mod tests {
         assert
             .success()
             .stderr("No valid subcommand provided. Use --help for more information.\n");
+    }
+
+    #[test]
+    fn parses_valid_reqfile() {
+        let mut cmd = Command::cargo_bin("reqlang").unwrap();
+
+        let reqfile_path = "../examples/valid/post.reqlang";
+
+        let assert = cmd.arg("parse").arg(reqfile_path).assert();
+
+        let reqfile_source = fs::read_to_string(reqfile_path).unwrap();
+        let parsed_reqfile = parse(&reqfile_source).unwrap();
+        let mut parse_results: ParseResult = parsed_reqfile.into();
+
+        let assert = assert.success();
+        let output = assert.get_output();
+        let mut output_deserialized: ParseResult = serde_json::from_slice(&output.stdout).unwrap();
+
+        pretty_assertions::assert_eq!(parse_results.envs.sort(), output_deserialized.envs.sort());
+        pretty_assertions::assert_eq!(parse_results.vars.sort(), output_deserialized.vars.sort());
+        pretty_assertions::assert_eq!(
+            parse_results.prompts.sort(),
+            output_deserialized.prompts.sort()
+        );
+        pretty_assertions::assert_eq!(
+            parse_results.secrets.sort(),
+            output_deserialized.secrets.sort()
+        );
+
+        pretty_assertions::assert_eq!(parse_results.request, output_deserialized.request);
+    }
+
+    #[test]
+    fn parses_invalid_reqfile() {
+        let mut cmd = Command::cargo_bin("reqlang").unwrap();
+
+        let reqfile_path = "../examples/invalid/empty.reqlang";
+
+        let assert = cmd.arg("parse").arg(reqfile_path).assert();
+
+        assert.failure().stderr(concat!(
+            "[\n",
+            "    Diagnosis {\n",
+            "        range: DiagnosisRange {\n",
+            "            start: DiagnosisPosition {\n",
+            "                line: 0,\n",
+            "                character: 0,\n",
+            "            },\n",
+            "            end: DiagnosisPosition {\n",
+            "                line: 0,\n",
+            "                character: 0,\n",
+            "            },\n",
+            "        },\n",
+            "        severity: Some(\n",
+            "            DiagnosisSeverity(\n",
+            "                1,\n",
+            "            ),\n",
+            "        ),\n",
+            "        message: \"ParseError: Request file is an empty file\",\n",
+            "    },\n",
+            "]\n"
+        ));
     }
 
     #[test]

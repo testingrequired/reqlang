@@ -6,9 +6,8 @@ use assert_response::assert_response;
 use reqlang::diagnostics::{
     Diagnoser, Diagnosis, DiagnosisPosition, DiagnosisRange, DiagnosisSeverity,
 };
-use reqlang::errors::ReqlangError;
-use reqlang::RequestParamsFromClient;
-use reqlang::{http::HttpRequest, parse, template, ParsedRequestFile, Spanned};
+use reqlang::ParseResult;
+use reqlang::{errors::ReqlangError, parse, template, RequestParamsFromClient, Spanned};
 use reqlang_fetch::{Fetch, HttpRequestFetcher};
 use reqwest::Url;
 use serde::{Deserialize, Serialize};
@@ -267,46 +266,6 @@ impl LanguageServer for Backend {
 
         Ok(Some(Value::String("DONE!".to_string())))
     }
-}
-
-impl From<ParsedRequestFile> for ParseResult {
-    fn from(value: ParsedRequestFile) -> Self {
-        let vars = value
-            .config
-            .clone()
-            .unwrap_or_default()
-            .0
-            .vars
-            .unwrap_or_default();
-
-        let envs: Vec<String> = value.envs();
-
-        let prompts: Vec<String> = value.prompts();
-
-        let secrets = value.secrets();
-
-        Self {
-            vars,
-            envs,
-            prompts,
-            secrets,
-            request: value.clone().request.0,
-            full: value,
-        }
-    }
-}
-
-/// A simplified version of the parsed file
-///
-/// This is useful for language server clients
-#[derive(Debug, Deserialize, Serialize)]
-struct ParseResult {
-    vars: Vec<String>,
-    envs: Vec<String>,
-    prompts: Vec<String>,
-    secrets: Vec<String>,
-    request: HttpRequest,
-    full: ParsedRequestFile,
 }
 
 /// Command parameters from client to export request

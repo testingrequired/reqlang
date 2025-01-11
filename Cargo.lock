@@ -812,7 +812,10 @@ version = "0.1.0"
 dependencies = [
  "assert_cmd",
  "clap",
+ "pretty_assertions",
  "reqlang",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

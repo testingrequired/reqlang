@@ -216,12 +216,70 @@ These act as both tooling for request file and reference implementations for cli
 
 The [`reqlang`](./cli) CLI validates and exports requests in to a variety of formats (`http`, `curl`).
 
-#### Validating
+#### Parsing
+
+Validate and parse request files to get environment names, variables, prompts, secrets, from request files.
 
 ```shell
-reqlang validate ./examples/valid/status_code.reqlang
+reqlang parse ./examples/valid/status_code.reqlang
+```
 
-# Valid!
+```json
+{
+  "vars": [],
+  "envs": ["default"],
+  "prompts": ["status_code"],
+  "secrets": [],
+  "request": {
+    "verb": "GET",
+    "target": "https://httpbin.org/status/{{?status_code}}",
+    "http_version": "1.1",
+    "headers": [],
+    "body": ""
+  }
+}
+```
+
+##### Filtering
+
+###### Environments
+
+```shell
+reqlang parse ./examples/valid/post.reqlang | jq '.envs'
+```
+
+```json
+["local", "test", "prod"]
+```
+
+###### Variables
+
+```shell
+reqlang parse ./examples/valid/post.reqlang | jq '.vars'
+```
+
+```json
+["test_value"]
+```
+
+###### Prompts
+
+```shell
+reqlang parse ./examples/valid/post.reqlang | jq '.prompts'
+```
+
+```json
+["prompt_value"]
+```
+
+###### Secrets
+
+```shell
+reqlang parse ./examples/valid/post.reqlang | jq '.secrets'
+```
+
+```json
+["super_secret_value"]
 ```
 
 #### Exporting
