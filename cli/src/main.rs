@@ -223,28 +223,28 @@ mod tests {
 
         let assert = cmd.arg("parse").arg(reqfile_path).assert();
 
-        assert.failure().stderr(concat!(
-            "[\n",
-            "    Diagnosis {\n",
-            "        range: DiagnosisRange {\n",
-            "            start: DiagnosisPosition {\n",
-            "                line: 0,\n",
-            "                character: 0,\n",
-            "            },\n",
-            "            end: DiagnosisPosition {\n",
-            "                line: 0,\n",
-            "                character: 0,\n",
-            "            },\n",
-            "        },\n",
-            "        severity: Some(\n",
-            "            DiagnosisSeverity(\n",
-            "                1,\n",
-            "            ),\n",
-            "        ),\n",
-            "        message: \"ParseError: Request file is an empty file\",\n",
-            "    },\n",
-            "]\n"
-        ));
+        assert
+            .failure()
+            .code(1)
+            .stderr("Invalid request file\n")
+            .stdout(concat!(
+                "[\n",
+                "  {\n",
+                "    \"range\": {\n",
+                "      \"start\": {\n",
+                "        \"line\": 0,\n",
+                "        \"character\": 0\n",
+                "      },\n",
+                "      \"end\": {\n",
+                "        \"line\": 0,\n",
+                "        \"character\": 0\n",
+                "      }\n",
+                "    },\n",
+                "    \"severity\": 1,\n",
+                "    \"message\": \"ParseError: Request file is an empty file\"\n",
+                "  }\n",
+                "]\n"
+            ));
     }
 
     #[test]
@@ -276,28 +276,28 @@ mod tests {
             .arg("super_secret_value=123")
             .assert();
 
-        assert.failure().code(1).stderr(concat!(
-            "[\n",
-            "    Diagnosis {\n",
-            "        range: DiagnosisRange {\n",
-            "            start: DiagnosisPosition {\n",
-            "                line: 0,\n",
-            "                character: 0,\n",
-            "            },\n",
-            "            end: DiagnosisPosition {\n",
-            "                line: 0,\n",
-            "                character: 0,\n",
-            "            },\n",
-            "        },\n",
-            "        severity: Some(\n",
-            "            DiagnosisSeverity(\n",
-            "                1,\n",
-            "            ),\n",
-            "        ),\n",
-            "        message: \"ResolverError: Prompt required but not passed: prompt_value\",\n",
-            "    },\n",
-            "]\n"
-        ));
+        assert
+            .failure()
+            .code(1)
+            .stderr("Invalid request file or errors when exporting\n")
+            .stdout(concat!(
+                "[\n",
+                "  {\n",
+                "    \"range\": {\n",
+                "      \"start\": {\n",
+                "        \"line\": 0,\n",
+                "        \"character\": 0\n",
+                "      },\n",
+                "      \"end\": {\n",
+                "        \"line\": 0,\n",
+                "        \"character\": 0\n",
+                "      }\n",
+                "    },\n",
+                "    \"severity\": 1,\n",
+                "    \"message\": \"ResolverError: Prompt required but not passed: prompt_value\"\n",
+                "  }\n",
+                "]\n"
+            ));
     }
 
     #[test]
@@ -313,28 +313,28 @@ mod tests {
             .arg("prompt_value=foo")
             .assert();
 
-        assert.failure().code(1).stderr(concat!(
-            "[\n",
-            "    Diagnosis {\n",
-            "        range: DiagnosisRange {\n",
-            "            start: DiagnosisPosition {\n",
-            "                line: 0,\n",
-            "                character: 0,\n",
-            "            },\n",
-            "            end: DiagnosisPosition {\n",
-            "                line: 0,\n",
-            "                character: 0,\n",
-            "            },\n",
-            "        },\n",
-            "        severity: Some(\n",
-            "            DiagnosisSeverity(\n",
-            "                1,\n",
-            "            ),\n",
-            "        ),\n",
-            "        message: \"ResolverError: Secret required but not passed: super_secret_value\",\n",
-            "    },\n",
-            "]\n"
-        ));
+        assert
+            .failure()
+            .code(1)
+            .stderr("Invalid request file or errors when exporting\n")
+            .stdout(concat!(
+                "[\n",
+                "  {\n",
+                "    \"range\": {\n",
+                "      \"start\": {\n",
+                "        \"line\": 0,\n",
+                "        \"character\": 0\n",
+                "      },\n",
+                "      \"end\": {\n",
+                "        \"line\": 0,\n",
+                "        \"character\": 0\n",
+                "      }\n",
+                "    },\n",
+                "    \"severity\": 1,\n",
+                "    \"message\": \"ResolverError: Secret required but not passed: super_secret_value\"\n",
+                "  }\n",
+                "]\n"
+            ));
     }
 
     #[test]
