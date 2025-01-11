@@ -227,10 +227,17 @@ reqlang validate ./examples/valid/status_code.reqlang
 #### Exporting
 
 ```shell
-reqlang export ./examples/valid/status_code.reqlang -P status_code=201
+reqlang export examples/valid/status_code.reqlang --prompt status_code=404
 
 # GET https://httpbin.org/status/201 HTTP/1.1
 ```
+
+##### Flags
+
+- `--env env_name`/`-e env_name` Pass in the environment to be used in the request.
+- `--prompt key=value`/`-P key=value` Pass in prompt value to be used in the request.
+- `--secret key=value`/`-S key=value` Pass in secret value to be used in the request.
+- `--format format`/`-f format` Specify the format of the exported request: `http` or `curl` (defaults to `http`)
 
 ### CLI in Docker
 
