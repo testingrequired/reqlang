@@ -290,27 +290,25 @@ If the request file is invalid, a list of errors will be returned instead.
 
 ```shell
 reqlang parse examples/invalid/empty.reqlang
+```
 
-# [
-#     Diagnosis {
-#         range: DiagnosisRange {
-#             start: DiagnosisPosition {
-#                 line: 0,
-#                 character: 0,
-#             },
-#             end: DiagnosisPosition {
-#                 line: 0,
-#                 character: 0,
-#             },
-#         },
-#         severity: Some(
-#             DiagnosisSeverity(
-#                 1,
-#             ),
-#         ),
-#         message: "ParseError: Request file is an empty file",
-#     },
-# ]
+```json
+[
+  {
+    "range": {
+      "start": {
+        "line": 0,
+        "character": 0
+      },
+      "end": {
+        "line": 0,
+        "character": 0
+      }
+    },
+    "severity": 1,
+    "message": "ParseError: Request file is an empty file"
+  }
+]
 ```
 
 #### Exporting
@@ -337,6 +335,33 @@ reqlang export examples/valid/status_code.reqlang --prompt status_code=400 --for
 - `--prompt key=value`/`-P key=value` Pass in prompt value to be used in the request.
 - `--secret key=value`/`-S key=value` Pass in secret value to be used in the request.
 - `--format format`/`-f format` Specify the format of the exported request: `http` or `curl` (defaults to `http`)
+
+##### Validation Errors
+
+If the request file is invalid or there were errors templating, a list of errors will be returned instead.
+
+```shell
+reqlang export examples/invalid/empty.reqlang`
+```
+
+```json
+[
+  {
+    "range": {
+      "start": {
+        "line": 0,
+        "character": 0
+      },
+      "end": {
+        "line": 0,
+        "character": 0
+      }
+    },
+    "severity": 1,
+    "message": "ParseError: Request file is an empty file"
+  }
+]
+```
 
 ### CLI in Docker
 

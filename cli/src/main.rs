@@ -70,7 +70,9 @@ fn export_command(matches: &ArgMatches) {
     let diagnostics = Diagnoser::get_diagnostics_with_env(&contents, env, &prompts, &secrets);
 
     if !diagnostics.is_empty() {
-        eprintln!("{diagnostics:#?}");
+        eprintln!("Invalid request file or errors when exporting");
+        let json = serde_json::to_string_pretty(&diagnostics).unwrap();
+        println!("{json}");
         exit(1);
     }
 
@@ -99,7 +101,9 @@ fn parse_command(matches: &ArgMatches) {
     let diagnostics = Diagnoser::get_diagnostics(&contents);
 
     if !diagnostics.is_empty() {
-        eprintln!("{diagnostics:#?}");
+        eprintln!("Invalid request file");
+        let json = serde_json::to_string_pretty(&diagnostics).unwrap();
+        println!("{json}");
         exit(1);
     }
 
