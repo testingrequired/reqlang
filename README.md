@@ -284,6 +284,35 @@ reqlang parse ./examples/valid/post.reqlang | jq '.secrets'
 ["super_secret_value"]
 ```
 
+##### Validation Errors
+
+If the request file is invalid, a list of errors will be returned instead.
+
+```shell
+reqlang parse examples/invalid/empty.reqlang
+
+# [
+#     Diagnosis {
+#         range: DiagnosisRange {
+#             start: DiagnosisPosition {
+#                 line: 0,
+#                 character: 0,
+#             },
+#             end: DiagnosisPosition {
+#                 line: 0,
+#                 character: 0,
+#             },
+#         },
+#         severity: Some(
+#             DiagnosisSeverity(
+#                 1,
+#             ),
+#         ),
+#         message: "ParseError: Request file is an empty file",
+#     },
+# ]
+```
+
 #### Exporting
 
 Request files can be templated then exported in to different formats.
