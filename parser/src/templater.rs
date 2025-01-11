@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
-use errors::ReqlangError;
-use span::Spanned;
+use errors::{ReqlangError, ResolverError};
+use span::{Spanned, NO_SPAN};
 use types::{ParsedRequestFile, ReferenceType, TemplatedRequestFile};
 
 use crate::parser::{parse, parse_request, parse_response, split};
@@ -16,9 +16,36 @@ pub fn template(
 ) -> Result<TemplatedRequestFile, Vec<Spanned<ReqlangError>>> {
     let parsed_reqfile = parse(reqfile_string)?;
 
+    let mut templating_errors: Vec<Spanned<ReqlangError>> = vec![];
+
     let reqfile: &ParsedRequestFile = &parsed_reqfile;
+
     let prompts = prompts.clone();
+    let required_prompts = parsed_reqfile.prompts();
+    let missing_prompts = required_prompts
+        .iter()
+        .filter(|prompt| !prompts.contains_key(*prompt))
+        .map(|prompt| ResolverError::PromptValueNotPassed(prompt.clone()).into())
+        .map(|err| (err, NO_SPAN))
+        .collect::<Vec<Spanned<ReqlangError>>>();
+
+    templating_errors.extend(missing_prompts);
+
     let secrets = secrets.clone();
+    let required_secrets = parsed_reqfile.secrets();
+    let missing_secrets = required_secrets
+        .iter()
+        .filter(|secret| !secrets.contains_key(*secret))
+        .map(|secret| ResolverError::SecretValueNotPassed(secret.clone()).into())
+        .map(|err| (err, NO_SPAN))
+        .collect::<Vec<Spanned<ReqlangError>>>();
+
+    templating_errors.extend(missing_secrets);
+
+    if !templating_errors.is_empty() {
+        return Err(templating_errors);
+    }
+
     // Gather list of template references along with each reference's type
     //
     // e.g. ("{{:var_name}}", ReferenceType::Variable("var_name"))
@@ -69,6 +96,8 @@ pub fn template(
 mod test {
     use std::collections::HashMap;
 
+    use errors::ReqlangError;
+    use span::NO_SPAN;
     use types::{
         http::{HttpRequest, HttpResponse, HttpStatusCode},
         TemplatedRequestFile,
@@ -88,42 +117,44 @@ mod test {
                     $provider_values,
                 );
 
-                assert_eq!(templated_reqfile, $result);
+                ::pretty_assertions::assert_eq!(templated_reqfile, $result);
             }
         };
     }
 
+    const REQFILE: &str = concat!(
+        "vars = [\"query_value\"]\n",
+        "secrets = [\"api_key\"]",
+        "\n",
+        "[envs]\n",
+        "[envs.dev]\n",
+        "query_value = \"{{?test_value}}\"\n",
+        "\n",
+        "[envs.prod]\n",
+        "query_value = \"{{?test_value}}\"\n",
+        "\n",
+        "[prompts]\n",
+        "test_value = \"\"\n",
+        "expected_response_body = \"\"\n",
+        "\n",
+        "---\n",
+        "POST /?query={{:query_value}} HTTP/1.1\n",
+        "x-test: {{?test_value}}\n",
+        "x-api-key: {{!api_key}}\n",
+        "\n",
+        "[1, 2, 3]\n",
+        "\n",
+        "---\n",
+        "HTTP/1.1 200 OK\n",
+        "\n",
+        "{{?expected_response_body}}\n",
+        "\n",
+        "---\n"
+    );
+
     templater_test!(
         full_request_file,
-        concat!(
-            "vars = [\"query_value\"]\n",
-            "secrets = [\"api_key\"]",
-            "\n",
-            "[envs]\n",
-            "[envs.dev]\n",
-            "query_value = \"{{?test_value}}\"\n",
-            "\n",
-            "[envs.prod]\n",
-            "query_value = \"{{?test_value}}\"\n",
-            "\n",
-            "[prompts]\n",
-            "test_value = \"\"\n",
-            "expected_response_body = \"\"\n",
-            "\n",
-            "---\n",
-            "POST /?query={{:query_value}} HTTP/1.1\n",
-            "x-test: {{?test_value}}\n",
-            "x-api-key: {{!api_key}}\n",
-            "\n",
-            "[1, 2, 3]\n",
-            "\n",
-            "---\n",
-            "HTTP/1.1 200 OK\n",
-            "\n",
-            "{{?expected_response_body}}\n",
-            "\n",
-            "---\n"
-        ),
+        REQFILE,
         "dev",
         HashMap::from([
             ("test_value".to_string(), "test_value_value".to_string()),
@@ -153,6 +184,42 @@ mod test {
                 body: Some("expected_response_body_value\n\n".to_string())
             }),
         })
+    );
+
+    templater_test!(
+        missing_secret_input,
+        REQFILE,
+        "dev",
+        HashMap::from([
+            ("test_value".to_string(), "test_value_value".to_string()),
+            (
+                "expected_response_body".to_string(),
+                "expected_response_body_value".to_string()
+            )
+        ]),
+        HashMap::default(),
+        &HashMap::default(),
+        Err(vec![(
+            ReqlangError::ResolverError(errors::ResolverError::SecretValueNotPassed(
+                "api_key".to_string()
+            )),
+            NO_SPAN
+        )])
+    );
+
+    templater_test!(
+        missing_prompt_input,
+        REQFILE,
+        "dev",
+        HashMap::from([("test_value".to_string(), "test_value_value".to_string()),]),
+        HashMap::from([("api_key".to_string(), "api_key_value".to_string())]),
+        &HashMap::default(),
+        Err(vec![(
+            ReqlangError::ResolverError(errors::ResolverError::PromptValueNotPassed(
+                "expected_response_body".to_string()
+            )),
+            NO_SPAN
+        )])
     );
 
     templater_test!(
