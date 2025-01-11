@@ -1082,6 +1082,7 @@ mod test {
     mod valid {
         use std::collections::HashMap;
 
+        use span::NO_SPAN;
         use types::{
             http::{HttpRequest, HttpResponse, HttpStatusCode, HttpVerb},
             ParsedConfig, ParsedRequestFile, ReferenceType,
@@ -1132,7 +1133,7 @@ mod test {
 
         parser_test!(
             just_request_ends_with_no_newline_or_split,
-            concat!("GET http://example.com HTTP/1.1"),
+            concat!("---\nGET http://example.com HTTP/1.1"),
             Ok(ParsedRequestFile {
                 config: Some((
                     ParsedConfig {
@@ -1142,12 +1143,9 @@ mod test {
                         secrets: None,
                         auth: None
                     },
-                    0..23
+                    NO_SPAN
                 )),
-                request: (
-                    HttpRequest::get("http://example.com", "1.1", vec![]),
-                    27..58
-                ),
+                request: (HttpRequest::get("http://example.com", "1.1", vec![]), 4..35),
                 response: None,
                 refs: vec![],
             })
