@@ -290,16 +290,16 @@ Request files can be templated then exported in to different formats.
 
 ```shell
 # HTTP Request Message
-reqlang export examples/valid/status_code.reqlang --prompt status_code=404 --format http
+reqlang export examples/valid/status_code.reqlang --prompt status_code=201 --format http
 
 # GET https://httpbin.org/status/201 HTTP/1.1
 ```
 
 ```shell
 # Curl command
-reqlang export examples/valid/status_code.reqlang --prompt status_code=404 --format curl
+reqlang export examples/valid/status_code.reqlang --prompt status_code=400 --format curl
 
-# curl https://httpbin.org/status/404 --http1.1 -v
+# curl https://httpbin.org/status/400 --http1.1 -v
 ```
 
 ##### Flags
