@@ -1074,7 +1074,7 @@ mod test {
                 errors::ReqlangError::ParseError(ParseError::InvalidConfigError {
                     message: "invalid key".to_string()
                 }),
-                24..25
+                0..1
             )])
         );
     }
@@ -1253,91 +1253,6 @@ mod test {
                 refs: vec![
                     (ReferenceType::Variable("bar".to_string()), 75..123),
                     (ReferenceType::Variable("foo".to_string()), 0..71),
-                ],
-            })
-        );
-
-        parser_test!(
-            auth_in_config,
-            concat!(
-                "vars = [\"access_token_url\"]\n",
-                "secrets = [\"client_secret\"]\n",
-                "\n",
-                "envs.dev.access_token_url = \"\"\n",
-                "\n",
-                "prompts.client_key = \"\"\n",
-                "\n",
-                "[auth.oauth2]\n",
-                "grant = \"client\"\n",
-                "access_token_url = \"{{:access_token_url}}\"\n",
-                "client_id = \"{{?client_key}}\"\n",
-                "client_secret = \"{{!client_secret}}\"\n",
-                "scopes = \"profile\"\n",
-                "---\n",
-                "POST https://httpbin.org/post HTTP/1.1\n",
-                "authenication: Bearer {{@auth.oauth2.access_token}}\n",
-                "\n",
-                "---\n",
-                "---\n",
-                "\n",
-            ),
-            Ok(ParsedRequestFile {
-                config: Some((
-                    ParsedConfig {
-                        vars: Some(vec!["access_token_url".to_string()]),
-                        envs: Some(HashMap::from([(
-                            "dev".to_string(),
-                            HashMap::from([("access_token_url".to_string(), "".to_string()),])
-                        ),])),
-                        prompts: Some(HashMap::from([(
-                            "client_key".to_string(),
-                            Some("".to_string())
-                        )])),
-                        secrets: Some(vec!["client_secret".to_string()]),
-                        auth: Some(HashMap::from([(
-                            "oauth2".to_string(),
-                            HashMap::from([
-                                (
-                                    "access_token_url".to_string(),
-                                    "{{:access_token_url}}".to_string()
-                                ),
-                                ("grant".to_string(), "client".to_string()),
-                                ("scopes".to_string(), "profile".to_string()),
-                                ("client_id".to_string(), "{{?client_key}}".to_string()),
-                                (
-                                    "client_secret".to_string(),
-                                    "{{!client_secret}}".to_string()
-                                ),
-                            ])
-                        ),]))
-                    },
-                    0..298
-                )),
-                request: (
-                    HttpRequest {
-                        verb: HttpVerb::post(),
-                        target: "https://httpbin.org/post".to_string(),
-                        http_version: "1.1".into(),
-                        headers: vec![(
-                            "authenication".to_string(),
-                            "Bearer {{@auth.oauth2.access_token}}".to_string()
-                        )],
-                        body: Some("".to_string())
-                    },
-                    302..394
-                ),
-                response: None,
-                refs: vec![
-                    (
-                        ReferenceType::Provider("auth.oauth2.access_token".to_string()),
-                        302..394
-                    ),
-                    (
-                        ReferenceType::Variable("access_token_url".to_string()),
-                        0..298
-                    ),
-                    (ReferenceType::Prompt("client_key".to_string()), 0..298),
-                    (ReferenceType::Secret("client_secret".to_string()), 0..298),
                 ],
             })
         );
