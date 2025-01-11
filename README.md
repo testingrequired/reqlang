@@ -218,7 +218,7 @@ The [`reqlang`](./cli) CLI validates and exports requests in to a variety of for
 
 #### Parsing
 
-Validate and parse request files to get environment names, variables, prompts, secrets, from request files.
+Validate and parse request files. It returns a JSON object with info about the request file: environment names, variables, prompts, secrets, the (untemplated) request itself.
 
 ```shell
 reqlang parse ./examples/valid/status_code.reqlang
@@ -242,7 +242,9 @@ reqlang parse ./examples/valid/status_code.reqlang
 
 ##### Filtering
 
-###### Environments
+Use tools like `jq` to extract specific information from the parsed request.
+
+###### Environment Names
 
 ```shell
 reqlang parse ./examples/valid/post.reqlang | jq '.envs'
@@ -284,10 +286,20 @@ reqlang parse ./examples/valid/post.reqlang | jq '.secrets'
 
 #### Exporting
 
+Request files can be templated then exported in to different formats.
+
 ```shell
-reqlang export examples/valid/status_code.reqlang --prompt status_code=404
+# HTTP Request Message
+reqlang export examples/valid/status_code.reqlang --prompt status_code=404 --format http
 
 # GET https://httpbin.org/status/201 HTTP/1.1
+```
+
+```shell
+# Curl command
+reqlang export examples/valid/status_code.reqlang --prompt status_code=404 --format curl
+
+# curl https://httpbin.org/status/404 --http1.1 -v
 ```
 
 ##### Flags
