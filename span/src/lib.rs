@@ -6,6 +6,7 @@ pub type Spanned<T> = (T, Span);
 /// A range representing a location in the original source code
 pub type Span = Range<usize>;
 
+/// A span representing no location in the original source code
 pub const NO_SPAN: Span = 0..0;
 
 #[cfg(test)]
