@@ -37,8 +37,6 @@ This is a living syntax subject to change wildly at anytime. The core concepts a
 [post.reqlang](./examples/valid/post.reqlang):
 
 ```reqlang
-#!/usr/bin/env reqlang
-
 vars = ["test_value"]
 secrets = ["super_secret_value"]
 
@@ -219,41 +217,22 @@ These act as both tooling for request file and reference implementations for cli
 
 ### CLI
 
-The [`reqlang`](./cli) CLI parse, template, and export requests in to a variety of formats (`http`, `curl`).
+The [`reqlang`](./cli) CLI validates and exports requests in to a variety of formats (`http`, `curl`).
+
+#### Validating
 
 ```shell
-reqlang ./examples/valid/status_code.reqlang -e default -P status_code=201
+reqlang validate ./examples/valid/status_code.reqlang
+
+# Valid!
+```
+
+#### Exporting
+
+```shell
+reqlang export ./examples/valid/status_code.reqlang -P status_code=201
 
 # GET https://httpbin.org/status/201 HTTP/1.1
-```
-
-#### Shebang
-
-Adding `#!/usr/bin/env reqlang` to the top of request files allows easy usage of the CLI:
-
-```reqlang
-#!/usr/bin/env reqlang
-
-[prompts]
-# Status code the response will return
-status_code = ""
----
-GET https://httpbin.org/status/{{?status_code}} HTTP/1.1
-```
-
-Then you can call it:
-
-```shell
-./examples/valid/status_code.reqlang -e default -f curl -P status_code=201 | bash
-
-# HTTP/1.1 201 CREATED
-# Date: Sat, 14 Dec 2024 19:20:26 GMT
-# Content-Type: text/html; charset=utf-8
-# Content-Length: 0
-# Connection: keep-alive
-# Server: gunicorn/19.9.0
-# Access-Control-Allow-Origin: *
-# Access-Control-Allow-Credentials: true
 ```
 
 ### CLI in Docker
@@ -274,8 +253,8 @@ A directory of request files can be mounted inside the container's `/usr/local/s
 docker run --rm --read-only \
     -v "/$PWD/examples":/usr/local/src/examples:ro \
     reqlang:0.1.0 \
+    export \
     ./examples/valid/delay.reqlang \
-    -e default \
     -f curl \
     -P seconds=5 | bash
 

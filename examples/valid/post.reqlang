@@ -1,5 +1,3 @@
-#!/usr/bin/env reqlang
-
 vars = ["test_value"]
 secrets = ["super_secret_value"]
 

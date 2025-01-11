@@ -1,13 +1,7 @@
 {
-  "Shebang": {
-    "prefix": "#!",
-    "body": ["#!/usr/bin/env reqlang$0"],
-    "description": "Add shebang for reqlang"
-  },
   "Init": {
     "prefix": "init",
     "body": [
-      "#!/usr/bin/env reqlang",
       "vars = []",
       "secrets = []",
       "",
@@ -29,7 +23,6 @@
   "Init Post": {
     "prefix": "init-post",
     "body": [
-      "#!/usr/bin/env reqlang",
       "vars = []",
       "secrets = []",
       "",

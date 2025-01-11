@@ -1,5 +1,3 @@
-#!/usr/bin/env reqlang
-
 [prompts]
 # Streams n random bytes generated with given seed, at given chunk size per packet.
 number = ""

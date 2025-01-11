@@ -1064,8 +1064,6 @@ mod test {
         parser_test!(
             invalid_config_syntax_error_invalid_key_name,
             concat!(
-                "#!/usr/bin/env reqlang\n",
-                "\n",
                 "/123=123\n",
                 "---\n",
                 "GET http://example.com HTTP/1.1\n",
@@ -1134,10 +1132,7 @@ mod test {
 
         parser_test!(
             just_request_ends_with_no_newline_or_split,
-            concat!(
-                "#!/usr/bin/env reqlang\n---\n",
-                "GET http://example.com HTTP/1.1"
-            ),
+            concat!("GET http://example.com HTTP/1.1"),
             Ok(ParsedRequestFile {
                 config: Some((
                     ParsedConfig {
@@ -1265,8 +1260,6 @@ mod test {
         parser_test!(
             auth_in_config,
             concat!(
-                "#!/usr/bin/env reqlang\n",
-                "\n",
                 "vars = [\"access_token_url\"]\n",
                 "secrets = [\"client_secret\"]\n",
                 "\n",

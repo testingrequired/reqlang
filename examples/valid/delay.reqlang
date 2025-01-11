@@ -1,5 +1,3 @@
-#!/usr/bin/env reqlang
-
 [prompts]
 # Delay in the number of seconds before responding
 seconds = ""

@@ -1,3 +1,2 @@
-#!/usr/bin/env reqlang
 ---
 GET https://httpbin.org/xml HTTP/1.1

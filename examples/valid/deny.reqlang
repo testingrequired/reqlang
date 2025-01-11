@@ -1,3 +1,2 @@
-#!/usr/bin/env reqlang
 ---
 GET https://httpbin.org/deny HTTP/1.1
