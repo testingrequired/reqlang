@@ -6,11 +6,14 @@ import eslintConfigPrettier from "eslint-config-prettier";
 /** @type {import('eslint').Linter.Config[]} */
 export default [
   {
-    files: ["./src/**/*.{ts}"],
+    files: ["./**/*.{js,cjs,mjs,ts}"],
   },
   {
-    ignores: ["out/extension.js"],
+    ignores: ["out/*"],
   },
+  { languageOptions: { globals: globals.node } },
+  pluginJs.configs.recommended,
+  ...tseslint.configs.recommended,
   {
     rules: {
       // note you must disable the base rule
@@ -26,8 +29,5 @@ export default [
       ],
     },
   },
-  { languageOptions: { globals: globals.node } },
-  pluginJs.configs.recommended,
-  ...tseslint.configs.recommended,
   eslintConfigPrettier,
 ];

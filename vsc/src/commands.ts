@@ -251,7 +251,8 @@ export const showResponse = async (response: HttpResponse | null) => {
     );
 
     switch (action) {
-      case "Show Response": { // Create a new untitled document // Put response string in to a new file in the workspace
+      case "Show Response": {
+        // Create a new untitled document // Put response string in to a new file in the workspace
         const document = await workspace.openTextDocument({
           content: JSON.stringify(response, null, 2), // Initial content for the document
           language: "json", // Specify the language mode, e.g., 'plaintext', 'javascript', etc.
