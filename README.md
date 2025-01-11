@@ -1,7 +1,5 @@
 # Request Language
 
-[Github](https://github.com/testingrequired/reqlang)
-
 A file format specification for defining HTTP requests, response assertions, and associated data/configuration in "request files".
 
 ## Goals
@@ -51,7 +49,6 @@ test_value = "prod_value"
 
 [envs.local]
 test_value = "local_value"
-
 ---
 POST https://httpbin.org/post HTTP/1.1
 
