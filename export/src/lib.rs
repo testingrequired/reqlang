@@ -7,11 +7,11 @@ use types::http::HttpRequest;
 #[derive(Copy, Clone, PartialEq, Eq, Debug, Serialize, Deserialize, Default)]
 pub enum Format {
     /// Export as an HTTP Request message
-    #[default]
     HttpMessage,
     /// Export as a curl command
     CurlCommand,
     /// Export as a JSON object
+    #[default]
     Json,
 }
 

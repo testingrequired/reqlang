@@ -143,7 +143,7 @@ fn main() {
                     Arg::new("format")
                         .short('f')
                         .long("format")
-                        .default_value("http")
+                        .default_value("json")
                         .value_parser(PossibleValuesParser::new(["http", "curl", "json"]))
                         .help("Format to export"),
                 ),
@@ -343,9 +343,15 @@ mod tests {
             .arg("status_code=404")
             .assert();
 
-        assert
-            .success()
-            .stdout("GET https://httpbin.org/status/404 HTTP/1.1\n\n");
+        assert.success().stdout(concat!(
+            "{\n",
+            "  \"verb\": \"GET\",\n",
+            "  \"target\": \"https://httpbin.org/status/404\",\n",
+            "  \"http_version\": \"1.1\",\n",
+            "  \"headers\": [],\n",
+            "  \"body\": \"\"\n",
+            "}\n"
+        ));
     }
 
     #[test]

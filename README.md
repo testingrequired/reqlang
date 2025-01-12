@@ -422,6 +422,27 @@ reqlang parse examples/invalid/empty.reqlang
 
 Request files can be templated then exported in to different formats.
 
+##### JSON
+
+```shell
+reqlang export examples/valid/status_code.reqlang --prompt status_code=200 --format json
+
+# This is the same thing
+reqlang export examples/valid/status_code.reqlang --prompt status_code=200
+```
+
+###### Output
+
+```json
+{
+  "verb": "GET",
+  "target": "https://httpbin.org/status/200",
+  "http_version": "1.1",
+  "headers": [],
+  "body": ""
+}
+```
+
 ##### HTTP Request Message
 
 ```shell
@@ -446,30 +467,12 @@ reqlang export examples/valid/status_code.reqlang --prompt status_code=400 --for
 curl https://httpbin.org/status/400 --http1.1 -v
 ```
 
-##### JSON
-
-```shell
-reqlang export examples/valid/status_code.reqlang --prompt status_code=200 --format json
-```
-
-###### Output
-
-```json
-{
-  "verb": "GET",
-  "target": "https://httpbin.org/status/200",
-  "http_version": "1.1",
-  "headers": [],
-  "body": ""
-}
-```
-
 ##### Flags
 
 - `--env env_name`/`-e env_name` Pass in the environment to be used in the request.
 - `--prompt key=value`/`-P key=value` Pass in prompt value to be used in the request.
 - `--secret key=value`/`-S key=value` Pass in secret value to be used in the request.
-- `--format format`/`-f format` Specify the format of the exported request: `http` or `curl` (defaults to `http`)
+- `--format format`/`-f format` Specify the format of the exported request: `json`, `http`, or `curl` (defaults to `json`)
 
 ##### Validation Errors
 
