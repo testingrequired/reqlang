@@ -206,6 +206,14 @@ x-api-key: {{!api_key}}
 
 See [all examples](./examples) for more request files.
 
+## Libraries
+
+### Rust
+
+The [reqlang](./reqlang/) crate is a library working with request files.
+
+- [API Docs](https://testingrequired.github.io/reqlang/reqlang/)
+
 ## Tooling
 
 [![build-artifacts](https://github.com/testingrequired/reqlang/actions/workflows/build-artifacts.yml/badge.svg)](https://github.com/testingrequired/reqlang/actions/workflows/build-artifacts.yml)
