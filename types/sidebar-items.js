@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["ReferenceType"],"mod":["http"],"struct":["ParseResult","ParsedConfig","ParsedRequestFile","RequestParamsFromClient","TemplatedRequestFile"]};

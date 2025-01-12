@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["index_to_position","position_to_index"]};

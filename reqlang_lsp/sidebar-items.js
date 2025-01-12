@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["ParseNotification"],"fn":["main","serve","serve_async"],"struct":["Backend","FromClientExportRequestParams","LspDiagnosis","LspDiagnosisPosition","LspDiagnosisRange","LspDiagnosisSeverity","ParseNotificationParams"]};

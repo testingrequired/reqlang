@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["ClientState","Download","Method","StateTransition"],"fn":["main","on_fetch_part","response_ui","selectable_text"],"struct":["Client","ClientContext","ExecutingRequestState","InputParamsState","LoadReqfileState","ReviewRequestState","ViewReqfileState"]};

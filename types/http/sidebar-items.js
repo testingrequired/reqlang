@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":["HttpRequest","HttpResponse","HttpStatusCode","HttpVerb","HttpVersion"]};
