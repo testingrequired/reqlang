@@ -424,9 +424,13 @@ Request files can be templated then exported in to different formats.
 
 ##### HTTP Request Message
 
+Command:
+
 ```shell
 reqlang export examples/valid/status_code.reqlang --prompt status_code=201 --format http
 ```
+
+Output:
 
 ```
 GET https://httpbin.org/status/201 HTTP/1.1
@@ -434,9 +438,13 @@ GET https://httpbin.org/status/201 HTTP/1.1
 
 ##### Curl command
 
+Command:
+
 ```shell
 reqlang export examples/valid/status_code.reqlang --prompt status_code=400 --format curl
 ```
+
+Output:
 
 ```
 curl https://httpbin.org/status/400 --http1.1 -v
@@ -444,9 +452,13 @@ curl https://httpbin.org/status/400 --http1.1 -v
 
 ##### JSON
 
+Command:
+
 ```shell
 reqlang export examples/valid/status_code.reqlang --prompt status_code=200 -f json
 ```
+
+Output:
 
 ```json
 {
