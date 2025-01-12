@@ -110,7 +110,10 @@ run-mock-oauth:
 
 # Run the status_code request file
 run-status-request status_code:
-    ./examples/valid/status_code.reqlang -e default -f curl -P status_code={{status_code}} | bash
+    reqlang export \
+        ./examples/valid/status_code.reqlang \
+        -f curl \
+        -P status_code={{status_code}} | bash
 
 # Build docs for reqlang crate
 build-docs:
