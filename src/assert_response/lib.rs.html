@@ -279,9 +279,11 @@
 <a href="#277" id="277">277</a>
 <a href="#278" id="278">278</a>
 <a href="#279" id="279">279</a>
-</pre></div><pre class="rust"><code><span class="kw">use </span>types::http::{HttpResponse, HttpStatusCode, HttpVersion};
+<a href="#280" id="280">280</a>
+</pre></div><pre class="rust"><code><span class="kw">use </span>serde::{Deserialize, Serialize};
+<span class="kw">use </span>types::http::{HttpResponse, HttpStatusCode, HttpVersion};
 
-<span class="attr">#[derive(Clone, Debug, PartialEq)]
+<span class="attr">#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 </span><span class="kw">pub enum </span>ResponseDiff {
     StatusCode {
         expected: HttpStatusCode,
@@ -309,14 +311,14 @@
 
 <span class="doccomment">/// Asserts that the `actual` response matches the `expected` response. Returns an error if there are any differences.
 </span><span class="kw">pub fn </span>assert_response(
-    expected: HttpResponse,
+    expected: <span class="kw-2">&amp;</span>HttpResponse,
     actual: <span class="kw-2">&amp;</span>HttpResponse,
 ) -&gt; <span class="prelude-ty">Result</span>&lt;(), Vec&lt;ResponseDiff&gt;&gt; {
     <span class="kw">let </span><span class="kw-2">mut </span>differences: Vec&lt;ResponseDiff&gt; = <span class="macro">vec!</span>[];
 
     <span class="kw">if </span>expected.status_code != actual.status_code {
         differences.push(ResponseDiff::StatusCode {
-            expected: expected.status_code,
+            expected: expected.status_code.clone(),
             actual: actual.status_code.clone(),
         });
     }
@@ -387,7 +389,7 @@
             body: <span class="prelude-val">Some</span>(<span class="string">r#"{"key": "value"}"#</span>.to_string()),
         };
 
-        <span class="macro">assert_eq!</span>(<span class="prelude-val">Ok</span>(()), assert_response(expected, <span class="kw-2">&amp;</span>actual))
+        <span class="macro">assert_eq!</span>(<span class="prelude-val">Ok</span>(()), assert_response(<span class="kw-2">&amp;</span>expected, <span class="kw-2">&amp;</span>actual))
     }
 
     <span class="attr">#[test]
@@ -419,7 +421,7 @@
                     actual: <span class="string">"CREATED"</span>.to_string()
                 }
             ]),
-            assert_response(expected, <span class="kw-2">&amp;</span>actual)
+            assert_response(<span class="kw-2">&amp;</span>expected, <span class="kw-2">&amp;</span>actual)
         )
     }
 
@@ -448,7 +450,7 @@
             <span class="prelude-val">Err</span>(<span class="macro">vec!</span>[ResponseDiff::MissingHeader(
                 <span class="string">"X-Custom-Header"</span>.to_string()
             )]),
-            assert_response(expected, <span class="kw-2">&amp;</span>actual)
+            assert_response(<span class="kw-2">&amp;</span>expected, <span class="kw-2">&amp;</span>actual)
         )
     }
 
@@ -473,7 +475,7 @@
             body: <span class="prelude-val">Some</span>(<span class="string">r#"{"key": "value"}"#</span>.to_string()),
         };
 
-        <span class="macro">assert_eq!</span>(<span class="prelude-val">Ok</span>(()), assert_response(expected, <span class="kw-2">&amp;</span>actual))
+        <span class="macro">assert_eq!</span>(<span class="prelude-val">Ok</span>(()), assert_response(<span class="kw-2">&amp;</span>expected, <span class="kw-2">&amp;</span>actual))
     }
 
     <span class="attr">#[test]
@@ -500,7 +502,7 @@
                 expected: <span class="string">"application/json"</span>.to_string(),
                 actual: <span class="string">"text/plain"</span>.to_string(),
             }]),
-            assert_response(expected, <span class="kw-2">&amp;</span>actual)
+            assert_response(<span class="kw-2">&amp;</span>expected, <span class="kw-2">&amp;</span>actual)
         )
     }
 
@@ -527,7 +529,7 @@
                 expected: <span class="prelude-val">Some</span>(String::from(<span class="string">"Hello World!"</span>)),
                 actual: <span class="prelude-val">Some</span>(String::from(<span class="string">"Greetings World!"</span>)),
             }]),
-            assert_response(expected, <span class="kw-2">&amp;</span>actual)
+            assert_response(<span class="kw-2">&amp;</span>expected, <span class="kw-2">&amp;</span>actual)
         )
     }
 
@@ -554,7 +556,7 @@
                 expected: <span class="prelude-val">Some</span>(String::from(<span class="string">"Hello World!"</span>)),
                 actual: <span class="prelude-val">None</span>,
             }]),
-            assert_response(expected, <span class="kw-2">&amp;</span>actual)
+            assert_response(<span class="kw-2">&amp;</span>expected, <span class="kw-2">&amp;</span>actual)
         )
     }
 }

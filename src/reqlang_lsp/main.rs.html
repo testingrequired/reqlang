@@ -492,18 +492,16 @@
 <a href="#490" id="490">490</a>
 <a href="#491" id="491">491</a>
 <a href="#492" id="492">492</a>
-<a href="#493" id="493">493</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::collections::HashMap;
 <span class="kw">use </span>std::ops::Deref;
 
 <span class="kw">use </span>anyhow::{Context, <span class="prelude-ty">Result</span>};
-<span class="kw">use </span>assert_response::assert_response;
-<span class="kw">use </span>reqlang::ParseResult;
 <span class="kw">use </span>reqlang::{
+    assert_response::assert_response,
     diagnostics::{Diagnoser, Diagnosis, DiagnosisPosition, DiagnosisRange, DiagnosisSeverity},
-    parse, template, ReqlangError, RequestParamsFromClient, Spanned,
+    export, parse, template, Fetch, Format, HttpRequestFetcher, ParseResult, ReqlangError,
+    RequestParamsFromClient, Spanned,
 };
-<span class="kw">use </span>reqlang_fetch::{Fetch, HttpRequestFetcher};
 <span class="kw">use </span>reqwest::Url;
 <span class="kw">use </span>serde::{Deserialize, Serialize};
 <span class="kw">use </span>serde_json::Value;
@@ -702,7 +700,7 @@
 
             <span class="kw">let </span>diff = reqfile
                 .response
-                .and_then(|expected_response| assert_response(expected_response, <span class="kw-2">&amp;</span>response).err())
+                .and_then(|expected_response| assert_response(<span class="kw-2">&amp;</span>expected_response, <span class="kw-2">&amp;</span>response).err())
                 .unwrap_or_default();
 
             <span class="self">self</span>.client
@@ -750,7 +748,7 @@
             )
             .expect(<span class="string">"Should have templated"</span>);
 
-            <span class="kw">let </span>exported = export::export(<span class="kw-2">&amp;</span>templated_reqfile.request, from_client_params.format);
+            <span class="kw">let </span>exported = export(<span class="kw-2">&amp;</span>templated_reqfile.request, from_client_params.format);
 
             <span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(exported.into()));
         }
@@ -773,7 +771,7 @@
     vars: HashMap&lt;String, String&gt;,
     prompts: HashMap&lt;String, String&gt;,
     secrets: HashMap&lt;String, String&gt;,
-    format: export::Format,
+    format: Format,
 }
 
 <span class="kw">impl </span>From&lt;Value&gt; <span class="kw">for </span>FromClientExportRequestParams {
