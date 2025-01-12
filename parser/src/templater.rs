@@ -6,7 +6,7 @@ use types::{ParsedRequestFile, ReferenceType, TemplatedRequestFile};
 
 use crate::parser::{parse, parse_request, parse_response, split};
 
-/// Parse a string in to a request file, resolve values, and template the request/response
+/// Template a request file string into a [TemplatedRequestFile].
 pub fn template(
     reqfile_string: &str,
     env: &str,

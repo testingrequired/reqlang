@@ -3,10 +3,13 @@ use std::{fmt::Display, str::FromStr};
 use serde::{Deserialize, Serialize};
 use types::http::HttpRequest;
 
+/// Supported formats to export request files to
 #[derive(Copy, Clone, PartialEq, Eq, Debug, Serialize, Deserialize, Default)]
 pub enum Format {
+    /// Export as an HTTP Request message
     #[default]
     HttpMessage,
+    /// Export as a curl command
     CurlCommand,
 }
 
@@ -31,7 +34,7 @@ impl FromStr for Format {
     }
 }
 
-/// Export an HTTP Request in a specified format.
+/// Export an [HttpRequest] in a specified [Format].
 pub fn export(request: &HttpRequest, format: Format) -> String {
     match format {
         // HTTP Request message

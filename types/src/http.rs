@@ -3,6 +3,7 @@ use std::{collections::HashMap, fmt::Display};
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
+/// [HttpRequest] verb
 #[derive(Clone, Debug, PartialEq, Default, Serialize, Deserialize, TS)]
 #[ts(export)]
 pub struct HttpVerb(pub String);
@@ -35,6 +36,11 @@ impl Display for HttpVerb {
     }
 }
 
+/// Http version used in [HttpRequest] and [HttpResponse]
+///
+/// ```
+/// let http_version: types::http::HttpVersion = "1.1".into();
+/// ```
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[ts(export)]
 pub struct HttpVersion(String);
@@ -169,6 +175,7 @@ impl Display for HttpRequest {
     }
 }
 
+/// [HttpResponse] status code
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
 #[ts(export)]
 pub struct HttpStatusCode(u16);

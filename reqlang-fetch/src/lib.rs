@@ -7,16 +7,14 @@ use types::{
     RequestParamsFromClient,
 };
 
-/// Execute HTTP Request
-///
-/// Write an implementation that returns an [`HttpResponse`]
+/// Implement a fetch that returns an [HttpResponse]
 pub trait Fetch {
     fn fetch(
         &self,
     ) -> impl Future<Output = Result<HttpResponse, Box<dyn std::error::Error + Send>>> + Send;
 }
 
-/// Execute HTTP Request using [`HttpRequest`].
+/// Fetch using an [HttpRequest] that returns an [HttpResponse]
 ///
 /// ## Usage
 ///

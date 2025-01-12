@@ -5,11 +5,7 @@ mod integration_tests {
     use std::fs;
     use std::path::PathBuf;
 
-    use reqlang::{
-        fetch::{Fetch, HttpRequestFetcher},
-        http::{HttpResponse, HttpStatusCode, HttpVersion},
-        template,
-    };
+    use reqlang::{Fetch, HttpRequestFetcher, HttpResponse, HttpStatusCode, HttpVersion};
 
     #[rstest::rstest]
     fn integration_valid(#[files("../examples/valid/*.reqlang")] path: PathBuf) {
@@ -35,7 +31,7 @@ mod integration_tests {
         let secrets = HashMap::new();
         let provider_values = HashMap::from([("env".to_string(), "default".to_string())]);
 
-        let reqfile = template(&source, env, &prompts, &secrets, &provider_values)
+        let reqfile = reqlang::template(&source, env, &prompts, &secrets, &provider_values)
             .expect("request file should have been templated");
 
         let fetcher: HttpRequestFetcher = reqfile.request.into();

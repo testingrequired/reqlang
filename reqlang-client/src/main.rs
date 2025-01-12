@@ -8,9 +8,7 @@ use std::{
 
 use eframe::egui;
 use reqlang::{
-    export::{export, Format},
-    http::HttpRequest,
-    parse, template, ParsedRequestFile, TemplatedRequestFile,
+    export, http::HttpRequest, parse, template, Format, ParsedRequestFile, TemplatedRequestFile,
 };
 
 #[allow(dead_code)]

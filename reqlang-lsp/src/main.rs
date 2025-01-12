@@ -3,11 +3,11 @@ use std::ops::Deref;
 
 use anyhow::{Context, Result};
 use assert_response::assert_response;
-use reqlang::diagnostics::{
-    Diagnoser, Diagnosis, DiagnosisPosition, DiagnosisRange, DiagnosisSeverity,
-};
 use reqlang::ParseResult;
-use reqlang::{errors::ReqlangError, parse, template, RequestParamsFromClient, Spanned};
+use reqlang::{
+    diagnostics::{Diagnoser, Diagnosis, DiagnosisPosition, DiagnosisRange, DiagnosisSeverity},
+    parse, template, ReqlangError, RequestParamsFromClient, Spanned,
+};
 use reqlang_fetch::{Fetch, HttpRequestFetcher};
 use reqwest::Url;
 use serde::{Deserialize, Serialize};

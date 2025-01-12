@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use types::ReferenceType;
 
+/// Common error for parsing and templating request files
 #[derive(Debug, Error, PartialEq, Serialize, Deserialize)]
 pub enum ReqlangError {
     #[error("ParseError: {0}")]

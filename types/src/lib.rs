@@ -230,7 +230,7 @@ impl From<Value> for RequestParamsFromClient {
     }
 }
 
-/// A simplified version of the parsed file
+/// A simplified version of a [ParsedRequestFile]
 ///
 /// This is useful for language server clients
 #[derive(Debug, Deserialize, Serialize, PartialEq, TS)]

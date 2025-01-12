@@ -3,12 +3,7 @@ use clap::{Arg, ArgMatches, Command};
 use reqlang::{parse, ParseResult};
 use std::{collections::HashMap, fs, process::exit};
 
-use reqlang::{
-    diagnostics::Diagnoser,
-    errors::ReqlangError,
-    export::{export, Format},
-    template, Spanned,
-};
+use reqlang::{diagnostics::Diagnoser, export, template, Format, ReqlangError, Spanned};
 
 use std::error::Error;
 

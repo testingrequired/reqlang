@@ -1,24 +1,24 @@
 pub use diagnostics;
 pub use errors;
-pub use export;
+pub use errors::ReqlangError;
+pub use export::*;
 pub use parser::parse;
 pub use parser::template;
-pub use reqlang_fetch as fetch;
+pub use reqlang_fetch::*;
 pub use span::*;
+pub use types::http::*;
 pub use types::*;
 
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
 
-    use types::{
-        http::{HttpRequest, HttpResponse, HttpStatusCode},
-        ParsedConfig, ParsedRequestFile, ReferenceType, TemplatedRequestFile,
-    };
-
     use pretty_assertions::assert_eq;
 
-    use crate::{parse, template};
+    use crate::{
+        parse, template, HttpRequest, HttpResponse, HttpStatusCode, ParsedConfig,
+        ParsedRequestFile, ReferenceType, TemplatedRequestFile,
+    };
 
     const REQFILE_STRING: &str = concat!(
         "vars = [\"query_value\"]\n",

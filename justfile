@@ -111,3 +111,11 @@ run-mock-oauth:
 # Run the status_code request file
 run-status-request status_code:
     ./examples/valid/status_code.reqlang -e default -f curl -P status_code={{status_code}} | bash
+
+# Build docs for reqlang crate
+build-docs:
+    cargo doc --no-deps --workspace --exclude cli
+
+# Build and open docs for reqlang crate
+build-docs-open:
+    cargo doc --no-deps --workspace --exclude cli --open

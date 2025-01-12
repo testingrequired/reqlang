@@ -34,7 +34,7 @@ static FORBIDDEN_REQUEST_HEADER_NAMES: &[&str] = &[
 /// Delimiter used to split request files
 const DELIMITER: &str = "---\n";
 
-/// Parse request file
+/// Parse string into a [ParsedRequestFile]
 pub fn parse(input: &str) -> Result<ParsedRequestFile, Vec<Spanned<ReqlangError>>> {
     let mut parse_errors: Vec<Spanned<ReqlangError>> = vec![];
 
@@ -223,7 +223,7 @@ pub fn parse(input: &str) -> Result<ParsedRequestFile, Vec<Spanned<ReqlangError>
     })
 }
 
-/// Split string in to a request, and optional response, config
+/// Split string in to a [HttpRequest], and optional [HttpResponse], [ParsedConfig]
 pub fn split(input: &str) -> Result<RequestFileSplitUp, Vec<Spanned<ReqlangError>>> {
     let mut parse_errors: Vec<Spanned<ReqlangError>> = vec![];
 

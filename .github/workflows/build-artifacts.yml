@@ -86,6 +86,13 @@ jobs:
         with:
           name: reqlang-0.1.0.vsix
           path: vsc/out/reqlang-0.1.0.vsix
+      - name: Build Docs
+        run: just build-docs
+      - name: Upload Docs
+        uses: actions/upload-artifact@v3
+        with:
+          name: reqlang-docs
+          path: target/doc
   build-windows:
     runs-on: windows-latest
     needs: [verify]
