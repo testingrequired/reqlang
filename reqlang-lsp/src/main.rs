@@ -207,7 +207,7 @@ impl LanguageServer for Backend {
 
             let diff = reqfile
                 .response
-                .and_then(|expected_response| assert_response(expected_response, &response).err())
+                .and_then(|expected_response| assert_response(&expected_response, &response).err())
                 .unwrap_or_default();
 
             self.client

@@ -28,14 +28,14 @@ pub enum ResponseDiff {
 
 /// Asserts that the `actual` response matches the `expected` response. Returns an error if there are any differences.
 pub fn assert_response(
-    expected: HttpResponse,
+    expected: &HttpResponse,
     actual: &HttpResponse,
 ) -> Result<(), Vec<ResponseDiff>> {
     let mut differences: Vec<ResponseDiff> = vec![];
 
     if expected.status_code != actual.status_code {
         differences.push(ResponseDiff::StatusCode {
-            expected: expected.status_code,
+            expected: expected.status_code.clone(),
             actual: actual.status_code.clone(),
         });
     }
@@ -106,7 +106,7 @@ mod tests {
             body: Some(r#"{"key": "value"}"#.to_string()),
         };
 
-        assert_eq!(Ok(()), assert_response(expected, &actual))
+        assert_eq!(Ok(()), assert_response(&expected, &actual))
     }
 
     #[test]
@@ -138,7 +138,7 @@ mod tests {
                     actual: "CREATED".to_string()
                 }
             ]),
-            assert_response(expected, &actual)
+            assert_response(&expected, &actual)
         )
     }
 
@@ -167,7 +167,7 @@ mod tests {
             Err(vec![ResponseDiff::MissingHeader(
                 "X-Custom-Header".to_string()
             )]),
-            assert_response(expected, &actual)
+            assert_response(&expected, &actual)
         )
     }
 
@@ -192,7 +192,7 @@ mod tests {
             body: Some(r#"{"key": "value"}"#.to_string()),
         };
 
-        assert_eq!(Ok(()), assert_response(expected, &actual))
+        assert_eq!(Ok(()), assert_response(&expected, &actual))
     }
 
     #[test]
@@ -219,7 +219,7 @@ mod tests {
                 expected: "application/json".to_string(),
                 actual: "text/plain".to_string(),
             }]),
-            assert_response(expected, &actual)
+            assert_response(&expected, &actual)
         )
     }
 
@@ -246,7 +246,7 @@ mod tests {
                 expected: Some(String::from("Hello World!")),
                 actual: Some(String::from("Greetings World!")),
             }]),
-            assert_response(expected, &actual)
+            assert_response(&expected, &actual)
         )
     }
 
@@ -273,7 +273,7 @@ mod tests {
                 expected: Some(String::from("Hello World!")),
                 actual: None,
             }]),
-            assert_response(expected, &actual)
+            assert_response(&expected, &actual)
         )
     }
 }
