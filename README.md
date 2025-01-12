@@ -254,6 +254,8 @@ Use tools like `jq` to extract specific information from the parsed request.
 
 ###### Environment Names
 
+Let a list of environment names defined in the request file.
+
 ```shell
 reqlang parse ./examples/valid/post.reqlang | jq '.envs'
 ```
@@ -263,6 +265,8 @@ reqlang parse ./examples/valid/post.reqlang | jq '.envs'
 ```
 
 ###### Variables
+
+Let a list of variables provided by the request file.
 
 ```shell
 reqlang parse ./examples/valid/post.reqlang | jq '.vars'
@@ -274,6 +278,8 @@ reqlang parse ./examples/valid/post.reqlang | jq '.vars'
 
 ###### Prompts
 
+Let a list of prompts required by the request file.
+
 ```shell
 reqlang parse ./examples/valid/post.reqlang | jq '.prompts'
 ```
@@ -284,12 +290,105 @@ reqlang parse ./examples/valid/post.reqlang | jq '.prompts'
 
 ###### Secrets
 
+Let a list of secrets required by the request file.
+
 ```shell
 reqlang parse ./examples/valid/post.reqlang | jq '.secrets'
 ```
 
 ```json
 ["super_secret_value"]
+```
+
+###### Config Location In Request File
+
+Get the span of the config, if defined, in the request file. Otherwise it's `null`.
+
+```shell
+reqlang parse ./examples/valid/post.reqlang | jq '.full.config[1]'
+```
+
+```json
+{
+  "start": 0,
+  "end": 204
+}
+```
+
+###### Request Location In Request File
+
+Get the span of the request in the request file.
+
+```shell
+reqlang parse ./examples/valid/post.reqlang | jq '.full.request[1]'
+```
+
+```json
+{
+  "start": 208,
+  "end": 388
+}
+```
+
+###### Response Location In Request File
+
+Get the span of the response, if defined, in the request file. Otherwise it's `null`.
+
+```shell
+reqlang parse ./examples/valid/post.reqlang | jq '.full.response[1]'
+```
+
+```json
+null
+```
+
+###### Ref Locations In Request File
+
+Get the span of all the template references (variables, prompts, secrets, providers), if defined, in the request file.
+
+```shell
+reqlang parse ./examples/valid/post.reqlang | jq '.full.refs'
+```
+
+```json
+[
+  [
+    {
+      "Provider": "env"
+    },
+    {
+      "start": 208,
+      "end": 388
+    }
+  ],
+  [
+    {
+      "Variable": "test_value"
+    },
+    {
+      "start": 208,
+      "end": 388
+    }
+  ],
+  [
+    {
+      "Prompt": "prompt_value"
+    },
+    {
+      "start": 208,
+      "end": 388
+    }
+  ],
+  [
+    {
+      "Secret": "super_secret_value"
+    },
+    {
+      "start": 208,
+      "end": 388
+    }
+  ]
+]
 ```
 
 ##### Validation Errors
