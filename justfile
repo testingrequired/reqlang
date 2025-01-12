@@ -119,3 +119,7 @@ build-docs:
 # Build and open docs for reqlang crate
 build-docs-open:
     cargo doc --no-deps --workspace --exclude cli --open
+
+# Get an estimated lines of code in the project
+lines-of-code:
+    git ls-files | grep -v package-lock.json | grep -v Cargo.lock | xargs wc -l | grep total 
