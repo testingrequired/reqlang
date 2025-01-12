@@ -476,7 +476,7 @@ reqlang export examples/valid/status_code.reqlang --prompt status_code=200 --for
 If the request file is invalid or there were errors templating, a list of errors will be returned instead.
 
 ```shell
-reqlang export examples/invalid/empty.reqlang`
+reqlang export examples/invalid/empty.reqlang
 ```
 
 ```json
@@ -520,7 +520,9 @@ docker run --rm --read-only \
     ./examples/valid/delay.reqlang \
     -f curl \
     -P seconds=5 | bash
+```
 
+```
 # HTTP/1.1 201 CREATED
 # Date: Sat, 14 Dec 2024 19:20:26 GMT
 # Content-Type: text/html; charset=utf-8
