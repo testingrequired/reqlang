@@ -3,7 +3,7 @@ use thiserror::Error;
 use types::ReferenceType;
 
 /// Common error for parsing and templating request files
-#[derive(Debug, Error, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Error, PartialEq, Serialize, Deserialize)]
 pub enum ReqlangError {
     #[error("ParseError: {0}")]
     ParseError(ParseError),
@@ -11,7 +11,7 @@ pub enum ReqlangError {
     ResolverError(ResolverError),
 }
 
-#[derive(Debug, Error, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Error, PartialEq, Serialize, Deserialize)]
 pub enum ParseError {
     #[error("Request file is an empty file")]
     EmptyFileError,
@@ -33,7 +33,7 @@ pub enum ParseError {
     ForbiddenRequestHeaderNameError(String),
 }
 
-#[derive(Debug, Error, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Error, PartialEq, Serialize, Deserialize)]
 pub enum ResolverError {
     #[error("Invalid env: {0}")]
     InvalidEnvError(String),

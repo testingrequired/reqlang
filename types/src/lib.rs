@@ -233,7 +233,7 @@ impl From<Value> for RequestParamsFromClient {
 /// A simplified version of a [ParsedRequestFile]
 ///
 /// This is useful for language server clients
-#[derive(Debug, Deserialize, Serialize, PartialEq, TS)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, TS)]
 #[ts(export)]
 pub struct ParseResult {
     pub vars: Vec<String>,

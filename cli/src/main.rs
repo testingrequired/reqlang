@@ -3,7 +3,7 @@ use clap::{crate_authors, crate_description, crate_version, Arg, ArgMatches, Com
 use reqlang::{parse, ParseResult};
 use std::{collections::HashMap, fs, process::exit};
 
-use reqlang::{diagnostics::Diagnoser, export, template, Format, ReqlangError, Spanned};
+use reqlang::{diagnostics::get_diagnostics, export, template, Format};
 
 use std::error::Error;
 
@@ -29,16 +29,6 @@ where
     Ok((key, value))
 }
 
-fn map_errs(errs: &[Spanned<ReqlangError>]) -> String {
-    let err = errs
-        .iter()
-        .map(|x| format!("{} ({:?})", x.0, x.1))
-        .collect::<Vec<_>>()
-        .join("\n- ");
-
-    format!("Errors:\n\n- {err}")
-}
-
 fn export_command(matches: &ArgMatches) {
     let path = matches.get_one::<String>("path").unwrap();
 
@@ -62,52 +52,52 @@ fn export_command(matches: &ArgMatches) {
 
     let contents = fs::read_to_string(path).expect("Should have been able to read the file");
 
-    let diagnostics = Diagnoser::get_diagnostics_with_env(&contents, env, &prompts, &secrets);
-
-    if !diagnostics.is_empty() {
-        eprintln!("Invalid request file or errors when exporting");
-        let json = serde_json::to_string_pretty(&diagnostics).unwrap();
-        println!("{json}");
-        exit(1);
-    }
-
     let provider_values = HashMap::from([(String::from("env"), env.clone())]);
 
     let reqfile = template(&contents, env, &prompts, &secrets, &provider_values);
 
-    let reqfile = match reqfile {
-        Ok(reqfile) => reqfile,
+    match reqfile {
+        Ok(reqfile) => {
+            let exported_request = export(&reqfile.request, format);
+
+            println!("{}", exported_request);
+        }
         Err(errs) => {
-            let err = map_errs(&errs);
-            eprintln!("{err}");
-            exit(1);
+            let diagnostics = get_diagnostics(&errs, &contents);
+
+            if !diagnostics.is_empty() {
+                eprintln!("Invalid request file or errors when exporting");
+                let json = serde_json::to_string_pretty(&diagnostics).unwrap();
+                println!("{json}");
+                exit(1);
+            }
         }
     };
-
-    let exported_request = export(&reqfile.request, format);
-
-    println!("{}", exported_request);
 }
 
 fn parse_command(matches: &ArgMatches) {
     let path = matches.get_one::<String>("path").unwrap();
     let contents = fs::read_to_string(path).expect("Should have been able to read the file");
 
-    let diagnostics = Diagnoser::get_diagnostics(&contents);
+    match parse(&contents) {
+        Ok(parsed_reqfile) => {
+            let parse_results: ParseResult = parsed_reqfile.into();
 
-    if !diagnostics.is_empty() {
-        eprintln!("Invalid request file");
-        let json = serde_json::to_string_pretty(&diagnostics).unwrap();
-        println!("{json}");
-        exit(1);
+            let json = serde_json::to_string_pretty(&parse_results).unwrap();
+
+            println!("{json}");
+        }
+        Err(errs) => {
+            let diagnostics = get_diagnostics(&errs, &contents);
+
+            if !diagnostics.is_empty() {
+                eprintln!("Invalid request file");
+                let json = serde_json::to_string_pretty(&diagnostics).unwrap();
+                println!("{json}");
+                exit(1);
+            }
+        }
     }
-
-    let parsed_reqfile = parse(&contents).unwrap();
-    let parse_results: ParseResult = parsed_reqfile.into();
-
-    let json = serde_json::to_string_pretty(&parse_results).unwrap();
-
-    println!("{json}");
 }
 
 fn main() {

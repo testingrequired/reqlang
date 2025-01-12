@@ -4,7 +4,9 @@ use std::ops::Deref;
 use anyhow::{Context, Result};
 use reqlang::{
     assert_response::assert_response,
-    diagnostics::{Diagnoser, Diagnosis, DiagnosisPosition, DiagnosisRange, DiagnosisSeverity},
+    diagnostics::{
+        get_diagnostics, Diagnosis, DiagnosisPosition, DiagnosisRange, DiagnosisSeverity,
+    },
     export, parse, template, Fetch, Format, HttpRequestFetcher, ParseResult, ReqlangError,
     RequestParamsFromClient, Spanned,
 };
@@ -92,12 +94,20 @@ impl LanguageServer for Backend {
         let mut file_texts = self.file_texts.lock().await;
         file_texts.insert(uri.clone(), source.clone());
 
-        let result: Result<ParseResult, Vec<Spanned<ReqlangError>>> =
-            parse(&source).map(|unresolved_reqfile| {
-                let result: ParseResult = unresolved_reqfile.into();
+        let result: Result<ParseResult, _> = parse(&source).map(|reqfile| reqfile.into());
 
-                result
-            });
+        if let Err(errs) = &result {
+            self.client
+                .publish_diagnostics(
+                    uri.clone(),
+                    get_diagnostics(errs, &source)
+                        .iter()
+                        .map(|x| (LspDiagnosis((*x).clone())).into())
+                        .collect(),
+                    Some(params.text_document.version),
+                )
+                .await;
+        }
 
         self.client
             .send_notification::<ParseNotification>(ParseNotificationParams::new(
@@ -105,37 +115,26 @@ impl LanguageServer for Backend {
                 result,
             ))
             .await;
-
-        let version = Some(params.text_document.version);
-        let diagnostics = Diagnoser::get_diagnostics(&source);
-        self.client
-            .publish_diagnostics(
-                uri.clone(),
-                diagnostics
-                    .iter()
-                    .map(|x| (LspDiagnosis((*x).clone())).into())
-                    .collect(),
-                version,
-            )
-            .await;
     }
 
     async fn did_change(&self, params: DidChangeTextDocumentParams) {
         let uri = params.text_document.uri;
         let source = &params.content_changes.first().unwrap().text;
 
-        let version = Some(params.text_document.version);
-        let diagnostics = Diagnoser::get_diagnostics(source);
-        self.client
-            .publish_diagnostics(
-                uri,
-                diagnostics
-                    .iter()
-                    .map(|x| LspDiagnosis((*x).clone()).into())
-                    .collect(),
-                version,
-            )
-            .await;
+        let result: Result<ParseResult, _> = parse(source).map(|reqfile| reqfile.into());
+
+        if let Err(errs) = &result {
+            self.client
+                .publish_diagnostics(
+                    uri.clone(),
+                    get_diagnostics(errs, source)
+                        .iter()
+                        .map(|x| (LspDiagnosis((*x).clone())).into())
+                        .collect(),
+                    Some(params.text_document.version),
+                )
+                .await;
+        }
     }
 
     async fn did_save(&self, params: DidSaveTextDocumentParams) {

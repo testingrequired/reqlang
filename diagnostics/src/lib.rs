@@ -1,67 +1,33 @@
-use std::collections::HashMap;
-
 use codespan_reporting::diagnostic::{Diagnostic, Label};
 use errors::{ParseError, ReqlangError, ResolverError};
-use parser::template;
 use serde::{Deserialize, Serialize};
-use span::Span;
+use span::{Span, Spanned};
 use str_idxpos::index_to_position;
 
-#[derive(Debug, Default)]
-pub struct Diagnoser {}
+/// Get a list of diagnostics from a list of errors
+pub fn get_diagnostics(errs: &[Spanned<ReqlangError>], source: &str) -> Vec<Diagnosis> {
+    errs.iter()
+        .map(|(err, span)| Diagnosis {
+            range: get_range(source, span),
+            severity: Some(DiagnosisSeverity::ERROR),
+            message: err.to_string(),
+        })
+        .collect()
+}
 
-impl Diagnoser {
-    pub fn get_diagnostics(source: &str) -> Vec<Diagnosis> {
-        match parser::parse(source) {
-            Ok(_) => vec![],
-            Err(errs) => {
-                return errs
-                    .iter()
-                    .map(|(err, span)| Diagnosis {
-                        range: Diagnoser::get_range(source, span),
-                        severity: Some(DiagnosisSeverity::ERROR),
-                        message: err.to_string(),
-                    })
-                    .collect();
-            }
-        }
+fn get_range(source: &str, span: &Span) -> DiagnosisRange {
+    DiagnosisRange {
+        start: get_position(source, span.start),
+        end: get_position(source, span.end),
     }
+}
 
-    pub fn get_diagnostics_with_env(
-        source: &str,
-        env: &str,
-        prompts: &HashMap<String, String>,
-        secrets: &HashMap<String, String>,
-    ) -> Vec<Diagnosis> {
-        match template(source, env, prompts, secrets, &HashMap::new()) {
-            Ok(_) => vec![],
-            Err(errs) => {
-                return errs
-                    .iter()
-                    .map(|(err, span)| Diagnosis {
-                        range: Diagnoser::get_range(source, span),
-                        severity: Some(DiagnosisSeverity::ERROR),
-                        message: err.to_string(),
-                    })
-                    .collect();
-            }
-        }
-    }
+fn get_position(source: &str, idx: usize) -> DiagnosisPosition {
+    let (line, character) = index_to_position(source, idx);
 
-    pub fn get_range(source: &str, span: &Span) -> DiagnosisRange {
-        DiagnosisRange {
-            start: Diagnoser::get_position(source, span.start),
-            end: Diagnoser::get_position(source, span.end),
-        }
-    }
-
-    pub fn get_position(source: &str, idx: usize) -> DiagnosisPosition {
-        let (line, character) = index_to_position(source, idx);
-
-        DiagnosisPosition {
-            line: line as u32,
-            character: character as u32,
-        }
+    DiagnosisPosition {
+        line: line as u32,
+        character: character as u32,
     }
 }
 
@@ -143,11 +109,15 @@ impl AsDiagnostic for ReqlangError {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Diagnoser, Diagnosis, DiagnosisPosition, DiagnosisRange, DiagnosisSeverity};
+    use parser::parse;
+
+    use crate::{get_diagnostics, Diagnosis, DiagnosisPosition, DiagnosisRange, DiagnosisSeverity};
 
     #[test]
     fn it_works() {
         let source = String::from("");
+
+        let errs = parse(&source).unwrap_err();
 
         assert_eq!(
             vec![Diagnosis {
@@ -164,7 +134,7 @@ mod tests {
                 severity: Some(DiagnosisSeverity::ERROR),
                 message: String::from("ParseError: Request file is an empty file")
             }],
-            Diagnoser::get_diagnostics(&source)
+            get_diagnostics(&errs, &source)
         );
     }
 }
