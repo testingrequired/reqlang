@@ -179,11 +179,11 @@
 </span><span class="attr">#[derive(Copy, Clone, PartialEq, Eq, Debug, Serialize, Deserialize, Default)]
 </span><span class="kw">pub enum </span>Format {
     <span class="doccomment">/// Export as an HTTP Request message
-    </span><span class="attr">#[default]
     </span>HttpMessage,
     <span class="doccomment">/// Export as a curl command
     </span>CurlCommand,
     <span class="doccomment">/// Export as a JSON object
+    </span><span class="attr">#[default]
     </span>Json,
 }
 
