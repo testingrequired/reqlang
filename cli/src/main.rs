@@ -1,5 +1,5 @@
 use clap::builder::PossibleValuesParser;
-use clap::{Arg, ArgMatches, Command};
+use clap::{crate_authors, crate_description, crate_version, Arg, ArgMatches, Command};
 use reqlang::{parse, ParseResult};
 use std::{collections::HashMap, fs, process::exit};
 
@@ -112,9 +112,9 @@ fn parse_command(matches: &ArgMatches) {
 
 fn main() {
     let matches = Command::new("reqlang")
-        .version("1.0")
-        .author("Your Name <your.email@example.com>")
-        .about("CLI for reqlang")
+        .version(crate_version!())
+        .author(crate_authors!("\n"))
+        .about(crate_description!())
         .subcommand(
             Command::new("export")
                 .about("Export request to specified format")
