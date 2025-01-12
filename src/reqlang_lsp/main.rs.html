@@ -491,14 +491,15 @@
 <a href="#489" id="489">489</a>
 <a href="#490" id="490">490</a>
 <a href="#491" id="491">491</a>
-<a href="#492" id="492">492</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::collections::HashMap;
 <span class="kw">use </span>std::ops::Deref;
 
 <span class="kw">use </span>anyhow::{Context, <span class="prelude-ty">Result</span>};
 <span class="kw">use </span>reqlang::{
     assert_response::assert_response,
-    diagnostics::{Diagnoser, Diagnosis, DiagnosisPosition, DiagnosisRange, DiagnosisSeverity},
+    diagnostics::{
+        get_diagnostics, Diagnosis, DiagnosisPosition, DiagnosisRange, DiagnosisSeverity,
+    },
     export, parse, template, Fetch, Format, HttpRequestFetcher, ParseResult, ReqlangError,
     RequestParamsFromClient, Spanned,
 };
@@ -586,12 +587,20 @@
         <span class="kw">let </span><span class="kw-2">mut </span>file_texts = <span class="self">self</span>.file_texts.lock().<span class="kw">await</span>;
         file_texts.insert(uri.clone(), source.clone());
 
-        <span class="kw">let </span>result: <span class="prelude-ty">Result</span>&lt;ParseResult, Vec&lt;Spanned&lt;ReqlangError&gt;&gt;&gt; =
-            parse(<span class="kw-2">&amp;</span>source).map(|unresolved_reqfile| {
-                <span class="kw">let </span>result: ParseResult = unresolved_reqfile.into();
+        <span class="kw">let </span>result: <span class="prelude-ty">Result</span>&lt;ParseResult, <span class="kw">_</span>&gt; = parse(<span class="kw-2">&amp;</span>source).map(|reqfile| reqfile.into());
 
-                result
-            });
+        <span class="kw">if let </span><span class="prelude-val">Err</span>(errs) = <span class="kw-2">&amp;</span>result {
+            <span class="self">self</span>.client
+                .publish_diagnostics(
+                    uri.clone(),
+                    get_diagnostics(errs, <span class="kw-2">&amp;</span>source)
+                        .iter()
+                        .map(|x| (LspDiagnosis((<span class="kw-2">*</span>x).clone())).into())
+                        .collect(),
+                    <span class="prelude-val">Some</span>(params.text_document.version),
+                )
+                .<span class="kw">await</span>;
+        }
 
         <span class="self">self</span>.client
             .send_notification::&lt;ParseNotification&gt;(ParseNotificationParams::new(
@@ -599,37 +608,26 @@
                 result,
             ))
             .<span class="kw">await</span>;
-
-        <span class="kw">let </span>version = <span class="prelude-val">Some</span>(params.text_document.version);
-        <span class="kw">let </span>diagnostics = Diagnoser::get_diagnostics(<span class="kw-2">&amp;</span>source);
-        <span class="self">self</span>.client
-            .publish_diagnostics(
-                uri.clone(),
-                diagnostics
-                    .iter()
-                    .map(|x| (LspDiagnosis((<span class="kw-2">*</span>x).clone())).into())
-                    .collect(),
-                version,
-            )
-            .<span class="kw">await</span>;
     }
 
     <span class="kw">async fn </span>did_change(<span class="kw-2">&amp;</span><span class="self">self</span>, params: DidChangeTextDocumentParams) {
         <span class="kw">let </span>uri = params.text_document.uri;
         <span class="kw">let </span>source = <span class="kw-2">&amp;</span>params.content_changes.first().unwrap().text;
 
-        <span class="kw">let </span>version = <span class="prelude-val">Some</span>(params.text_document.version);
-        <span class="kw">let </span>diagnostics = Diagnoser::get_diagnostics(source);
-        <span class="self">self</span>.client
-            .publish_diagnostics(
-                uri,
-                diagnostics
-                    .iter()
-                    .map(|x| LspDiagnosis((<span class="kw-2">*</span>x).clone()).into())
-                    .collect(),
-                version,
-            )
-            .<span class="kw">await</span>;
+        <span class="kw">let </span>result: <span class="prelude-ty">Result</span>&lt;ParseResult, <span class="kw">_</span>&gt; = parse(source).map(|reqfile| reqfile.into());
+
+        <span class="kw">if let </span><span class="prelude-val">Err</span>(errs) = <span class="kw-2">&amp;</span>result {
+            <span class="self">self</span>.client
+                .publish_diagnostics(
+                    uri.clone(),
+                    get_diagnostics(errs, source)
+                        .iter()
+                        .map(|x| (LspDiagnosis((<span class="kw-2">*</span>x).clone())).into())
+                        .collect(),
+                    <span class="prelude-val">Some</span>(params.text_document.version),
+                )
+                .<span class="kw">await</span>;
+        }
     }
 
     <span class="kw">async fn </span>did_save(<span class="kw-2">&amp;</span><span class="self">self</span>, params: DidSaveTextDocumentParams) {

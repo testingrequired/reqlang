@@ -783,7 +783,7 @@
 <span class="doccomment">/// A simplified version of a [ParsedRequestFile]
 ///
 /// This is useful for language server clients
-</span><span class="attr">#[derive(Debug, Deserialize, Serialize, PartialEq, TS)]
+</span><span class="attr">#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, TS)]
 #[ts(export)]
 </span><span class="kw">pub struct </span>ParseResult {
     <span class="kw">pub </span>vars: Vec&lt;String&gt;,

@@ -61,7 +61,7 @@
 <span class="kw">use </span>types::ReferenceType;
 
 <span class="doccomment">/// Common error for parsing and templating request files
-</span><span class="attr">#[derive(Debug, Error, PartialEq, Serialize, Deserialize)]
+</span><span class="attr">#[derive(Debug, Clone, Error, PartialEq, Serialize, Deserialize)]
 </span><span class="kw">pub enum </span>ReqlangError {
     <span class="attr">#[error(<span class="string">"ParseError: {0}"</span>)]
     </span>ParseError(ParseError),
@@ -69,7 +69,7 @@
     </span>ResolverError(ResolverError),
 }
 
-<span class="attr">#[derive(Debug, Error, PartialEq, Serialize, Deserialize)]
+<span class="attr">#[derive(Debug, Clone, Error, PartialEq, Serialize, Deserialize)]
 </span><span class="kw">pub enum </span>ParseError {
     <span class="attr">#[error(<span class="string">"Request file is an empty file"</span>)]
     </span>EmptyFileError,
@@ -91,7 +91,7 @@
     </span>ForbiddenRequestHeaderNameError(String),
 }
 
-<span class="attr">#[derive(Debug, Error, PartialEq, Serialize, Deserialize)]
+<span class="attr">#[derive(Debug, Clone, Error, PartialEq, Serialize, Deserialize)]
 </span><span class="kw">pub enum </span>ResolverError {
     <span class="attr">#[error(<span class="string">"Invalid env: {0}"</span>)]
     </span>InvalidEnvError(String),

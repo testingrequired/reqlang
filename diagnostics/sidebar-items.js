@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":["Diagnoser","Diagnosis","DiagnosisPosition","DiagnosisRange","DiagnosisSeverity"]};
+window.SIDEBAR_ITEMS = {"fn":["get_diagnostics"],"struct":["Diagnosis","DiagnosisPosition","DiagnosisRange","DiagnosisSeverity"]};
