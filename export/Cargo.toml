@@ -12,3 +12,4 @@ publish = false
 [dependencies]
 types = { path = "../types" }
 serde = { version = "1.0.195", features = ["derive"] }
+serde_json = "1.0"

@@ -11,6 +11,8 @@ pub enum Format {
     HttpMessage,
     /// Export as a curl command
     CurlCommand,
+    /// Export as a JSON object
+    Json,
 }
 
 impl Display for Format {
@@ -18,6 +20,7 @@ impl Display for Format {
         match self {
             Format::HttpMessage => write!(f, "http"),
             Format::CurlCommand => write!(f, "curl"),
+            Format::Json => write!(f, "json"),
         }
     }
 }
@@ -29,6 +32,7 @@ impl FromStr for Format {
         match s {
             "http" => Ok(Self::HttpMessage),
             "curl" => Ok(Self::CurlCommand),
+            "json" => Ok(Self::Json),
             _ => Err(format!("Unknown format: {s}")),
         }
     }
@@ -85,6 +89,7 @@ pub fn export(request: &HttpRequest, format: Format) -> String {
                 request_verb_flag, request_url, request.http_version, headers_and_body_args
             )
         }
+        Format::Json => serde_json::to_string_pretty(request).unwrap(),
     }
 }
 

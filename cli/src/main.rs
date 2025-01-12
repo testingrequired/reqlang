@@ -144,7 +144,7 @@ fn main() {
                         .short('f')
                         .long("format")
                         .default_value("http")
-                        .value_parser(PossibleValuesParser::new(["http", "curl"]))
+                        .value_parser(PossibleValuesParser::new(["http", "curl", "json"]))
                         .help("Format to export"),
                 ),
         )
@@ -397,7 +397,7 @@ mod tests {
 
         assert.failure().stderr(concat!(
             "error: invalid value 'invalid' for '--format <format>'\n",
-            "  [possible values: http, curl]\n",
+            "  [possible values: http, curl, json]\n",
             "\n",
             "For more information, try '--help'.\n"
         ));

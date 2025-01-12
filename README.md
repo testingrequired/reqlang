@@ -222,7 +222,7 @@ These act as both tooling for request file and reference implementations for cli
 
 ### CLI
 
-The [`reqlang`](./cli) CLI validates and exports requests in to a variety of formats (`http`, `curl`).
+The [`reqlang`](./cli) CLI validates and exports requests in to a variety of formats (`http`, `curl`, `json`).
 
 #### Parsing
 
@@ -422,18 +422,40 @@ reqlang parse examples/invalid/empty.reqlang
 
 Request files can be templated then exported in to different formats.
 
-```shell
-# HTTP Request Message
-reqlang export examples/valid/status_code.reqlang --prompt status_code=201 --format http
+##### HTTP Request Message
 
-# GET https://httpbin.org/status/201 HTTP/1.1
+```shell
+reqlang export examples/valid/status_code.reqlang --prompt status_code=201 --format http
 ```
 
-```shell
-# Curl command
-reqlang export examples/valid/status_code.reqlang --prompt status_code=400 --format curl
+```
+GET https://httpbin.org/status/201 HTTP/1.1
+```
 
-# curl https://httpbin.org/status/400 --http1.1 -v
+##### Curl command
+
+```shell
+reqlang export examples/valid/status_code.reqlang --prompt status_code=400 --format curl
+```
+
+```
+curl https://httpbin.org/status/400 --http1.1 -v
+```
+
+##### JSON
+
+```shell
+reqlang export examples/valid/status_code.reqlang --prompt status_code=200 -f json
+```
+
+```json
+{
+  "verb": "GET",
+  "target": "https://httpbin.org/status/200",
+  "http_version": "1.1",
+  "headers": [],
+  "body": ""
+}
 ```
 
 ##### Flags
