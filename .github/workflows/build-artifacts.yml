@@ -69,7 +69,7 @@ jobs:
       - name: Build Docs
         run: just build-docs
       - name: Generate No Jekyll File
-        run: cd docs && touch .nojekyll
+        run: cd target/doc && touch .nojekyll
       - name: Upload Docs
         uses: actions/upload-artifact@v3
         with:
