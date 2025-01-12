@@ -7,7 +7,7 @@ use types::{
     RequestParamsFromClient,
 };
 
-/// Implement a fetch that returns an [HttpResponse]
+/// Implement a fetch that returns an [HttpResponse]. See [HttpRequestFetcher].
 pub trait Fetch {
     fn fetch(
         &self,
