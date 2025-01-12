@@ -449,7 +449,7 @@ curl https://httpbin.org/status/400 --http1.1 -v
 ##### JSON
 
 ```shell
-reqlang export examples/valid/status_code.reqlang --prompt status_code=200 -f json
+reqlang export examples/valid/status_code.reqlang --prompt status_code=200 --format json
 ```
 
 ###### Output
