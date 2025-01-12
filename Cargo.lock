@@ -247,6 +247,7 @@ name = "assert-response"
 version = "0.1.0"
 dependencies = [
  "pretty_assertions",
+ "serde",
  "types",
 ]
 
@@ -2815,6 +2816,7 @@ checksum = "ba39f3699c378cd8970968dcbff9c43159ea4cfbd88d43c00b22f2ef10a435d2"
 name = "reqlang"
 version = "0.1.0"
 dependencies = [
+ "assert-response",
  "diagnostics",
  "errors",
  "export",
@@ -2852,10 +2854,7 @@ name = "reqlang-lsp"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "assert-response",
- "export",
  "reqlang",
- "reqlang-fetch",
  "reqwest",
  "serde",
  "serde_json",

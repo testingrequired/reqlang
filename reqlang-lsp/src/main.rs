@@ -2,13 +2,12 @@ use std::collections::HashMap;
 use std::ops::Deref;
 
 use anyhow::{Context, Result};
-use assert_response::assert_response;
-use reqlang::ParseResult;
 use reqlang::{
+    assert_response::assert_response,
     diagnostics::{Diagnoser, Diagnosis, DiagnosisPosition, DiagnosisRange, DiagnosisSeverity},
-    parse, template, ReqlangError, RequestParamsFromClient, Spanned,
+    export, parse, template, Fetch, Format, HttpRequestFetcher, ParseResult, ReqlangError,
+    RequestParamsFromClient, Spanned,
 };
-use reqlang_fetch::{Fetch, HttpRequestFetcher};
 use reqwest::Url;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -255,7 +254,7 @@ impl LanguageServer for Backend {
             )
             .expect("Should have templated");
 
-            let exported = export::export(&templated_reqfile.request, from_client_params.format);
+            let exported = export(&templated_reqfile.request, from_client_params.format);
 
             return Ok(Some(exported.into()));
         }
@@ -278,7 +277,7 @@ struct FromClientExportRequestParams {
     vars: HashMap<String, String>,
     prompts: HashMap<String, String>,
     secrets: HashMap<String, String>,
-    format: export::Format,
+    format: Format,
 }
 
 impl From<Value> for FromClientExportRequestParams {

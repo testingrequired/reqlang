@@ -1,3 +1,4 @@
+pub use assert_response;
 pub use diagnostics;
 pub use errors;
 pub use errors::ReqlangError;

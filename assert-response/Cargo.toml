@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 types = { path = "../types" }
+serde = { version = "1.0.195", features = ["derive"] }
 
 [dev-dependencies]
 pretty_assertions = "1.4.1"

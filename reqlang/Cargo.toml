@@ -11,6 +11,7 @@ errors = { path = "../errors" }
 export = { path = "../export" }
 diagnostics = { path = "../diagnostics" }
 reqlang-fetch = { path = "../reqlang-fetch" }
+assert-response = { path = "../assert-response" }
 
 [dev-dependencies]
 pretty_assertions = "1.4.1"

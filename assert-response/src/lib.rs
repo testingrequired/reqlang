@@ -1,6 +1,7 @@
+use serde::{Deserialize, Serialize};
 use types::http::{HttpResponse, HttpStatusCode, HttpVersion};
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum ResponseDiff {
     StatusCode {
         expected: HttpStatusCode,
