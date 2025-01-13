@@ -37,7 +37,7 @@ jobs:
       - name: Build Reqlang Binaries
         run: just build
       - name: Verify
-        run: just verify
+        run: xvfb-run -a just verify
   docs:
     runs-on: ubuntu-latest
     needs: [verify]
