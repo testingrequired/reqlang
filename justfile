@@ -89,6 +89,7 @@ verify:
 # Run all tests
 test:
     cargo test --workspace --all-targets --all-features
+    cd vsc && just test
 
 # Remove local branches that have been merged upstream
 clean-git-branches:
