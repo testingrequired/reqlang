@@ -16,8 +16,14 @@ import { HttpResponse, RequestParamsFromClient } from "reqlang-types";
 export enum Commands {
   PickEnv = "reqlang.pickEnv",
   ClearEnv = "reqlang.clearEnv",
+  /**
+   * Show UI to input prompts and secrets to run a request
+   */
   RunRequest = "reqlang.run",
   Menu = "reqlang.menu",
+  /**
+   * Command executed on the language server
+   */
   Execute = "reqlang.executeRequest",
   Export = "reqlang.exportRequest",
   StartLanguageServer = "reqlang.startLanguageServer",
