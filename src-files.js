@@ -4,7 +4,7 @@ var srcIndex = new Map(JSON.parse('[\
 ["errors",["",[],["lib.rs"]]],\
 ["export",["",[],["lib.rs"]]],\
 ["integration_tests",["",[],["lib.rs"]]],\
-["parser",["",[],["lib.rs","parser.rs","templater.rs"]]],\
+["parser",["",[],["lib.rs","parser.rs","splitter.rs","templater.rs"]]],\
 ["reqlang",["",[],["lib.rs"]]],\
 ["reqlang_client",["",[],["main.rs"]]],\
 ["reqlang_fetch",["",[],["lib.rs"]]],\

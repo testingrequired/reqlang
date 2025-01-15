@@ -254,13 +254,19 @@
 <a href="#252" id="252">252</a>
 <a href="#253" id="253">253</a>
 <a href="#254" id="254">254</a>
+<a href="#255" id="255">255</a>
+<a href="#256" id="256">256</a>
+<a href="#257" id="257">257</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::collections::HashMap;
 
 <span class="kw">use </span>errors::{ReqlangError, ResolverError};
 <span class="kw">use </span>span::{Spanned, NO_SPAN};
 <span class="kw">use </span>types::{ParsedRequestFile, ReferenceType, TemplatedRequestFile};
 
-<span class="kw">use </span><span class="kw">crate</span>::parser::{parse, parse_request, parse_response, split};
+<span class="kw">use crate</span>::{
+    parser::{parse, parse_request, parse_response},
+    splitter::split,
+};
 
 <span class="doccomment">/// Template a request file string into a [TemplatedRequestFile].
 </span><span class="kw">pub fn </span>template(
