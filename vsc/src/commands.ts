@@ -297,6 +297,11 @@ export const openMdnHttpDocsSpecs = () => {
   );
 };
 
+type RunRequestArgs = {
+  prompts?: Record<string, string>;
+  secrets?: Record<string, string>;
+};
+
 /**
  * Create command handler for running requests
  * @param context Extension context for VS Code
@@ -307,7 +312,7 @@ export const runRequest =
   /**
    * Handle command to run requests
    */
-  async () => {
+  async (args: RunRequestArgs = {}) => {
     if (!window.activeTextEditor) {
       return;
     }
@@ -331,10 +336,18 @@ export const runRequest =
         return;
       }
 
-      const promptValues: (string | null)[] = [];
-      const secretValues: (string | null)[] = [];
+      // Prompts
+
+      const promptsObj: Record<string, string> = Object.assign(
+        {},
+        args.prompts ?? {},
+      );
 
       for (const prompt of prompts) {
+        if (Object.keys(promptsObj).includes(prompt)) {
+          continue;
+        }
+
         const promptValue = await window.showInputBox({
           title: `Prompt: ${prompt}`,
           value: lastResponse?.params.prompts[prompt],
@@ -344,10 +357,21 @@ export const runRequest =
           return;
         }
 
-        promptValues.push(promptValue);
+        promptsObj[prompt] = promptValue;
       }
 
+      // Secrets
+
+      const secretsObj: Record<string, string> = Object.assign(
+        {},
+        args.secrets ?? {},
+      );
+
       for (const secret of secrets) {
+        if (Object.keys(secretsObj).includes(secret)) {
+          continue;
+        }
+
         const secretValue = await window.showInputBox({
           title: `Secret: ${secret}`,
         });
@@ -356,32 +380,10 @@ export const runRequest =
           return;
         }
 
-        secretValues.push(secretValue);
+        secretsObj[secret] = secretValue;
       }
 
       const vars: Record<string, string> = {};
-
-      // Prompts
-
-      const promptsObj: Record<string, string> = {};
-
-      for (let i = 0; i < prompts.length; i++) {
-        const key = prompts[i];
-        const value = promptValues[i]!;
-
-        promptsObj[key] = value;
-      }
-
-      // Secrets
-
-      const secretsObj: Record<string, string> = {};
-
-      for (let i = 0; i < secrets.length; i++) {
-        const key = secrets[i];
-        const value = secretValues[i]!;
-
-        secretsObj[key] = value;
-      }
 
       const requestStartDate = new Date();
 
