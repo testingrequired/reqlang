@@ -4,7 +4,10 @@ use errors::{ReqlangError, ResolverError};
 use span::{Spanned, NO_SPAN};
 use types::{ParsedRequestFile, ReferenceType, TemplatedRequestFile};
 
-use crate::parser::{parse, parse_request, parse_response, split};
+use crate::{
+    parser::{parse, parse_request, parse_response},
+    splitter::split,
+};
 
 /// Template a request file string into a [TemplatedRequestFile].
 pub fn template(
