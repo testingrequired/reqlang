@@ -151,7 +151,7 @@ mod test {
         assert_eq!(HttpStatusCode::new(200), response.status_code);
 
         assert_eq!(
-            Some("text/html; charset=UTF-8"),
+            Some("text/html"),
             response.headers.get("content-type").map(|x| x.as_str())
         );
 
@@ -190,7 +190,7 @@ GET http://example.com HTTP/1.1
         assert_eq!(HttpStatusCode::new(200), response.status_code);
 
         assert_eq!(
-            Some("text/html; charset=UTF-8"),
+            Some("text/html"),
             response.headers.get("content-type").map(|x| x.as_str())
         );
 
