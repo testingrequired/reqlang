@@ -9,7 +9,7 @@ export default [
     files: ["./**/*.{js,cjs,mjs,ts}"],
   },
   {
-    ignores: ["out/*"],
+    ignores: ["out/*", ".vscode-test"],
   },
   { languageOptions: { globals: globals.node } },
   pluginJs.configs.recommended,
