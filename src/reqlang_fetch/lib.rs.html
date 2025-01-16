@@ -359,7 +359,7 @@
         <span class="macro">assert_eq!</span>(HttpStatusCode::new(<span class="number">200</span>), response.status_code);
 
         <span class="macro">assert_eq!</span>(
-            <span class="prelude-val">Some</span>(<span class="string">"text/html; charset=UTF-8"</span>),
+            <span class="prelude-val">Some</span>(<span class="string">"text/html"</span>),
             response.headers.get(<span class="string">"content-type"</span>).map(|x| x.as_str())
         );
 
@@ -398,7 +398,7 @@ GET http://example.com HTTP/1.1
         <span class="macro">assert_eq!</span>(HttpStatusCode::new(<span class="number">200</span>), response.status_code);
 
         <span class="macro">assert_eq!</span>(
-            <span class="prelude-val">Some</span>(<span class="string">"text/html; charset=UTF-8"</span>),
+            <span class="prelude-val">Some</span>(<span class="string">"text/html"</span>),
             response.headers.get(<span class="string">"content-type"</span>).map(|x| x.as_str())
         );
 
