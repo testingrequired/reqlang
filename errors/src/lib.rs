@@ -13,8 +13,6 @@ pub enum ReqlangError {
 
 #[derive(Debug, Clone, Error, PartialEq, Serialize, Deserialize)]
 pub enum ParseError {
-    #[error("Request file is an empty file")]
-    EmptyFileError,
     #[error("Request file has no document dividers")]
     NoDividersError,
     #[error("Request file has too many document dividers")]

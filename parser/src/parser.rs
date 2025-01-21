@@ -397,6 +397,7 @@ pub fn parse_response(
     }
 }
 
+#[derive(Debug, PartialEq)]
 pub struct RequestFileSplitUp {
     pub request: Spanned<String>,
     pub response: Option<Spanned<String>>,
@@ -424,7 +425,7 @@ mod test {
         parser_test!(
             empty_file,
             "",
-            Err(vec![(ParseError::EmptyFileError.into(), NO_SPAN)])
+            Err(vec![(ParseError::NoDividersError.into(), NO_SPAN)])
         );
 
         parser_test!(
@@ -995,7 +996,6 @@ mod test {
     mod valid {
         use std::collections::HashMap;
 
-        use span::NO_SPAN;
         use types::{
             http::{HttpRequest, HttpResponse, HttpStatusCode, HttpVerb},
             ParsedConfig, ParsedRequestFile, ReferenceType,
@@ -1005,16 +1005,7 @@ mod test {
             just_request_ends_with_no_newline,
             concat!("---\n", "GET http://example.com HTTP/1.1", "---\n"),
             Ok(ParsedRequestFile {
-                config: Some((
-                    ParsedConfig {
-                        vars: None,
-                        envs: Some(HashMap::from([("default".to_string(), HashMap::new())])),
-                        prompts: None,
-                        secrets: None,
-                        auth: None
-                    },
-                    0..0
-                )),
+                config: None,
                 request: (HttpRequest::get("http://example.com", "1.1", vec![]), 4..35),
                 response: None,
                 refs: vec![],
@@ -1048,16 +1039,7 @@ mod test {
             just_request_ends_with_no_newline_or_split,
             concat!("---\nGET http://example.com HTTP/1.1"),
             Ok(ParsedRequestFile {
-                config: Some((
-                    ParsedConfig {
-                        vars: None,
-                        envs: Some(HashMap::from([("default".to_string(), HashMap::new())])),
-                        prompts: None,
-                        secrets: None,
-                        auth: None
-                    },
-                    NO_SPAN
-                )),
+                config: None,
                 request: (HttpRequest::get("http://example.com", "1.1", vec![]), 4..35),
                 response: None,
                 refs: vec![],
@@ -1068,16 +1050,7 @@ mod test {
             just_request_ends_with_single_newline,
             concat!("---\n", "GET http://example.com HTTP/1.1\n", "---\n"),
             Ok(ParsedRequestFile {
-                config: Some((
-                    ParsedConfig {
-                        vars: None,
-                        envs: Some(HashMap::from([("default".to_string(), HashMap::new())])),
-                        prompts: None,
-                        secrets: None,
-                        auth: None
-                    },
-                    0..0
-                )),
+                config: None,
                 request: (
                     HttpRequest {
                         verb: HttpVerb::get(),
@@ -1097,16 +1070,7 @@ mod test {
             just_request_ends_with_multiple_newlines,
             concat!("---\n", "GET http://example.com HTTP/1.1\n\n", "---\n"),
             Ok(ParsedRequestFile {
-                config: Some((
-                    ParsedConfig {
-                        vars: None,
-                        envs: Some(HashMap::from([("default".to_string(), HashMap::new())])),
-                        prompts: None,
-                        secrets: None,
-                        auth: None
-                    },
-                    0..0
-                )),
+                config: None,
                 request: (
                     HttpRequest {
                         verb: HttpVerb::get(),
@@ -1287,7 +1251,7 @@ mod resolve_tests {
         get_default_env_when_no_config_declared,
         concat!("---\n", "GET https://example.com HTTP/1.1\n"),
         "default",
-        Some(HashMap::new())
+        None
     );
 
     resolve_test!(

@@ -132,7 +132,7 @@ mod tests {
                     },
                 },
                 severity: Some(DiagnosisSeverity::ERROR),
-                message: String::from("ParseError: Request file is an empty file")
+                message: String::from("ParseError: Request file has no document dividers")
             }],
             get_diagnostics(&errs, &source)
         );

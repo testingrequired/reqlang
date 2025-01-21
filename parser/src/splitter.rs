@@ -4,15 +4,17 @@ use span::{Spanned, NO_SPAN};
 use crate::parser::RequestFileSplitUp;
 
 /// Delimiter used to split request files
+///
+/// Request files must have at least 1-3 document dividers
 const DELIMITER: &str = "---\n";
 
-/// Split string in to a [HttpRequest], and optional [HttpResponse], [ParsedConfig]
+/// Split string in to a [types::HttpRequest], and optional [types::HttpResponse], [types::ParsedConfig]
 pub fn split(input: &str) -> Result<RequestFileSplitUp, Vec<Spanned<ReqlangError>>> {
     let mut parse_errors: Vec<Spanned<ReqlangError>> = vec![];
 
     if input.is_empty() {
         parse_errors.push((
-            ReqlangError::ParseError(ParseError::EmptyFileError),
+            ReqlangError::ParseError(ParseError::NoDividersError),
             NO_SPAN,
         ));
 
@@ -71,22 +73,156 @@ pub fn split(input: &str) -> Result<RequestFileSplitUp, Vec<Spanned<ReqlangError
         .filter(|x| !x.is_empty())
         .map(|x| (x, response_start..response_end));
 
-    let config_start = 0;
-
-    let config = documents.first();
-
-    let config_end = match config {
-        Some(config) => config_start + config.len(),
-        None => config_start,
-    };
-
-    let config = config
-        .map(|x| x.to_string())
-        .map(|x| (x, config_start..config_end));
+    let config = documents
+        .first()
+        .filter(|c| !c.is_empty())
+        .map(|v| (v.to_string(), 0..v.len()));
 
     Ok(RequestFileSplitUp {
         request,
         response,
         config,
     })
+}
+
+/// Tests
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use pretty_assertions::assert_eq;
+
+    #[test]
+    fn test_empty_string() {
+        let input = "";
+        let output = split(input);
+
+        assert_eq!(
+            Err(vec![(ParseError::NoDividersError.into(), NO_SPAN)]),
+            output
+        );
+    }
+
+    #[test]
+    fn test_whitespace_string() {
+        let input = " \n ";
+        let output = split(input);
+
+        assert_eq!(
+            Err(vec![(ParseError::NoDividersError.into(), 0..3)]),
+            output
+        );
+    }
+
+    #[test]
+    fn test_single_delimiter_with_newline() {
+        let input = "---\n";
+        let output = split(input);
+
+        assert_eq!(
+            Ok(RequestFileSplitUp {
+                request: (String::from("\n\n"), 4..4),
+                response: None,
+                config: None
+            }),
+            output
+        );
+    }
+
+    #[test]
+    fn test_single_delimiter_without_newline() {
+        let input = "---";
+        let output = split(input);
+
+        assert_eq!(
+            Err(vec![(ParseError::NoDividersError.into(), 0..3)]),
+            output
+        );
+    }
+
+    #[test]
+    fn test_request_without_response_or_config() {
+        let input = "---\nREQUEST";
+        let output = split(input);
+
+        assert_eq!(
+            Ok(RequestFileSplitUp {
+                request: (String::from("REQUEST\n\n"), 4..11),
+                response: None,
+                config: None
+            }),
+            output
+        );
+    }
+
+    #[test]
+    fn test_empty_request_with_empty_response_and_empty_config() {
+        let input = "---\n---\n---\n";
+        let output = split(input);
+
+        assert_eq!(
+            Ok(RequestFileSplitUp {
+                request: (String::from("\n\n"), 4..4),
+                response: None,
+                config: None
+            }),
+            output
+        );
+    }
+
+    #[test]
+    fn test_too_many_delimiters() {
+        let input = "---\n---\n---\n---\n";
+        let output = split(input);
+
+        assert_eq!(
+            Err(vec![(ParseError::TooManyDividersError.into(), 0..16)]),
+            output
+        );
+    }
+
+    #[test]
+    fn test_request_with_empty_response_and_empty_config() {
+        let input = "---\nREQUEST\n---\n";
+        let output = split(input);
+
+        assert_eq!(
+            Ok(RequestFileSplitUp {
+                request: (String::from("REQUEST\n\n"), 4..12),
+                response: None,
+                config: None
+            }),
+            output
+        );
+    }
+
+    #[test]
+    fn test_request_with_response_and_empty_config() {
+        let input = "---\nREQUEST\n---\nRESPONSE\n";
+        let output = split(input);
+
+        assert_eq!(
+            Ok(RequestFileSplitUp {
+                request: (String::from("REQUEST\n\n"), 4..12),
+                response: Some((String::from("RESPONSE\n"), 16..25)),
+                config: None
+            }),
+            output
+        );
+    }
+
+    #[test]
+    fn test_request_with_response_and_config() {
+        let input = "CONFIG\n---\nREQUEST\n---\nRESPONSE\n";
+        let output = split(input);
+
+        assert_eq!(
+            Ok(RequestFileSplitUp {
+                request: (String::from("REQUEST\n\n"), 11..19),
+                response: Some((String::from("RESPONSE\n"), 23..32)),
+                config: Some((String::from("CONFIG\n"), 0..7))
+            }),
+            output
+        );
+    }
 }
