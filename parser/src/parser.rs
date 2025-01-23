@@ -1083,11 +1083,15 @@ mod test {
         );
 
         parser_test!(
-            just_request_ends_with_multiple_newlines,
+            response_with_no_newline,
             textwrap::dedent(
                 "
                 ```%request
                 GET http://example.com HTTP/1.1
+                ```
+
+                ```%response
+                HTTP/1.1 200 OK
                 ```
                 "
             ),
@@ -1103,7 +1107,16 @@ mod test {
                     },
                     1..48
                 ),
-                response: None,
+                response: Some((
+                    HttpResponse {
+                        http_version: HttpVersion::one_point_one(),
+                        status_code: HttpStatusCode::new(200),
+                        status_text: "OK".to_owned(),
+                        headers: HashMap::default(),
+                        body: Some("".to_string())
+                    },
+                    50..82
+                )),
                 refs: vec![],
             })
         );
@@ -1215,7 +1228,7 @@ mod test {
                         status_code: HttpStatusCode::new(200),
                         status_text: "OK".to_string(),
                         headers: HashMap::new(),
-                        body: Some("{{?expected_response_body}}\n\n".to_string())
+                        body: Some("{{?expected_response_body}}\n\n\n".to_string())
                     },
                     336..398
                 )),
@@ -1325,7 +1338,7 @@ mod test {
                         status_code: HttpStatusCode::new(200),
                         status_text: "OK".to_owned(),
                         headers: HashMap::default(),
-                        body: Some("".to_owned())
+                        body: Some("\n".to_owned())
                     },
                     575..608
                 )),

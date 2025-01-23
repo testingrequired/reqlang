@@ -61,7 +61,7 @@ pub fn split(input: &str) -> Result<RequestFileSplitUp, Vec<Spanned<ReqlangError
 
     let response: Option<Spanned<String>> = response.map(|response| {
         (
-            format!("{response}\n"),
+            format!("{response}\n\n"),
             response_span.expect("should have a response span from the markdown parsing"),
         )
     });
@@ -147,7 +147,7 @@ mod tests {
         assert_eq!(
             Ok(RequestFileSplitUp {
                 request: (String::from("REQUEST\n\n"), 1..24),
-                response: Some((String::from("RESPONSE\n"), 26..51)),
+                response: Some((String::from("RESPONSE\n\n"), 26..51)),
                 config: None
             }),
             output
@@ -177,7 +177,7 @@ mod tests {
         assert_eq!(
             Ok(RequestFileSplitUp {
                 request: (String::from("REQUEST\n\n"), 24..47),
-                response: Some((String::from("RESPONSE\n"), 49..74)),
+                response: Some((String::from("RESPONSE\n\n"), 49..74)),
                 config: Some((String::from("CONFIG"), 1..22))
             }),
             output
