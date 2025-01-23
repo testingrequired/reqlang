@@ -377,9 +377,9 @@
     </span><span class="kw">async fn </span>test_real_request_params_fetch() {
         <span class="kw">let </span>params: RequestParamsFromClient = RequestParamsFromClient {
             reqfile: <span class="string">r#"
-            ---
+```%request
 GET http://example.com HTTP/1.1
-
+```
             "#
             </span>.to_string(),
             env: <span class="string">"default"</span>.to_string(),

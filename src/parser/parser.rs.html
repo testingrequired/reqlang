@@ -1359,6 +1359,47 @@
 <a href="#1357" id="1357">1357</a>
 <a href="#1358" id="1358">1358</a>
 <a href="#1359" id="1359">1359</a>
+<a href="#1360" id="1360">1360</a>
+<a href="#1361" id="1361">1361</a>
+<a href="#1362" id="1362">1362</a>
+<a href="#1363" id="1363">1363</a>
+<a href="#1364" id="1364">1364</a>
+<a href="#1365" id="1365">1365</a>
+<a href="#1366" id="1366">1366</a>
+<a href="#1367" id="1367">1367</a>
+<a href="#1368" id="1368">1368</a>
+<a href="#1369" id="1369">1369</a>
+<a href="#1370" id="1370">1370</a>
+<a href="#1371" id="1371">1371</a>
+<a href="#1372" id="1372">1372</a>
+<a href="#1373" id="1373">1373</a>
+<a href="#1374" id="1374">1374</a>
+<a href="#1375" id="1375">1375</a>
+<a href="#1376" id="1376">1376</a>
+<a href="#1377" id="1377">1377</a>
+<a href="#1378" id="1378">1378</a>
+<a href="#1379" id="1379">1379</a>
+<a href="#1380" id="1380">1380</a>
+<a href="#1381" id="1381">1381</a>
+<a href="#1382" id="1382">1382</a>
+<a href="#1383" id="1383">1383</a>
+<a href="#1384" id="1384">1384</a>
+<a href="#1385" id="1385">1385</a>
+<a href="#1386" id="1386">1386</a>
+<a href="#1387" id="1387">1387</a>
+<a href="#1388" id="1388">1388</a>
+<a href="#1389" id="1389">1389</a>
+<a href="#1390" id="1390">1390</a>
+<a href="#1391" id="1391">1391</a>
+<a href="#1392" id="1392">1392</a>
+<a href="#1393" id="1393">1393</a>
+<a href="#1394" id="1394">1394</a>
+<a href="#1395" id="1395">1395</a>
+<a href="#1396" id="1396">1396</a>
+<a href="#1397" id="1397">1397</a>
+<a href="#1398" id="1398">1398</a>
+<a href="#1399" id="1399">1399</a>
+<a href="#1400" id="1400">1400</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>errors::{ParseError, ReqlangError};
 <span class="kw">use </span>regex::Regex;
 <span class="kw">use </span>span::{Spanned, NO_SPAN};
@@ -1758,7 +1799,8 @@
     }
 }
 
-<span class="kw">pub struct </span>RequestFileSplitUp {
+<span class="attr">#[derive(Debug, PartialEq)]
+</span><span class="kw">pub struct </span>RequestFileSplitUp {
     <span class="kw">pub </span>request: Spanned&lt;String&gt;,
     <span class="kw">pub </span>response: <span class="prelude-ty">Option</span>&lt;Spanned&lt;String&gt;&gt;,
     <span class="kw">pub </span>config: <span class="prelude-ty">Option</span>&lt;Spanned&lt;String&gt;&gt;,
@@ -1785,126 +1827,134 @@
         </span><span class="macro">parser_test!</span>(
             empty_file,
             <span class="string">""</span>,
-            <span class="prelude-val">Err</span>(<span class="macro">vec!</span>[(ParseError::EmptyFileError.into(), NO_SPAN)])
+            <span class="prelude-val">Err</span>(<span class="macro">vec!</span>[(ParseError::MissingRequest.into(), NO_SPAN)])
         );
 
         <span class="macro">parser_test!</span>(
-            bare_request,
+            request_outside_of_code_fences,
             <span class="string">"GET http://example.com HTTP/1.1\n"</span>,
-            <span class="prelude-val">Err</span>(<span class="macro">vec!</span>[(ParseError::NoDividersError.into(), <span class="number">0</span>..<span class="number">32</span>)])
-        );
-
-        <span class="macro">parser_test!</span>(
-            too_many_doc_dividers_with_5,
-            <span class="macro">concat!</span>(
-                <span class="string">"---\n"</span>,
-                <span class="string">"GET http://example.com HTTP/1.1\n"</span>,
-                <span class="string">"---\n"</span>,
-                <span class="string">"---\n"</span>,
-                <span class="string">"---\n"</span>,
-                <span class="string">"---\n"
-            </span>),
-            <span class="prelude-val">Err</span>(<span class="macro">vec!</span>[(ParseError::TooManyDividersError.into(), <span class="number">0</span>..<span class="number">52</span>)])
-        );
-
-        <span class="macro">parser_test!</span>(
-            too_many_doc_dividers_with_4,
-            <span class="macro">concat!</span>(
-                <span class="string">"---\n"</span>,
-                <span class="string">"GET http://example.com HTTP/1.1\n"</span>,
-                <span class="string">"---\n"</span>,
-                <span class="string">"---\n"</span>,
-                <span class="string">"---\n"
-            </span>),
-            <span class="prelude-val">Err</span>(<span class="macro">vec!</span>[(ParseError::TooManyDividersError.into(), <span class="number">0</span>..<span class="number">48</span>)])
+            <span class="prelude-val">Err</span>(<span class="macro">vec!</span>[(ParseError::MissingRequest.into(), <span class="number">0</span>..<span class="number">32</span>)])
         );
 
         <span class="comment">// Undefined References
 
         </span><span class="macro">parser_test!</span>(
             reference_undefined_variable_in_request,
-            <span class="macro">concat!</span>(<span class="string">"---\n"</span>, <span class="string">"GET / HTTP/1.1\n"</span>, <span class="string">"test: {{:value}}\n"</span>, <span class="string">"---\n"</span>),
+            textwrap::dedent(
+                <span class="string">"
+                ```%request
+                GET / HTTP/1.1
+                test: {{:value}}
+                ```
+                "
+            </span>),
             <span class="prelude-val">Err</span>(<span class="macro">vec!</span>[(
                 errors::ReqlangError::ParseError(ParseError::UndefinedReferenceError(
                     ReferenceType::Variable(<span class="string">"value"</span>.to_string())
                 )),
-                <span class="number">4</span>..<span class="number">36
+                <span class="number">1</span>..<span class="number">48
             </span>)])
         );
 
         <span class="macro">parser_test!</span>(
             reference_undefined_prompt_in_request,
-            <span class="macro">concat!</span>(<span class="string">"---\n"</span>, <span class="string">"GET / HTTP/1.1\n"</span>, <span class="string">"test: {{?value}}\n"</span>, <span class="string">"---\n"</span>),
+            textwrap::dedent(
+                <span class="string">"
+                ```%request
+                GET / HTTP/1.1
+                test: {{?value}}
+                ```
+            "
+            </span>),
             <span class="prelude-val">Err</span>(<span class="macro">vec!</span>[(
                 errors::ReqlangError::ParseError(ParseError::UndefinedReferenceError(
                     ReferenceType::Prompt(<span class="string">"value"</span>.to_string())
                 )),
-                <span class="number">4</span>..<span class="number">36
+                <span class="number">1</span>..<span class="number">48
             </span>)])
         );
 
         <span class="macro">parser_test!</span>(
             reference_undefined_secret_in_request,
-            <span class="macro">concat!</span>(<span class="string">"---\n"</span>, <span class="string">"GET / HTTP/1.1\n"</span>, <span class="string">"test: {{!value}}\n"</span>, <span class="string">"---\n"</span>),
+            textwrap::dedent(
+                <span class="string">"
+                ```%request
+                GET / HTTP/1.1
+                test: {{!value}}
+                ```
+                "
+            </span>),
             <span class="prelude-val">Err</span>(<span class="macro">vec!</span>[(
                 errors::ReqlangError::ParseError(ParseError::UndefinedReferenceError(
                     ReferenceType::Secret(<span class="string">"value"</span>.to_string())
                 )),
-                <span class="number">4</span>..<span class="number">36
+                <span class="number">1</span>..<span class="number">48
             </span>)])
         );
 
         <span class="macro">parser_test!</span>(
             reference_undefined_variable_in_response,
-            <span class="macro">concat!</span>(
-                <span class="string">"---\n"</span>,
-                <span class="string">"GET / HTTP/1.1\n"</span>,
-                <span class="string">"---\n"</span>,
-                <span class="string">"HTTP/1.1 200 OK\n"</span>,
-                <span class="string">"test: {{:value}}\n\n"</span>,
-                <span class="string">"---\n"
+            textwrap::dedent(
+                <span class="string">"
+                ```%request
+                GET / HTTP/1.1
+                ```
+
+                ```%response
+                HTTP/1.1 200 OK
+                test: {{:value}}
+                ```
+            "
             </span>),
             <span class="prelude-val">Err</span>(<span class="macro">vec!</span>[(
                 errors::ReqlangError::ParseError(ParseError::UndefinedReferenceError(
                     ReferenceType::Variable(<span class="string">"value"</span>.to_string())
                 )),
-                <span class="number">23</span>..<span class="number">57
+                <span class="number">33</span>..<span class="number">82
             </span>)])
         );
 
         <span class="macro">parser_test!</span>(
             reference_undefined_prompt_in_reponse,
-            <span class="macro">concat!</span>(
-                <span class="string">"---\n"</span>,
-                <span class="string">"GET / HTTP/1.1\n"</span>,
-                <span class="string">"---\n"</span>,
-                <span class="string">"HTTP/1.1 200 OK\n"</span>,
-                <span class="string">"test: {{?value}}\n\n"</span>,
-                <span class="string">"---\n"
+            textwrap::dedent(
+                <span class="string">"
+                ```%request
+                GET / HTTP/1.1
+                ```
+
+                ```%response
+                HTTP/1.1 200 OK
+                test: {{?value}}
+                ```
+                "
             </span>),
             <span class="prelude-val">Err</span>(<span class="macro">vec!</span>[(
                 errors::ReqlangError::ParseError(ParseError::UndefinedReferenceError(
                     ReferenceType::Prompt(<span class="string">"value"</span>.to_string())
                 )),
-                <span class="number">23</span>..<span class="number">57
+                <span class="number">33</span>..<span class="number">82
             </span>)])
         );
 
         <span class="macro">parser_test!</span>(
             reference_undefined_secret_in_response,
-            <span class="macro">concat!</span>(
-                <span class="string">"---\n"</span>,
-                <span class="string">"GET / HTTP/1.1\n"</span>,
-                <span class="string">"---\n"</span>,
-                <span class="string">"HTTP/1.1 200 OK\n"</span>,
-                <span class="string">"test: {{!value}}\n\n"</span>,
-                <span class="string">"---\n"
+            textwrap::dedent(
+                <span class="string">"
+                ```%request
+                GET / HTTP/1.1
+                ```
+
+                ```%response
+                HTTP/1.1 200 OK
+                test: {{!value}}
+                ```
+                "
             </span>),
             <span class="prelude-val">Err</span>(<span class="macro">vec!</span>[(
                 errors::ReqlangError::ParseError(ParseError::UndefinedReferenceError(
                     ReferenceType::Secret(<span class="string">"value"</span>.to_string())
                 )),
-                <span class="number">23</span>..<span class="number">57
+                <span class="number">33</span>..<span class="number">82
             </span>)])
         );
 
@@ -1912,53 +1962,65 @@
 
         </span><span class="macro">parser_test!</span>(
             unused_variable,
-            <span class="macro">concat!</span>(
-                <span class="string">"vars = [\"base_url\"]\n"</span>,
-                <span class="string">"---\n"</span>,
-                <span class="string">"GET http://example.com HTTP/1.1\n\n"</span>,
-                <span class="string">"---\n"</span>,
-                <span class="string">"---\n"
+            textwrap::dedent(
+                <span class="string">"
+                ```%config
+                vars = [\"base_url\"]
+                ```
+
+                ```%request
+                GET http://example.com HTTP/1.1
+                ```
+                "
             </span>),
             <span class="prelude-val">Err</span>(<span class="macro">vec!</span>[(
                 errors::ReqlangError::ParseError(ParseError::UnusedValueError(
                     ReferenceType::Variable(<span class="string">"base_url"</span>.to_string())
                 )),
-                <span class="number">0</span>..<span class="number">20
+                <span class="number">1</span>..<span class="number">35
             </span>)])
         );
 
         <span class="macro">parser_test!</span>(
             unused_prompt,
-            <span class="macro">concat!</span>(
-                <span class="string">"[prompts]\n"</span>,
-                <span class="string">"base_url = \"\"\n"</span>,
-                <span class="string">"---\n"</span>,
-                <span class="string">"GET http://example.com HTTP/1.1\n\n"</span>,
-                <span class="string">"---\n"</span>,
-                <span class="string">"---\n"
+            textwrap::dedent(
+                <span class="string">"
+                ```%config
+                [prompts]
+                base_url = \"\"
+                ```
+
+                ```%request
+                GET http://example.com HTTP/1.1
+                ```
+                "
             </span>),
             <span class="prelude-val">Err</span>(<span class="macro">vec!</span>[(
                 errors::ReqlangError::ParseError(ParseError::UnusedValueError(
                     ReferenceType::Prompt(<span class="string">"base_url"</span>.to_string())
                 )),
-                <span class="number">0</span>..<span class="number">24
+                <span class="number">1</span>..<span class="number">39
             </span>)])
         );
 
         <span class="macro">parser_test!</span>(
             unused_secret,
-            <span class="macro">concat!</span>(
-                <span class="string">"secrets = [\"base_url\"]\n"</span>,
-                <span class="string">"---\n"</span>,
-                <span class="string">"GET http://example.com HTTP/1.1\n\n"</span>,
-                <span class="string">"---\n"</span>,
-                <span class="string">"---\n"
+            textwrap::dedent(
+                <span class="string">"
+                ```%config
+                secrets = [\"base_url\"]
+                ```
+
+                ```%request
+                GET http://example.com HTTP/1.1
+                ```
+                "
             </span>),
             <span class="prelude-val">Err</span>(<span class="macro">vec!</span>[(
                 errors::ReqlangError::ParseError(ParseError::UnusedValueError(
                     ReferenceType::Secret(<span class="string">"base_url"</span>.to_string())
                 )),
-                <span class="number">0</span>..<span class="number">23
+                <span class="number">1</span>..<span class="number">38
             </span>)])
         );
 
@@ -1966,351 +2028,379 @@
 
         </span><span class="macro">parser_test!</span>(
             forbidden_header_host,
-            <span class="macro">concat!</span>(
-                <span class="string">"---\n"</span>,
-                <span class="string">"GET / HTTP/1.1\n"</span>,
-                <span class="string">"host: example.com\n"</span>,
-                <span class="string">"---\n"</span>,
-                <span class="string">"---\n"
+            textwrap::dedent(
+                <span class="string">"
+                ```%request
+                GET / HTTP/1.1
+                host: example.com
+                ```
+                "
             </span>),
             <span class="prelude-val">Err</span>(<span class="macro">vec!</span>[(
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     <span class="string">"host"</span>.to_string()
                 )),
-                <span class="number">4</span>..<span class="number">37
+                <span class="number">1</span>..<span class="number">49
             </span>)])
         );
 
         <span class="macro">parser_test!</span>(
             forbidden_header_host_capitalized,
-            <span class="macro">concat!</span>(
-                <span class="string">"---\n"</span>,
-                <span class="string">"GET / HTTP/1.1\n"</span>,
-                <span class="string">"Host: example.com\n"</span>,
-                <span class="string">"---\n"</span>,
-                <span class="string">"---\n"
+            textwrap::dedent(
+                <span class="string">"
+                ```%request
+                GET / HTTP/1.1
+                Host: example.com
+                ```
+                "
             </span>),
             <span class="prelude-val">Err</span>(<span class="macro">vec!</span>[(
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     <span class="string">"host"</span>.to_string()
                 )),
-                <span class="number">4</span>..<span class="number">37
+                <span class="number">1</span>..<span class="number">49
             </span>)])
         );
 
         <span class="macro">parser_test!</span>(
             forbidden_header_host_mixed_capitialization,
-            <span class="macro">concat!</span>(
-                <span class="string">"---\n"</span>,
-                <span class="string">"GET / HTTP/1.1\n"</span>,
-                <span class="string">"hOsT: example.com\n"</span>,
-                <span class="string">"---\n"</span>,
-                <span class="string">"---\n"
+            textwrap::dedent(
+                <span class="string">"
+                ```%request
+                GET / HTTP/1.1
+                HoST: example.com
+                ```
+                "
             </span>),
             <span class="prelude-val">Err</span>(<span class="macro">vec!</span>[(
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     <span class="string">"host"</span>.to_string()
                 )),
-                <span class="number">4</span>..<span class="number">37
+                <span class="number">1</span>..<span class="number">49
             </span>)])
         );
 
         <span class="macro">parser_test!</span>(
             forbidden_header_accept_charset,
-            <span class="macro">concat!</span>(
-                <span class="string">"---\n"</span>,
-                <span class="string">"GET / HTTP/1.1\n"</span>,
-                <span class="string">"accept-charset: value\n"</span>,
-                <span class="string">"---\n"</span>,
-                <span class="string">"---\n"
+            textwrap::dedent(
+                <span class="string">"
+                ```%request
+                GET https://example.com/ HTTP/1.1
+                accept-charset: value
+                ```
+                "
             </span>),
             <span class="prelude-val">Err</span>(<span class="macro">vec!</span>[(
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     <span class="string">"accept-charset"</span>.to_string()
                 )),
-                <span class="number">4</span>..<span class="number">41
+                <span class="number">1</span>..<span class="number">72
             </span>)])
         );
 
         <span class="macro">parser_test!</span>(
             forbidden_header_accept_encoding,
-            <span class="macro">concat!</span>(
-                <span class="string">"---\n"</span>,
-                <span class="string">"GET / HTTP/1.1\n"</span>,
-                <span class="string">"accept-encoding: value\n"</span>,
-                <span class="string">"---\n"</span>,
-                <span class="string">"---\n"
+            textwrap::dedent(
+                <span class="string">"
+                ```%request
+                GET https://example.com/ HTTP/1.1
+                accept-encoding: value
+                ```
+                "
             </span>),
             <span class="prelude-val">Err</span>(<span class="macro">vec!</span>[(
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     <span class="string">"accept-encoding"</span>.to_string()
                 )),
-                <span class="number">4</span>..<span class="number">42
+                <span class="number">1</span>..<span class="number">73
             </span>)])
         );
 
         <span class="macro">parser_test!</span>(
             forbidden_header_acr_headers,
-            <span class="macro">concat!</span>(
-                <span class="string">"---\n"</span>,
-                <span class="string">"GET / HTTP/1.1\naccess-control-request-headers: value\n"</span>,
-                <span class="string">"---\n"</span>,
-                <span class="string">"---\n"
+            textwrap::dedent(
+                <span class="string">"
+                ```%request
+                GET https://example.com/ HTTP/1.1
+                access-control-request-headers: value
+                ```
+                "
             </span>),
             <span class="prelude-val">Err</span>(<span class="macro">vec!</span>[(
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     <span class="string">"access-control-request-headers"</span>.to_string()
                 )),
-                <span class="number">4</span>..<span class="number">57
+                <span class="number">1</span>..<span class="number">88
             </span>)])
         );
 
         <span class="macro">parser_test!</span>(
             forbidden_header_acr_method,
-            <span class="macro">concat!</span>(
-                <span class="string">"---\n"</span>,
-                <span class="string">"GET / HTTP/1.1\n"</span>,
-                <span class="string">"access-control-request-method: value\n"</span>,
-                <span class="string">"---\n"</span>,
-                <span class="string">"---\n"
+            textwrap::dedent(
+                <span class="string">"
+                ```%request
+                GET https://example.com/ HTTP/1.1
+                access-control-request-method: value
+                ```
+                "
             </span>),
             <span class="prelude-val">Err</span>(<span class="macro">vec!</span>[(
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     <span class="string">"access-control-request-method"</span>.to_string()
                 )),
-                <span class="number">4</span>..<span class="number">56
+                <span class="number">1</span>..<span class="number">87
             </span>)])
         );
 
         <span class="macro">parser_test!</span>(
             forbidden_header_connection,
-            <span class="macro">concat!</span>(
-                <span class="string">"---\n"</span>,
-                <span class="string">"GET / HTTP/1.1\n"</span>,
-                <span class="string">"connection: value\n"</span>,
-                <span class="string">"---\n"</span>,
-                <span class="string">"---\n"
+            textwrap::dedent(
+                <span class="string">"
+                ```%request
+                GET https://example.com/ HTTP/1.1
+                connection: value
+                ```
+                "
             </span>),
             <span class="prelude-val">Err</span>(<span class="macro">vec!</span>[(
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     <span class="string">"connection"</span>.to_string()
                 )),
-                <span class="number">4</span>..<span class="number">37
+                <span class="number">1</span>..<span class="number">68
             </span>)])
         );
 
         <span class="macro">parser_test!</span>(
             forbidden_header_content_length,
-            <span class="macro">concat!</span>(
-                <span class="string">"---\n"</span>,
-                <span class="string">"GET / HTTP/1.1\n"</span>,
-                <span class="string">"content-length: value\n"</span>,
-                <span class="string">"---\n"</span>,
-                <span class="string">"---\n"
+            textwrap::dedent(
+                <span class="string">"
+                ```%request
+                GET https://example.com/ HTTP/1.1
+                content-length: value
+                ```
+                "
             </span>),
             <span class="prelude-val">Err</span>(<span class="macro">vec!</span>[(
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     <span class="string">"content-length"</span>.to_string()
                 )),
-                <span class="number">4</span>..<span class="number">41
+                <span class="number">1</span>..<span class="number">72
             </span>)])
         );
 
         <span class="macro">parser_test!</span>(
             forbidden_header_cookie,
-            <span class="macro">concat!</span>(
-                <span class="string">"---\n"</span>,
-                <span class="string">"GET / HTTP/1.1\n"</span>,
-                <span class="string">"cookie: value\n"</span>,
-                <span class="string">"---\n"</span>,
-                <span class="string">"---\n"
+            textwrap::dedent(
+                <span class="string">"
+                ```%request
+                GET https://example.com/ HTTP/1.1
+                cookie: value
+                ```
+                "
             </span>),
             <span class="prelude-val">Err</span>(<span class="macro">vec!</span>[(
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     <span class="string">"cookie"</span>.to_string()
                 )),
-                <span class="number">4</span>..<span class="number">33
+                <span class="number">1</span>..<span class="number">64
             </span>)])
         );
 
         <span class="macro">parser_test!</span>(
             forbidden_header_date,
-            <span class="macro">concat!</span>(
-                <span class="string">"---\n"</span>,
-                <span class="string">"GET / HTTP/1.1\n"</span>,
-                <span class="string">"date: value\n"</span>,
-                <span class="string">"---\n"</span>,
-                <span class="string">"---\n"
+            textwrap::dedent(
+                <span class="string">"
+                ```%request
+                GET https://example.com/ HTTP/1.1
+                date: value
+                ```
+                "
             </span>),
             <span class="prelude-val">Err</span>(<span class="macro">vec!</span>[(
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     <span class="string">"date"</span>.to_string()
                 )),
-                <span class="number">4</span>..<span class="number">31
+                <span class="number">1</span>..<span class="number">62
             </span>)])
         );
 
         <span class="macro">parser_test!</span>(
             forbidden_header_dnt,
-            <span class="macro">concat!</span>(
-                <span class="string">"---\n"</span>,
-                <span class="string">"GET / HTTP/1.1\n"</span>,
-                <span class="string">"dnt: value\n"</span>,
-                <span class="string">"---\n"</span>,
-                <span class="string">"---\n"
+            textwrap::dedent(
+                <span class="string">"
+                ```%request
+                GET https://example.com/ HTTP/1.1
+                dnt: value
+                ```
+                "
             </span>),
             <span class="prelude-val">Err</span>(<span class="macro">vec!</span>[(
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     <span class="string">"dnt"</span>.to_string()
                 )),
-                <span class="number">4</span>..<span class="number">30
+                <span class="number">1</span>..<span class="number">61
             </span>)])
         );
 
         <span class="macro">parser_test!</span>(
             forbidden_header_expect,
-            <span class="macro">concat!</span>(
-                <span class="string">"---\n"</span>,
-                <span class="string">"GET / HTTP/1.1\n"</span>,
-                <span class="string">"expect: value\n"</span>,
-                <span class="string">"---\n"</span>,
-                <span class="string">"---\n"
+            textwrap::dedent(
+                <span class="string">"
+                ```%request
+                GET https://example.com/ HTTP/1.1
+                expect: value
+                ```
+                "
             </span>),
             <span class="prelude-val">Err</span>(<span class="macro">vec!</span>[(
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     <span class="string">"expect"</span>.to_string()
                 )),
-                <span class="number">4</span>..<span class="number">33
+                <span class="number">1</span>..<span class="number">64
             </span>)])
         );
 
         <span class="macro">parser_test!</span>(
             forbidden_header_keep_alive,
-            <span class="macro">concat!</span>(
-                <span class="string">"---\n"</span>,
-                <span class="string">"GET / HTTP/1.1\n"</span>,
-                <span class="string">"keep-alive: value\n"</span>,
-                <span class="string">"---\n"</span>,
-                <span class="string">"---\n"
+            textwrap::dedent(
+                <span class="string">"
+                ```%request
+                GET https://example.com/ HTTP/1.1
+                keep-alive: value
+                ```
+                "
             </span>),
             <span class="prelude-val">Err</span>(<span class="macro">vec!</span>[(
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     <span class="string">"keep-alive"</span>.to_string()
                 )),
-                <span class="number">4</span>..<span class="number">37
+                <span class="number">1</span>..<span class="number">68
             </span>)])
         );
 
         <span class="macro">parser_test!</span>(
             forbidden_header_origin,
-            <span class="macro">concat!</span>(
-                <span class="string">"---\n"</span>,
-                <span class="string">"GET / HTTP/1.1\n"</span>,
-                <span class="string">"origin: value\n"</span>,
-                <span class="string">"---\n"</span>,
-                <span class="string">"---\n"
+            textwrap::dedent(
+                <span class="string">"
+                ```%request
+                GET https://example.com/ HTTP/1.1
+                origin: value
+                ```
+                "
             </span>),
             <span class="prelude-val">Err</span>(<span class="macro">vec!</span>[(
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     <span class="string">"origin"</span>.to_string()
                 )),
-                <span class="number">4</span>..<span class="number">33
+                <span class="number">1</span>..<span class="number">64
             </span>)])
         );
 
         <span class="macro">parser_test!</span>(
             forbidden_header_permission_policy,
-            <span class="macro">concat!</span>(
-                <span class="string">"---\n"</span>,
-                <span class="string">"GET / HTTP/1.1\n"</span>,
-                <span class="string">"permission-policy: value\n"</span>,
-                <span class="string">"---\n"</span>,
-                <span class="string">"---\n"
+            textwrap::dedent(
+                <span class="string">"
+                ```%request
+                GET https://example.com/ HTTP/1.1
+                permission-policy: value
+                ```
+                "
             </span>),
             <span class="prelude-val">Err</span>(<span class="macro">vec!</span>[(
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     <span class="string">"permission-policy"</span>.to_string()
                 )),
-                <span class="number">4</span>..<span class="number">44
+                <span class="number">1</span>..<span class="number">75
             </span>)])
         );
 
         <span class="macro">parser_test!</span>(
             forbidden_header_te,
-            <span class="macro">concat!</span>(<span class="string">"---\n"</span>, <span class="string">"GET / HTTP/1.1\n"</span>, <span class="string">"te: value\n"</span>, <span class="string">"---\n"</span>, <span class="string">"---\n"</span>),
+            textwrap::dedent(
+                <span class="string">"
+                ```%request
+                GET https://example.com/ HTTP/1.1
+                te: value
+                ```
+                "
+            </span>),
             <span class="prelude-val">Err</span>(<span class="macro">vec!</span>[(
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     <span class="string">"te"</span>.to_string()
                 )),
-                <span class="number">4</span>..<span class="number">29
+                <span class="number">1</span>..<span class="number">60
             </span>)])
         );
 
         <span class="macro">parser_test!</span>(
             forbidden_header_trailer,
-            <span class="macro">concat!</span>(
-                <span class="string">"---\n"</span>,
-                <span class="string">"GET / HTTP/1.1\n"</span>,
-                <span class="string">"trailer: value\n"</span>,
-                <span class="string">"---\n"</span>,
-                <span class="string">"---\n"
+            textwrap::dedent(
+                <span class="string">"
+                ```%request
+                GET https://example.com/ HTTP/1.1
+                trailer: value
+                ```
+                "
             </span>),
             <span class="prelude-val">Err</span>(<span class="macro">vec!</span>[(
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     <span class="string">"trailer"</span>.to_string()
                 )),
-                <span class="number">4</span>..<span class="number">34
+                <span class="number">1</span>..<span class="number">65
             </span>)])
         );
 
         <span class="macro">parser_test!</span>(
             forbidden_header_transfer_encoding,
-            <span class="macro">concat!</span>(
-                <span class="string">"---\n"</span>,
-                <span class="string">"GET / HTTP/1.1\n"</span>,
-                <span class="string">"transfer-encoding: value\n"</span>,
-                <span class="string">"---\n"</span>,
-                <span class="string">"---\n"
+            textwrap::dedent(
+                <span class="string">"
+                ```%request
+                GET https://example.com/ HTTP/1.1
+                transfer-encoding: value
+                ```
+                "
             </span>),
             <span class="prelude-val">Err</span>(<span class="macro">vec!</span>[(
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     <span class="string">"transfer-encoding"</span>.to_string()
                 )),
-                <span class="number">4</span>..<span class="number">44
+                <span class="number">1</span>..<span class="number">75
             </span>)])
         );
 
         <span class="macro">parser_test!</span>(
             forbidden_header_upgrade,
-            <span class="macro">concat!</span>(
-                <span class="string">"---\n"</span>,
-                <span class="string">"GET / HTTP/1.1\n"</span>,
-                <span class="string">"upgrade: value\n"</span>,
-                <span class="string">"---\n"</span>,
-                <span class="string">"---\n"
+            textwrap::dedent(
+                <span class="string">"
+                ```%request
+                GET https://example.com/ HTTP/1.1
+                upgrade: value
+                ```
+                "
             </span>),
             <span class="prelude-val">Err</span>(<span class="macro">vec!</span>[(
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     <span class="string">"upgrade"</span>.to_string()
                 )),
-                <span class="number">4</span>..<span class="number">34
+                <span class="number">1</span>..<span class="number">65
             </span>)])
         );
 
         <span class="macro">parser_test!</span>(
             forbidden_header_via,
-            <span class="macro">concat!</span>(
-                <span class="string">"---\n"</span>,
-                <span class="string">"GET / HTTP/1.1\n"</span>,
-                <span class="string">"via: value\n"</span>,
-                <span class="string">"---\n"</span>,
-                <span class="string">"---\n"
+            textwrap::dedent(
+                <span class="string">"
+                ```%request
+                GET https://example.com/ HTTP/1.1
+                via: value
+                ```
+                "
             </span>),
             <span class="prelude-val">Err</span>(<span class="macro">vec!</span>[(
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     <span class="string">"via"</span>.to_string()
                 )),
-                <span class="number">4</span>..<span class="number">30
+                <span class="number">1</span>..<span class="number">61
             </span>)])
         );
 
@@ -2318,37 +2408,44 @@
 
         </span><span class="macro">parser_test!</span>(
             invalid_config_syntax_error_incomplete_table,
-            <span class="macro">concat!</span>(
-                <span class="string">"vars = [\"body\"]\n"</span>,
-                <span class="string">"[envs.dev.body = 123\n"</span>,
-                <span class="string">"---\n"</span>,
-                <span class="string">"GET / HTTP/1.1\n"</span>,
-                <span class="string">"\n"</span>,
-                <span class="string">"---\n"</span>,
-                <span class="string">"---\n"
+            textwrap::dedent(
+                <span class="string">"
+                ```%config
+                vars = [\"body\"]
+                [envs.dev.body = 123
+                ```
+
+                ```%request
+                GET https://example.com/ HTTP/1.1
+                ```
+                "
             </span>),
             <span class="prelude-val">Err</span>(<span class="macro">vec!</span>[(
                 errors::ReqlangError::ParseError(ParseError::InvalidConfigError {
                     message: <span class="string">"invalid table header\nexpected `.`, `]`"</span>.to_string()
                 }),
-                <span class="number">31</span>..<span class="number">32
+                <span class="number">32</span>..<span class="number">33
             </span>)])
         );
 
         <span class="macro">parser_test!</span>(
             invalid_config_syntax_error_invalid_key_name,
-            <span class="macro">concat!</span>(
-                <span class="string">"/123=123\n"</span>,
-                <span class="string">"---\n"</span>,
-                <span class="string">"GET http://example.com HTTP/1.1\n"</span>,
-                <span class="string">"---\n"</span>,
-                <span class="string">"---\n"
+            textwrap::dedent(
+                <span class="string">"
+                ```%config
+                /123=132
+                ```
+
+                ```%request
+                GET https://example.com/ HTTP/1.1
+                ```
+                "
             </span>),
             <span class="prelude-val">Err</span>(<span class="macro">vec!</span>[(
                 errors::ReqlangError::ParseError(ParseError::InvalidConfigError {
                     message: <span class="string">"invalid key"</span>.to_string()
                 }),
-                <span class="number">0</span>..<span class="number">1
+                <span class="number">1</span>..<span class="number">2
             </span>)])
         );
     }
@@ -2356,98 +2453,31 @@
     <span class="kw">mod </span>valid {
         <span class="kw">use </span>std::collections::HashMap;
 
-        <span class="kw">use </span>span::NO_SPAN;
         <span class="kw">use </span>types::{
             http::{HttpRequest, HttpResponse, HttpStatusCode, HttpVerb},
             ParsedConfig, ParsedRequestFile, ReferenceType,
         };
 
         <span class="macro">parser_test!</span>(
-            just_request_ends_with_no_newline,
-            <span class="macro">concat!</span>(<span class="string">"---\n"</span>, <span class="string">"GET http://example.com HTTP/1.1"</span>, <span class="string">"---\n"</span>),
-            <span class="prelude-val">Ok</span>(ParsedRequestFile {
-                config: <span class="prelude-val">Some</span>((
-                    ParsedConfig {
-                        vars: <span class="prelude-val">None</span>,
-                        envs: <span class="prelude-val">Some</span>(HashMap::from([(<span class="string">"default"</span>.to_string(), HashMap::new())])),
-                        prompts: <span class="prelude-val">None</span>,
-                        secrets: <span class="prelude-val">None</span>,
-                        auth: <span class="prelude-val">None
-                    </span>},
-                    <span class="number">0</span>..<span class="number">0
-                </span>)),
-                request: (HttpRequest::get(<span class="string">"http://example.com"</span>, <span class="string">"1.1"</span>, <span class="macro">vec!</span>[]), <span class="number">4</span>..<span class="number">35</span>),
-                response: <span class="prelude-val">None</span>,
-                refs: <span class="macro">vec!</span>[],
-            })
-        );
-
-        <span class="macro">parser_test!</span>(
-            just_request_ends_with_no_newline_with_envs,
-            <span class="macro">concat!</span>(<span class="string">"[envs]\n---\n"</span>, <span class="string">"GET http://example.com HTTP/1.1"</span>, <span class="string">"---\n"</span>),
-            <span class="prelude-val">Ok</span>(ParsedRequestFile {
-                config: <span class="prelude-val">Some</span>((
-                    ParsedConfig {
-                        vars: <span class="prelude-val">None</span>,
-                        envs: <span class="prelude-val">Some</span>(HashMap::from([(<span class="string">"default"</span>.to_string(), HashMap::new())])),
-                        prompts: <span class="prelude-val">None</span>,
-                        secrets: <span class="prelude-val">None</span>,
-                        auth: <span class="prelude-val">None
-                    </span>},
-                    <span class="number">0</span>..<span class="number">7
-                </span>)),
-                request: (
-                    HttpRequest::get(<span class="string">"http://example.com"</span>, <span class="string">"1.1"</span>, <span class="macro">vec!</span>[]),
-                    <span class="number">11</span>..<span class="number">42
-                </span>),
-                response: <span class="prelude-val">None</span>,
-                refs: <span class="macro">vec!</span>[],
-            })
-        );
-
-        <span class="macro">parser_test!</span>(
-            just_request_ends_with_no_newline_or_split,
-            <span class="macro">concat!</span>(<span class="string">"---\nGET http://example.com HTTP/1.1"</span>),
-            <span class="prelude-val">Ok</span>(ParsedRequestFile {
-                config: <span class="prelude-val">Some</span>((
-                    ParsedConfig {
-                        vars: <span class="prelude-val">None</span>,
-                        envs: <span class="prelude-val">Some</span>(HashMap::from([(<span class="string">"default"</span>.to_string(), HashMap::new())])),
-                        prompts: <span class="prelude-val">None</span>,
-                        secrets: <span class="prelude-val">None</span>,
-                        auth: <span class="prelude-val">None
-                    </span>},
-                    NO_SPAN
-                )),
-                request: (HttpRequest::get(<span class="string">"http://example.com"</span>, <span class="string">"1.1"</span>, <span class="macro">vec!</span>[]), <span class="number">4</span>..<span class="number">35</span>),
-                response: <span class="prelude-val">None</span>,
-                refs: <span class="macro">vec!</span>[],
-            })
-        );
-
-        <span class="macro">parser_test!</span>(
             just_request_ends_with_single_newline,
-            <span class="macro">concat!</span>(<span class="string">"---\n"</span>, <span class="string">"GET http://example.com HTTP/1.1\n"</span>, <span class="string">"---\n"</span>),
+            textwrap::dedent(
+                <span class="string">"
+                ```%request
+                GET https://example.com/ HTTP/1.1
+                ```
+                "
+            </span>),
             <span class="prelude-val">Ok</span>(ParsedRequestFile {
-                config: <span class="prelude-val">Some</span>((
-                    ParsedConfig {
-                        vars: <span class="prelude-val">None</span>,
-                        envs: <span class="prelude-val">Some</span>(HashMap::from([(<span class="string">"default"</span>.to_string(), HashMap::new())])),
-                        prompts: <span class="prelude-val">None</span>,
-                        secrets: <span class="prelude-val">None</span>,
-                        auth: <span class="prelude-val">None
-                    </span>},
-                    <span class="number">0</span>..<span class="number">0
-                </span>)),
+                config: <span class="prelude-val">None</span>,
                 request: (
                     HttpRequest {
                         verb: HttpVerb::get(),
-                        target: <span class="string">"http://example.com"</span>.to_string(),
+                        target: <span class="string">"https://example.com/"</span>.to_string(),
                         http_version: <span class="string">"1.1"</span>.into(),
                         headers: <span class="macro">vec!</span>[],
                         body: <span class="prelude-val">Some</span>(<span class="string">""</span>.to_string())
                     },
-                    <span class="number">4</span>..<span class="number">36
+                    <span class="number">1</span>..<span class="number">50
                 </span>),
                 response: <span class="prelude-val">None</span>,
                 refs: <span class="macro">vec!</span>[]
@@ -2456,18 +2486,15 @@
 
         <span class="macro">parser_test!</span>(
             just_request_ends_with_multiple_newlines,
-            <span class="macro">concat!</span>(<span class="string">"---\n"</span>, <span class="string">"GET http://example.com HTTP/1.1\n\n"</span>, <span class="string">"---\n"</span>),
+            textwrap::dedent(
+                <span class="string">"
+                ```%request
+                GET http://example.com HTTP/1.1
+                ```
+                "
+            </span>),
             <span class="prelude-val">Ok</span>(ParsedRequestFile {
-                config: <span class="prelude-val">Some</span>((
-                    ParsedConfig {
-                        vars: <span class="prelude-val">None</span>,
-                        envs: <span class="prelude-val">Some</span>(HashMap::from([(<span class="string">"default"</span>.to_string(), HashMap::new())])),
-                        prompts: <span class="prelude-val">None</span>,
-                        secrets: <span class="prelude-val">None</span>,
-                        auth: <span class="prelude-val">None
-                    </span>},
-                    <span class="number">0</span>..<span class="number">0
-                </span>)),
+                config: <span class="prelude-val">None</span>,
                 request: (
                     HttpRequest {
                         verb: HttpVerb::get(),
@@ -2476,7 +2503,7 @@
                         headers: <span class="macro">vec!</span>[],
                         body: <span class="prelude-val">Some</span>(<span class="string">""</span>.to_string())
                     },
-                    <span class="number">4</span>..<span class="number">37
+                    <span class="number">1</span>..<span class="number">48
                 </span>),
                 response: <span class="prelude-val">None</span>,
                 refs: <span class="macro">vec!</span>[],
@@ -2485,14 +2512,18 @@
 
         <span class="macro">parser_test!</span>(
             template_reference_in_config,
-            <span class="macro">concat!</span>(
-                <span class="string">"vars = [\"foo\", \"bar\"]\n"</span>,
-                <span class="string">"envs.dev.foo = \"test!\"\n"</span>,
-                <span class="string">"envs.dev.bar = \"{{:foo}}\"\n"</span>,
-                <span class="string">"---\n"</span>,
-                <span class="string">"GET http://example.com?value={{:bar}} HTTP/1.1\n\n"</span>,
-                <span class="string">"---\n"</span>,
-                <span class="string">"---\n"
+            textwrap::dedent(
+                <span class="string">"
+                ```%config
+                vars = [\"foo\", \"bar\"]
+                envs.dev.foo = \"test!\"
+                envs.dev.bar = \"{{:foo}}\"
+                ```
+
+                ```%request
+                GET http://example.com?value={{:bar}} HTTP/1.1
+                ```
+                "
             </span>),
             <span class="prelude-val">Ok</span>(ParsedRequestFile {
                 config: <span class="prelude-val">Some</span>((
@@ -2509,7 +2540,7 @@
                         secrets: <span class="prelude-val">None</span>,
                         auth: <span class="prelude-val">None
                     </span>},
-                    <span class="number">0</span>..<span class="number">71
+                    <span class="number">1</span>..<span class="number">86
                 </span>)),
                 request: (
                     HttpRequest {
@@ -2519,47 +2550,51 @@
                         headers: <span class="macro">vec!</span>[],
                         body: <span class="prelude-val">Some</span>(<span class="string">""</span>.to_string())
                     },
-                    <span class="number">75</span>..<span class="number">123
+                    <span class="number">88</span>..<span class="number">150
                 </span>),
                 response: <span class="prelude-val">None</span>,
                 refs: <span class="macro">vec!</span>[
-                    (ReferenceType::Variable(<span class="string">"bar"</span>.to_string()), <span class="number">75</span>..<span class="number">123</span>),
-                    (ReferenceType::Variable(<span class="string">"foo"</span>.to_string()), <span class="number">0</span>..<span class="number">71</span>),
+                    (ReferenceType::Variable(<span class="string">"bar"</span>.to_string()), <span class="number">88</span>..<span class="number">150</span>),
+                    (ReferenceType::Variable(<span class="string">"foo"</span>.to_string()), <span class="number">1</span>..<span class="number">86</span>),
                 ],
             })
         );
 
         <span class="macro">parser_test!</span>(
             full_request_file,
-            <span class="macro">concat!</span>(
-                <span class="string">"vars = [\"query_value\"]\n"</span>,
-                <span class="string">"secrets = [\"api_key\"]"</span>,
-                <span class="string">"\n"</span>,
-                <span class="string">"[envs]\n"</span>,
-                <span class="string">"[envs.dev]\n"</span>,
-                <span class="string">"query_value = \"dev_value\"\n"</span>,
-                <span class="string">"\n"</span>,
-                <span class="string">"[envs.prod]\n"</span>,
-                <span class="string">"query_value = \"prod_value\"\n"</span>,
-                <span class="string">"\n"</span>,
-                <span class="string">"[prompts]\n"</span>,
-                <span class="string">"test_value = \"\"\n"</span>,
-                <span class="string">"expected_response_body = \"\"\n"</span>,
-                <span class="string">"\n"</span>,
-                <span class="string">"---\n"</span>,
-                <span class="string">"POST /?query={{:query_value}} HTTP/1.1\n"</span>,
-                <span class="string">"x-test: {{?test_value}}\n"</span>,
-                <span class="string">"x-api-key: {{!api_key}}\n"</span>,
-                <span class="string">"x-provider: {{@provider}}\n"</span>,
-                <span class="string">"\n"</span>,
-                <span class="string">"[1, 2, 3]\n"</span>,
-                <span class="string">"\n"</span>,
-                <span class="string">"---\n"</span>,
-                <span class="string">"HTTP/1.1 200 OK\n"</span>,
-                <span class="string">"\n"</span>,
-                <span class="string">"{{?expected_response_body}}\n"</span>,
-                <span class="string">"\n"</span>,
-                <span class="string">"---\n"
+            textwrap::dedent(
+                <span class="string">"
+                ```%config
+                vars = [\"query_value\"]
+                secrets = [\"api_key\"]
+
+                [envs.dev]
+                query_value = \"dev_value\"
+                [envs.prod]
+                query_value = \"prod_value\"
+
+                [prompts]
+                test_value = \"\"
+                expected_response_body = \"\"
+
+                ```
+
+                ```%request
+                POST /?query={{:query_value}} HTTP/1.1
+                x-test: {{?test_value}}
+                x-api-key: {{!api_key}}
+                x-provider: {{@provider}}
+
+                [1, 2, 3]
+                ```
+
+                ```%response
+                HTTP/1.1 200 OK
+
+                {{?expected_response_body}}
+
+                ```
+                "
             </span>),
             <span class="prelude-val">Ok</span>(ParsedRequestFile {
                 request: (
@@ -2574,7 +2609,7 @@
                         ],
                         body: <span class="prelude-val">Some</span>(<span class="string">"[1, 2, 3]\n\n"</span>.to_string())
                     },
-                    <span class="number">189</span>..<span class="number">314
+                    <span class="number">195</span>..<span class="number">334
                 </span>),
                 response: <span class="prelude-val">Some</span>((
                     HttpResponse {
@@ -2584,7 +2619,7 @@
                         headers: HashMap::new(),
                         body: <span class="prelude-val">Some</span>(<span class="string">"{{?expected_response_body}}\n\n"</span>.to_string())
                     },
-                    <span class="number">318</span>..<span class="number">364
+                    <span class="number">336</span>..<span class="number">398
                 </span>)),
                 config: <span class="prelude-val">Some</span>((
                     ParsedConfig {
@@ -2612,16 +2647,16 @@
                         secrets: <span class="prelude-val">Some</span>(<span class="macro">vec!</span>[<span class="string">"api_key"</span>.to_string()]),
                         auth: <span class="prelude-val">None
                     </span>},
-                    <span class="number">0</span>..<span class="number">185
+                    <span class="number">1</span>..<span class="number">193
                 </span>)),
                 refs: <span class="macro">vec!</span>[
-                    (ReferenceType::Variable(<span class="string">"query_value"</span>.to_string()), <span class="number">189</span>..<span class="number">314</span>),
-                    (ReferenceType::Prompt(<span class="string">"test_value"</span>.to_string()), <span class="number">189</span>..<span class="number">314</span>),
-                    (ReferenceType::Secret(<span class="string">"api_key"</span>.to_string()), <span class="number">189</span>..<span class="number">314</span>),
-                    (ReferenceType::Provider(<span class="string">"provider"</span>.to_string()), <span class="number">189</span>..<span class="number">314</span>),
+                    (ReferenceType::Variable(<span class="string">"query_value"</span>.to_string()), <span class="number">195</span>..<span class="number">334</span>),
+                    (ReferenceType::Prompt(<span class="string">"test_value"</span>.to_string()), <span class="number">195</span>..<span class="number">334</span>),
+                    (ReferenceType::Secret(<span class="string">"api_key"</span>.to_string()), <span class="number">195</span>..<span class="number">334</span>),
+                    (ReferenceType::Provider(<span class="string">"provider"</span>.to_string()), <span class="number">195</span>..<span class="number">334</span>),
                     (
                         ReferenceType::Prompt(<span class="string">"expected_response_body"</span>.to_string()),
-                        <span class="number">318</span>..<span class="number">364
+                        <span class="number">336</span>..<span class="number">398
                     </span>)
                 ],
             })
@@ -2646,18 +2681,31 @@
 
     <span class="macro">resolve_test!</span>(
         get_default_env_when_no_config_declared,
-        <span class="macro">concat!</span>(<span class="string">"---\n"</span>, <span class="string">"GET https://example.com HTTP/1.1\n"</span>),
+        textwrap::dedent(
+            <span class="string">"
+            ```%request
+            GET https://example.com HTTP/1.1
+            ```
+            "
+        </span>),
         <span class="string">"default"</span>,
-        <span class="prelude-val">Some</span>(HashMap::new())
-    );
+        <span class="prelude-val">None
+    </span>);
 
     <span class="macro">resolve_test!</span>(
         get_default_env_when_default_env_defined,
-        <span class="macro">concat!</span>(
-            <span class="string">"vars = [\"value\"]\n"</span>,
-            <span class="string">"envs.default.value = \"foo\"\n"</span>,
-            <span class="string">"---\n"</span>,
-            <span class="string">"GET https://example.com?{{:value}} HTTP/1.1\n"
+        textwrap::dedent(
+            <span class="string">"
+            ```%config
+            vars = [\"value\"]
+
+            envs.default.value = \"foo\"
+            ```
+
+            ```%request
+            GET https://example.com?{{:value}} HTTP/1.1
+            ```
+            "
         </span>),
         <span class="string">"default"</span>,
         <span class="prelude-val">Some</span>(HashMap::from([(<span class="string">"value"</span>.to_string(), <span class="string">"foo"</span>.to_string())]))
@@ -2665,11 +2713,18 @@
 
     <span class="macro">resolve_test!</span>(
         get_default_env_when_user_env_defined,
-        <span class="macro">concat!</span>(
-            <span class="string">"vars = [\"value\"]\n"</span>,
-            <span class="string">"envs.test.value = \"foo\"\n"</span>,
-            <span class="string">"---\n"</span>,
-            <span class="string">"GET https://example.com?{{:value}} HTTP/1.1\n"
+        textwrap::dedent(
+            <span class="string">"
+            ```%config
+            vars = [\"value\"]
+
+            envs.test.value = \"foo\"
+            ```
+
+            ```%request
+            GET https://example.com?{{:value}} HTTP/1.1
+            ```
+            "
         </span>),
         <span class="string">"default"</span>,
         <span class="prelude-val">None
@@ -2677,18 +2732,31 @@
 
     <span class="macro">resolve_test!</span>(
         get_user_env_when_no_config_declared,
-        <span class="macro">concat!</span>(<span class="string">"---\n"</span>, <span class="string">"GET https://example.com HTTP/1.1\n"</span>),
+        textwrap::dedent(
+            <span class="string">"
+            ```%request
+            GET https://example.com HTTP/1.1
+            ```
+            "
+        </span>),
         <span class="string">"test"</span>,
         <span class="prelude-val">None
     </span>);
 
     <span class="macro">resolve_test!</span>(
         get_user_env_when_default_env_defined,
-        <span class="macro">concat!</span>(
-            <span class="string">"vars = [\"value\"]\n"</span>,
-            <span class="string">"envs.default.value = \"foo\"\n"</span>,
-            <span class="string">"---\n"</span>,
-            <span class="string">"GET https://example.com?{{:value}} HTTP/1.1\n"
+        textwrap::dedent(
+            <span class="string">"
+            ```%config
+            vars = [\"value\"]
+
+            envs.default.value = \"foo\"
+            ```
+
+            ```%request
+            GET https://example.com?{{:value}} HTTP/1.1
+            ```
+            "
         </span>),
         <span class="string">"test"</span>,
         <span class="prelude-val">None
@@ -2696,11 +2764,18 @@
 
     <span class="macro">resolve_test!</span>(
         get_user_env_when_user_env_defined,
-        <span class="macro">concat!</span>(
-            <span class="string">"vars = [\"value\"]\n"</span>,
-            <span class="string">"envs.test.value = \"foo\"\n"</span>,
-            <span class="string">"---\n"</span>,
-            <span class="string">"GET https://example.com?{{:value}} HTTP/1.1\n"
+        textwrap::dedent(
+            <span class="string">"
+            ```%config
+            vars = [\"value\"]
+
+            envs.test.value = \"foo\"
+            ```
+
+            ```%request
+            GET https://example.com?{{:value}} HTTP/1.1
+            ```
+            "
         </span>),
         <span class="string">"test"</span>,
         <span class="prelude-val">Some</span>(HashMap::from([(<span class="string">"value"</span>.to_string(), <span class="string">"foo"</span>.to_string())]))
@@ -2708,11 +2783,18 @@
 
     <span class="macro">resolve_test!</span>(
         get_non_existent_env_when_user_env_defined,
-        <span class="macro">concat!</span>(
-            <span class="string">"vars = [\"value\"]\n"</span>,
-            <span class="string">"envs.test.value = \"foo\"\n"</span>,
-            <span class="string">"---\n"</span>,
-            <span class="string">"GET https://example.com?{{:value}} HTTP/1.1\n"
+        textwrap::dedent(
+            <span class="string">"
+            ```%config
+            vars = [\"value\"]
+
+            envs.test.value = \"foo\"
+            ```
+
+            ```%request
+            GET https://example.com?{{:value}} HTTP/1.1
+            ```
+            "
         </span>),
         <span class="string">"doesnt_exist"</span>,
         <span class="prelude-val">None

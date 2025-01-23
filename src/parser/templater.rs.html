@@ -257,6 +257,13 @@
 <a href="#255" id="255">255</a>
 <a href="#256" id="256">256</a>
 <a href="#257" id="257">257</a>
+<a href="#258" id="258">258</a>
+<a href="#259" id="259">259</a>
+<a href="#260" id="260">260</a>
+<a href="#261" id="261">261</a>
+<a href="#262" id="262">262</a>
+<a href="#263" id="263">263</a>
+<a href="#264" id="264">264</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::collections::HashMap;
 
 <span class="kw">use </span>errors::{ReqlangError, ResolverError};
@@ -379,40 +386,44 @@
                     <span class="macro-nonterminal">$provider_values</span>,
                 );
 
-                <span class="macro">::pretty_assertions::assert_eq!</span>(templated_reqfile, <span class="macro-nonterminal">$result</span>);
+                <span class="macro">::pretty_assertions::assert_eq!</span>(<span class="macro-nonterminal">$result</span>, templated_reqfile);
             }
         };
     }
 
-    <span class="kw">const </span>REQFILE: <span class="kw-2">&amp;</span>str = <span class="macro">concat!</span>(
-        <span class="string">"vars = [\"query_value\"]\n"</span>,
-        <span class="string">"secrets = [\"api_key\"]"</span>,
-        <span class="string">"\n"</span>,
-        <span class="string">"[envs]\n"</span>,
-        <span class="string">"[envs.dev]\n"</span>,
-        <span class="string">"query_value = \"{{?test_value}}\"\n"</span>,
-        <span class="string">"\n"</span>,
-        <span class="string">"[envs.prod]\n"</span>,
-        <span class="string">"query_value = \"{{?test_value}}\"\n"</span>,
-        <span class="string">"\n"</span>,
-        <span class="string">"[prompts]\n"</span>,
-        <span class="string">"test_value = \"\"\n"</span>,
-        <span class="string">"expected_response_body = \"\"\n"</span>,
-        <span class="string">"\n"</span>,
-        <span class="string">"---\n"</span>,
-        <span class="string">"POST /?query={{:query_value}} HTTP/1.1\n"</span>,
-        <span class="string">"x-test: {{?test_value}}\n"</span>,
-        <span class="string">"x-api-key: {{!api_key}}\n"</span>,
-        <span class="string">"\n"</span>,
-        <span class="string">"[1, 2, 3]\n"</span>,
-        <span class="string">"\n"</span>,
-        <span class="string">"---\n"</span>,
-        <span class="string">"HTTP/1.1 200 OK\n"</span>,
-        <span class="string">"\n"</span>,
-        <span class="string">"{{?expected_response_body}}\n"</span>,
-        <span class="string">"\n"</span>,
-        <span class="string">"---\n"
-    </span>);
+    <span class="kw">static </span>REQFILE: <span class="kw-2">&amp;</span>str = <span class="string">r#"
+```%config
+vars = ["query_value"]
+secrets = ["api_key"]
+
+[envs]
+[envs.dev]
+query_value = "{{?test_value}}"
+
+[envs.prod]
+query_value = "{{?test_value}}"
+
+[prompts]
+test_value = ""
+expected_response_body = ""
+```
+
+```%request
+POST /?query={{:query_value}} HTTP/1.1
+x-test: {{?test_value}}
+x-api-key: {{!api_key}}
+
+[1, 2, 3]
+
+```
+
+```%response
+HTTP/1.1 200 OK
+
+{{?expected_response_body}}
+
+```
+        "#</span>;
 
     <span class="macro">templater_test!</span>(
         full_request_file,
@@ -436,7 +447,7 @@
                     (<span class="string">"x-test"</span>.to_string(), <span class="string">"test_value_value"</span>.to_string()),
                     (<span class="string">"x-api-key"</span>.to_string(), <span class="string">"api_key_value"</span>.to_string()),
                 ],
-                body: <span class="prelude-val">Some</span>(<span class="string">"[1, 2, 3]\n\n"</span>.to_string())
+                body: <span class="prelude-val">Some</span>(<span class="string">"[1, 2, 3]\n\n\n"</span>.to_string())
             },
             response: <span class="prelude-val">Some</span>(HttpResponse {
                 http_version: <span class="string">"1.1"</span>.into(),
@@ -486,17 +497,20 @@
 
     <span class="macro">templater_test!</span>(
         nested_references_in_config_not_supported,
-        <span class="macro">concat!</span>(
-            <span class="string">"vars = [\"query_value\", \"copy\"]\n"</span>,
-            <span class="string">"secrets = [\"api_key\"]"</span>,
-            <span class="string">"\n"</span>,
-            <span class="string">"envs.dev.query_value = \"{{!api_key}}\"\n"</span>,
-            <span class="string">"envs.dev.copy = \"{{:query_value}}\"\n"</span>,
-            <span class="string">"\n"</span>,
-            <span class="string">"---\n"</span>,
-            <span class="string">"GET /?query={{:copy}} HTTP/1.1\n\n"</span>,
-            <span class="string">"---\n"</span>,
-            <span class="string">"---\n"
+        textwrap::dedent(
+            <span class="string">"
+            ```%config
+            vars = [\"query_value\", \"copy\"]
+            secrets = [\"api_key\"]
+
+            envs.dev.query_value = \"{{!api_key}}\"
+            envs.dev.copy = \"{{:query_value}}\"
+            ```
+
+            ```%request
+            GET https://example.com/?query={{:copy}} HTTP/1.1
+            ```
+            "
         </span>),
         <span class="string">"dev"</span>,
         HashMap::new(),
@@ -505,7 +519,7 @@
         <span class="prelude-val">Ok</span>(TemplatedRequestFile {
             request: HttpRequest {
                 verb: <span class="string">"GET"</span>.into(),
-                target: <span class="string">"/?query={{!api_key}}"</span>.to_string(),
+                target: <span class="string">"https://example.com/?query={{!api_key}}"</span>.to_string(),
                 http_version: <span class="string">"1.1"</span>.into(),
                 headers: <span class="macro">vec!</span>[],
                 body: <span class="prelude-val">Some</span>(<span class="string">""</span>.to_string())
