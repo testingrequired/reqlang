@@ -132,7 +132,7 @@ mod tests {
                     },
                 },
                 severity: Some(DiagnosisSeverity::ERROR),
-                message: String::from("ParseError: Request file has no document dividers")
+                message: String::from("ParseError: Request file requires a request be defined")
             }],
             get_diagnostics(&errs, &source)
         );

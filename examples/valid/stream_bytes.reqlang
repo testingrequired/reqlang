@@ -1,5 +1,9 @@
+```%config
 [prompts]
 # Streams n random bytes generated with given seed, at given chunk size per packet.
 number = ""
----
+```
+
+```%request
 GET https://httpbin.org/stream-bytes/{{?number}} HTTP/1.1
+```

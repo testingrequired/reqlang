@@ -1,5 +1,9 @@
+```%config
 [prompts]
 # Delay in the number of seconds before responding
 seconds = ""
----
+```
+
+```%request
 GET https://httpbin.org/delay/{{?seconds}} HTTP/1.1
+```

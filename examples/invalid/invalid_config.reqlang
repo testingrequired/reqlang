@@ -1,5 +1,7 @@
+```%config
 /123=123
----
+```
+
+```%request
 GET http://example.com HTTP/1.1
----
----
+```

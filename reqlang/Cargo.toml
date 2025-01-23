@@ -15,3 +15,4 @@ assert-response = { path = "../assert-response" }
 
 [dev-dependencies]
 pretty_assertions = "1.4.1"
+textwrap = "0.16"

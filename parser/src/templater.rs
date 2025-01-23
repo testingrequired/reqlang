@@ -120,40 +120,44 @@ mod test {
                     $provider_values,
                 );
 
-                ::pretty_assertions::assert_eq!(templated_reqfile, $result);
+                ::pretty_assertions::assert_eq!($result, templated_reqfile);
             }
         };
     }
 
-    const REQFILE: &str = concat!(
-        "vars = [\"query_value\"]\n",
-        "secrets = [\"api_key\"]",
-        "\n",
-        "[envs]\n",
-        "[envs.dev]\n",
-        "query_value = \"{{?test_value}}\"\n",
-        "\n",
-        "[envs.prod]\n",
-        "query_value = \"{{?test_value}}\"\n",
-        "\n",
-        "[prompts]\n",
-        "test_value = \"\"\n",
-        "expected_response_body = \"\"\n",
-        "\n",
-        "---\n",
-        "POST /?query={{:query_value}} HTTP/1.1\n",
-        "x-test: {{?test_value}}\n",
-        "x-api-key: {{!api_key}}\n",
-        "\n",
-        "[1, 2, 3]\n",
-        "\n",
-        "---\n",
-        "HTTP/1.1 200 OK\n",
-        "\n",
-        "{{?expected_response_body}}\n",
-        "\n",
-        "---\n"
-    );
+    static REQFILE: &str = r#"
+```%config
+vars = ["query_value"]
+secrets = ["api_key"]
+
+[envs]
+[envs.dev]
+query_value = "{{?test_value}}"
+
+[envs.prod]
+query_value = "{{?test_value}}"
+
+[prompts]
+test_value = ""
+expected_response_body = ""
+```
+
+```%request
+POST /?query={{:query_value}} HTTP/1.1
+x-test: {{?test_value}}
+x-api-key: {{!api_key}}
+
+[1, 2, 3]
+
+```
+
+```%response
+HTTP/1.1 200 OK
+
+{{?expected_response_body}}
+
+```
+        "#;
 
     templater_test!(
         full_request_file,
@@ -177,7 +181,7 @@ mod test {
                     ("x-test".to_string(), "test_value_value".to_string()),
                     ("x-api-key".to_string(), "api_key_value".to_string()),
                 ],
-                body: Some("[1, 2, 3]\n\n".to_string())
+                body: Some("[1, 2, 3]\n\n\n".to_string())
             },
             response: Some(HttpResponse {
                 http_version: "1.1".into(),
@@ -227,17 +231,20 @@ mod test {
 
     templater_test!(
         nested_references_in_config_not_supported,
-        concat!(
-            "vars = [\"query_value\", \"copy\"]\n",
-            "secrets = [\"api_key\"]",
-            "\n",
-            "envs.dev.query_value = \"{{!api_key}}\"\n",
-            "envs.dev.copy = \"{{:query_value}}\"\n",
-            "\n",
-            "---\n",
-            "GET /?query={{:copy}} HTTP/1.1\n\n",
-            "---\n",
-            "---\n"
+        textwrap::dedent(
+            "
+            ```%config
+            vars = [\"query_value\", \"copy\"]
+            secrets = [\"api_key\"]
+
+            envs.dev.query_value = \"{{!api_key}}\"
+            envs.dev.copy = \"{{:query_value}}\"
+            ```
+
+            ```%request
+            GET https://example.com/?query={{:copy}} HTTP/1.1
+            ```
+            "
         ),
         "dev",
         HashMap::new(),
@@ -246,7 +253,7 @@ mod test {
         Ok(TemplatedRequestFile {
             request: HttpRequest {
                 verb: "GET".into(),
-                target: "/?query={{!api_key}}".to_string(),
+                target: "https://example.com/?query={{!api_key}}".to_string(),
                 http_version: "1.1".into(),
                 headers: vec![],
                 body: Some("".to_string())
