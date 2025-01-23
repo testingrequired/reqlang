@@ -26,59 +26,57 @@ Request files (`*.reqlang`) are multi-document files containing a request along 
 
 This is a living syntax subject to change wildly at anytime. The core concepts and goals will remain the same however.
 
-#### Future
-
-- Alternative syntax to document delimiters `---`
-
 ### Example
 
 [post.reqlang](./examples/valid/post.reqlang):
 
-```reqlang
-vars = ["test_value"]
-secrets = ["super_secret_value"]
+    ```%config
+    vars = ["test_value"]
+    secrets = ["super_secret_value"]
 
-[prompts]
-prompt_value = ""
+    [prompts]
+    prompt_value = ""
 
-[envs.test]
-test_value = "test_value"
+    [envs.test]
+    test_value = "test_value"
 
-[envs.prod]
-test_value = "prod_value"
+    [envs.prod]
+    test_value = "prod_value"
 
-[envs.local]
-test_value = "local_value"
----
-POST https://httpbin.org/post HTTP/1.1
+    [envs.local]
+    test_value = "local_value"
+    ```
 
-{
-  "env": "{{@env}}",
-  "value": "{{:test_value}}",
-  "prompted_value": "{{?prompt_value}}",
-  "secret_value": "{{!super_secret_value}}"
-}
-```
+    ```%request
+    POST https://httpbin.org/post HTTP/1.1
+
+    {
+      "env": "{{@env}}",
+      "value": "{{:test_value}}",
+      "prompted_value": "{{?prompt_value}}",
+      "secret_value": "{{!super_secret_value}}"
+    }
+    ```
 
 ### Request
 
 The request is the request is what's executed when the request file is ran. They are written as [HTTP request messages](https://developer.mozilla.org/en-US/docs/Web/HTTP/Messages#http_requests).
 
-```reqlang
----
-GET https://example.com HTTP/1.1
-```
+    ```%request
+    GET https://example.com HTTP/1.1
+    ```
 
 ### Response
 
 The response is optional but treated as an assertion if it is defined. When the request is executed, this response is compared to the actual response received.
 
-```reqlang
----
-GET https://example.com HTTP/1.1
----
-HTTP/1.1 200 OK
-```
+    ```%request
+    GET https://example.com HTTP/1.1
+    ```
+
+    ```%response
+    HTTP/1.1 200 OK
+    ```
 
 #### Matching Rules
 
@@ -129,19 +127,21 @@ user_id = 12345
 
 ##### Usage
 
-```reqlang
-vars = ["user_id", "item_id"]
+    ```%config
+    vars = ["user_id", "item_id"]
 
-[envs.dev]
-user_id = 12345
-item_id = "abcd"
+    [envs.dev]
+    user_id = 12345
+    item_id = "abcd"
 
-[envs.prod]
-user_id = 67890
-item_id = "efgh"
----
-GET https://{{@env}}.example.com/users/{{:user_id}}/items/{{:item_id}} HTTP/1.1
-```
+    [envs.prod]
+    user_id = 67890
+    item_id = "efgh"
+    ```
+
+    ```%request
+    GET https://{{@env}}.example.com/users/{{:user_id}}/items/{{:item_id}} HTTP/1.1
+    ```
 
 ##### Goals
 
@@ -165,12 +165,14 @@ tags = ""
 
 ##### Usage
 
-```reqlang
-[prompts]
-tags = ""
----
-GET https://example.com/posts?tags={{?tags}} HTTP/1.1
-```
+    ```%config
+    [prompts]
+    tags = ""
+    ```
+
+    ```%request
+    GET https://example.com/posts?tags={{?tags}} HTTP/1.1
+    ```
 
 ##### Future
 
@@ -187,12 +189,14 @@ secrets = ["api_key"]
 
 ##### Usage
 
-```reqlang
-secrets = ["api_key"]
----
-GET https://example.com HTTP/1.1
-x-api-key: {{!api_key}}
-```
+    ```%config
+    secrets = ["api_key"]
+    ```
+
+    ```%request
+    GET https://example.com HTTP/1.1
+    x-api-key: {{!api_key}}
+    ```
 
 ##### Goals
 
