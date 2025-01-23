@@ -1052,7 +1052,7 @@ mod test {
         use std::collections::HashMap;
 
         use types::{
-            http::{HttpRequest, HttpResponse, HttpStatusCode, HttpVerb},
+            http::{HttpRequest, HttpResponse, HttpStatusCode, HttpVerb, HttpVersion},
             ParsedConfig, ParsedRequestFile, ReferenceType,
         };
 
@@ -1257,6 +1257,81 @@ mod test {
                         336..398
                     )
                 ],
+            })
+        );
+
+        parser_test!(
+            markdown_request_file,
+            textwrap::dedent(
+                "
+                # Request File As Markdown
+
+                - Request files are also markdown files.
+                - [Configuration](#config), [Request](#request), and [Response](#response) are defined using code blocks.
+                - Everything else is considered a comment.
+
+                ## Config
+
+                Use a `%config` code block to define the configuration.
+
+                ```%config
+                [prompts]
+                # Status code the response will return
+                status_code = \"\"
+                ```
+
+                ## Request
+
+                Use a `%request` code block to define the request.
+
+                ```%request
+                GET https://httpbin.org/status/{{?status_code}} HTTP/1.1
+                ```
+
+                ## Response
+
+                Use a `%response` code block to define the response.
+
+                ```%response
+                HTTP/1.1 200 OK
+
+                ```
+                "
+            ),
+            Ok(ParsedRequestFile {
+                config: Some((
+                    ParsedConfig {
+                        vars: None,
+                        envs: Some(HashMap::from([("default".to_owned(), HashMap::default())])),
+                        prompts: Some(HashMap::from([("status_code".to_owned(), Some("".to_owned()))])),
+                        secrets: None,
+                        auth: None
+                    },
+                    288..368
+                )),
+                request: (
+                    HttpRequest {
+                        verb: HttpVerb::get(),
+                        target: String::from("https://httpbin.org/status/{{?status_code}}"),
+                        http_version: HttpVersion::one_point_one(),
+                        headers: vec![],
+                        body: Some(String::default())
+                    },
+                    434..506
+                ),
+                response: Some((
+                    HttpResponse {
+                        http_version: HttpVersion::one_point_one(),
+                        status_code: HttpStatusCode::new(200),
+                        status_text: "OK".to_owned(),
+                        headers: HashMap::default(),
+                        body: Some("".to_owned())
+                    },
+                    575..608
+                )),
+                refs: vec![
+                    (ReferenceType::Prompt(String::from("status_code")), 434..506)
+                ]
             })
         );
     }

@@ -1,0 +1,32 @@
+# Request File As Markdown
+
+- Request files are also markdown files.
+- [Configuration](#config), [Request](#request), and [Response](#response) are defined using code blocks.
+- Everything else is considered a comment.
+
+## Config
+
+Use a `%config` code block to define the configuration.
+
+```%config
+[prompts]
+# Status code the response will return
+status_code = ""
+```
+
+## Request
+
+Use a `%request` code block to define the request.
+
+```%request
+GET https://httpbin.org/status/{{?status_code}} HTTP/1.1
+```
+
+## Response
+
+Use a `%response` code block to define the response.
+
+```%response
+HTTP/1.1 200 OK
+
+```
