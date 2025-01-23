@@ -249,7 +249,7 @@
 
     <span class="kw">let </span>response: <span class="prelude-ty">Option</span>&lt;Spanned&lt;String&gt;&gt; = response.map(|response| {
         (
-            <span class="macro">format!</span>(<span class="string">"{response}\n"</span>),
+            <span class="macro">format!</span>(<span class="string">"{response}\n\n"</span>),
             response_span.expect(<span class="string">"should have a response span from the markdown parsing"</span>),
         )
     });
@@ -335,7 +335,7 @@
         <span class="macro">assert_eq!</span>(
             <span class="prelude-val">Ok</span>(RequestFileSplitUp {
                 request: (String::from(<span class="string">"REQUEST\n\n"</span>), <span class="number">1</span>..<span class="number">24</span>),
-                response: <span class="prelude-val">Some</span>((String::from(<span class="string">"RESPONSE\n"</span>), <span class="number">26</span>..<span class="number">51</span>)),
+                response: <span class="prelude-val">Some</span>((String::from(<span class="string">"RESPONSE\n\n"</span>), <span class="number">26</span>..<span class="number">51</span>)),
                 config: <span class="prelude-val">None
             </span>}),
             output
@@ -365,7 +365,7 @@
         <span class="macro">assert_eq!</span>(
             <span class="prelude-val">Ok</span>(RequestFileSplitUp {
                 request: (String::from(<span class="string">"REQUEST\n\n"</span>), <span class="number">24</span>..<span class="number">47</span>),
-                response: <span class="prelude-val">Some</span>((String::from(<span class="string">"RESPONSE\n"</span>), <span class="number">49</span>..<span class="number">74</span>)),
+                response: <span class="prelude-val">Some</span>((String::from(<span class="string">"RESPONSE\n\n"</span>), <span class="number">49</span>..<span class="number">74</span>)),
                 config: <span class="prelude-val">Some</span>((String::from(<span class="string">"CONFIG"</span>), <span class="number">1</span>..<span class="number">22</span>))
             }),
             output

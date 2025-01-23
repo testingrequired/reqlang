@@ -1475,6 +1475,19 @@
 <a href="#1473" id="1473">1473</a>
 <a href="#1474" id="1474">1474</a>
 <a href="#1475" id="1475">1475</a>
+<a href="#1476" id="1476">1476</a>
+<a href="#1477" id="1477">1477</a>
+<a href="#1478" id="1478">1478</a>
+<a href="#1479" id="1479">1479</a>
+<a href="#1480" id="1480">1480</a>
+<a href="#1481" id="1481">1481</a>
+<a href="#1482" id="1482">1482</a>
+<a href="#1483" id="1483">1483</a>
+<a href="#1484" id="1484">1484</a>
+<a href="#1485" id="1485">1485</a>
+<a href="#1486" id="1486">1486</a>
+<a href="#1487" id="1487">1487</a>
+<a href="#1488" id="1488">1488</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>errors::{ParseError, ReqlangError};
 <span class="kw">use </span>regex::Regex;
 <span class="kw">use </span>span::{Spanned, NO_SPAN};
@@ -2560,11 +2573,15 @@
         );
 
         <span class="macro">parser_test!</span>(
-            just_request_ends_with_multiple_newlines,
+            response_with_no_newline,
             textwrap::dedent(
                 <span class="string">"
                 ```%request
                 GET http://example.com HTTP/1.1
+                ```
+
+                ```%response
+                HTTP/1.1 200 OK
                 ```
                 "
             </span>),
@@ -2580,7 +2597,16 @@
                     },
                     <span class="number">1</span>..<span class="number">48
                 </span>),
-                response: <span class="prelude-val">None</span>,
+                response: <span class="prelude-val">Some</span>((
+                    HttpResponse {
+                        http_version: HttpVersion::one_point_one(),
+                        status_code: HttpStatusCode::new(<span class="number">200</span>),
+                        status_text: <span class="string">"OK"</span>.to_owned(),
+                        headers: HashMap::default(),
+                        body: <span class="prelude-val">Some</span>(<span class="string">""</span>.to_string())
+                    },
+                    <span class="number">50</span>..<span class="number">82
+                </span>)),
                 refs: <span class="macro">vec!</span>[],
             })
         );
@@ -2692,7 +2718,7 @@
                         status_code: HttpStatusCode::new(<span class="number">200</span>),
                         status_text: <span class="string">"OK"</span>.to_string(),
                         headers: HashMap::new(),
-                        body: <span class="prelude-val">Some</span>(<span class="string">"{{?expected_response_body}}\n\n"</span>.to_string())
+                        body: <span class="prelude-val">Some</span>(<span class="string">"{{?expected_response_body}}\n\n\n"</span>.to_string())
                     },
                     <span class="number">336</span>..<span class="number">398
                 </span>)),
@@ -2802,7 +2828,7 @@
                         status_code: HttpStatusCode::new(<span class="number">200</span>),
                         status_text: <span class="string">"OK"</span>.to_owned(),
                         headers: HashMap::default(),
-                        body: <span class="prelude-val">Some</span>(<span class="string">""</span>.to_owned())
+                        body: <span class="prelude-val">Some</span>(<span class="string">"\n"</span>.to_owned())
                     },
                     <span class="number">575</span>..<span class="number">608
                 </span>)),
