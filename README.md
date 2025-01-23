@@ -30,53 +30,59 @@ This is a living syntax subject to change wildly at anytime. The core concepts a
 
 [post.reqlang](./examples/valid/post.reqlang):
 
-    ```%config
-    vars = ["test_value"]
-    secrets = ["super_secret_value"]
+````reqlang
+```%config
+vars = ["test_value"]
+secrets = ["super_secret_value"]
 
-    [prompts]
-    prompt_value = ""
+[prompts]
+prompt_value = ""
 
-    [envs.test]
-    test_value = "test_value"
+[envs.test]
+test_value = "test_value"
 
-    [envs.prod]
-    test_value = "prod_value"
+[envs.prod]
+test_value = "prod_value"
 
-    [envs.local]
-    test_value = "local_value"
-    ```
+[envs.local]
+test_value = "local_value"
+```
 
-    ```%request
-    POST https://httpbin.org/post HTTP/1.1
+```%request
+POST https://httpbin.org/post HTTP/1.1
 
-    {
-      "env": "{{@env}}",
-      "value": "{{:test_value}}",
-      "prompted_value": "{{?prompt_value}}",
-      "secret_value": "{{!super_secret_value}}"
-    }
-    ```
+{
+  "env": "{{@env}}",
+  "value": "{{:test_value}}",
+  "prompted_value": "{{?prompt_value}}",
+  "secret_value": "{{!super_secret_value}}"
+}
+```
+````
 
 ### Request
 
 The request is the request is what's executed when the request file is ran. They are written as [HTTP request messages](https://developer.mozilla.org/en-US/docs/Web/HTTP/Messages#http_requests).
 
-    ```%request
-    GET https://example.com HTTP/1.1
-    ```
+````reqlang
+```%request
+GET https://example.com HTTP/1.1
+```
+````
 
 ### Response
 
 The response is optional but treated as an assertion if it is defined. When the request is executed, this response is compared to the actual response received.
 
-    ```%request
-    GET https://example.com HTTP/1.1
-    ```
+````reqlang
+```%request
+GET https://example.com HTTP/1.1
+```
 
-    ```%response
-    HTTP/1.1 200 OK
-    ```
+```%response
+HTTP/1.1 200 OK
+```
+````
 
 #### Matching Rules
 
@@ -127,21 +133,23 @@ user_id = 12345
 
 ##### Usage
 
-    ```%config
-    vars = ["user_id", "item_id"]
+````reqlang
+```%config
+vars = ["user_id", "item_id"]
 
-    [envs.dev]
-    user_id = 12345
-    item_id = "abcd"
+[envs.dev]
+user_id = 12345
+item_id = "abcd"
 
-    [envs.prod]
-    user_id = 67890
-    item_id = "efgh"
-    ```
+[envs.prod]
+user_id = 67890
+item_id = "efgh"
+```
 
-    ```%request
-    GET https://{{@env}}.example.com/users/{{:user_id}}/items/{{:item_id}} HTTP/1.1
-    ```
+```%request
+GET https://{{@env}}.example.com/users/{{:user_id}}/items/{{:item_id}} HTTP/1.1
+```
+````
 
 ##### Goals
 
@@ -165,14 +173,16 @@ tags = ""
 
 ##### Usage
 
-    ```%config
-    [prompts]
-    tags = ""
-    ```
+````reqlang
+```%config
+[prompts]
+tags = ""
+```
 
-    ```%request
-    GET https://example.com/posts?tags={{?tags}} HTTP/1.1
-    ```
+```%request
+GET https://example.com/posts?tags={{?tags}} HTTP/1.1
+```
+````
 
 ##### Future
 
@@ -189,14 +199,16 @@ secrets = ["api_key"]
 
 ##### Usage
 
-    ```%config
-    secrets = ["api_key"]
-    ```
+````reqlang
+```%config
+secrets = ["api_key"]
+```
 
-    ```%request
-    GET https://example.com HTTP/1.1
-    x-api-key: {{!api_key}}
-    ```
+```%request
+GET https://example.com HTTP/1.1
+x-api-key: {{!api_key}}
+```
+````
 
 ##### Goals
 
