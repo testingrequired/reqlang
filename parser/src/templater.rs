@@ -188,7 +188,7 @@ HTTP/1.1 200 OK
                 status_code: HttpStatusCode::new(200),
                 status_text: "OK".to_string(),
                 headers: HashMap::new(),
-                body: Some("expected_response_body_value\n\n".to_string())
+                body: Some("expected_response_body_value\n\n\n".to_string())
             }),
         })
     );

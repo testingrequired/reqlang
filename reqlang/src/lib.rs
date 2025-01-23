@@ -78,7 +78,7 @@ mod tests {
                         status_code: HttpStatusCode::new(200),
                         status_text: "OK".to_string(),
                         headers: HashMap::new(),
-                        body: Some("{{?expected_response_body}}\n\n".to_string())
+                        body: Some("{{?expected_response_body}}\n\n\n".to_string())
                     },
                     310..372
                 )),
@@ -189,7 +189,7 @@ mod tests {
                     status_code: HttpStatusCode::new(200),
                     status_text: "OK".to_string(),
                     headers: HashMap::new(),
-                    body: Some("expected_response_body_value\n\n".to_string())
+                    body: Some("expected_response_body_value\n\n\n".to_string())
                 }),
             }),
             templated_reqfile
