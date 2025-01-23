@@ -1,4 +1,4 @@
-name: build-artifacts
+name: pr
 on:
   pull_request:
 env:
