@@ -13,10 +13,8 @@ pub enum ReqlangError {
 
 #[derive(Debug, Clone, Error, PartialEq, Serialize, Deserialize)]
 pub enum ParseError {
-    #[error("Request file has no document dividers")]
-    NoDividersError,
-    #[error("Request file has too many document dividers")]
-    TooManyDividersError,
+    #[error("Request file requires a request be defined")]
+    MissingRequest,
     #[error("Request is invalid: {message}")]
     InvalidRequestError { message: String },
     #[error("Config is invalid: {message}")]

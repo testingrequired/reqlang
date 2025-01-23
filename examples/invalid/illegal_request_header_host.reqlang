@@ -1,14 +1,5 @@
-vars = []
-secrets = []
-
-[envs]
-
-[prompts]
----
+```%request
 GET / HTTP/1.1
 host: https://example.com
 
----
-HTTP/1.1 200 OK
-
----
+```

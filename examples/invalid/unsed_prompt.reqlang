@@ -1,3 +1,4 @@
+```%config
 vars = []
 secrets = []
 
@@ -5,9 +6,13 @@ secrets = []
 
 [prompts]
 base_url = ""
----
+```
+
+```%request
 GET / HTTP/1.1
----
+```
+
+```%response
 HTTP/1.1 200 OK
 
----
+```

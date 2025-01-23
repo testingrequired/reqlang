@@ -21,38 +21,41 @@ mod tests {
         ParsedRequestFile, ReferenceType, TemplatedRequestFile,
     };
 
-    const REQFILE_STRING: &str = concat!(
-        "vars = [\"query_value\"]\n",
-        "secrets = [\"api_key\"]",
-        "\n",
-        "[envs]\n",
-        "[envs.dev]\n",
-        "query_value = \"dev_value\"\n",
-        "\n",
-        "[envs.prod]\n",
-        "query_value = \"prod_value\"\n",
-        "\n",
-        "[prompts]\n",
-        "test_value = \"\"\n",
-        "expected_response_body = \"\"\n",
-        "---\n",
-        "POST /?query={{:query_value}} HTTP/1.1\n",
-        "x-test: {{?test_value}}\n",
-        "x-api-key: {{!api_key}}\n",
-        "\n",
-        "[1, 2, 3]\n",
-        "\n",
-        "---\n",
-        "HTTP/1.1 200 OK\n",
-        "\n",
-        "{{?expected_response_body}}\n",
-        "\n",
-        "---\n",
-    );
-
     #[test]
     fn parse_full_request_file() {
-        let reqfile = parse(REQFILE_STRING);
+        let reqfile = parse(&textwrap::dedent(
+            "
+            ```%config
+            vars = [\"query_value\"]
+            secrets = [\"api_key\"]
+
+            [envs.dev]
+            query_value = \"dev_value\"
+            [envs.prod]
+            query_value = \"prod_value\"
+
+            [prompts]
+            test_value = \"\"
+            expected_response_body = \"\"
+
+            ```
+
+            ```%request
+            POST /?query={{:query_value}} HTTP/1.1
+            x-test: {{?test_value}}
+            x-api-key: {{!api_key}}
+
+            [1, 2, 3]
+            ```
+
+            ```%response
+            HTTP/1.1 200 OK
+
+            {{?expected_response_body}}
+
+            ```
+            ",
+        ));
 
         assert_eq!(
             Ok(ParsedRequestFile {
@@ -67,7 +70,7 @@ mod tests {
                         ],
                         body: Some("[1, 2, 3]\n\n".to_string())
                     },
-                    188..287
+                    195..308
                 ),
                 response: Some((
                     HttpResponse {
@@ -77,7 +80,7 @@ mod tests {
                         headers: HashMap::new(),
                         body: Some("{{?expected_response_body}}\n\n".to_string())
                     },
-                    291..337
+                    310..372
                 )),
                 config: Some((
                     ParsedConfig {
@@ -105,15 +108,15 @@ mod tests {
                         secrets: Some(vec!["api_key".to_string()]),
                         auth: None
                     },
-                    0..184
+                    1..193
                 )),
                 refs: vec![
-                    (ReferenceType::Variable("query_value".to_string()), 188..287),
-                    (ReferenceType::Prompt("test_value".to_string()), 188..287),
-                    (ReferenceType::Secret("api_key".to_string()), 188..287),
+                    (ReferenceType::Variable("query_value".to_string()), 195..308),
+                    (ReferenceType::Prompt("test_value".to_string()), 195..308),
+                    (ReferenceType::Secret("api_key".to_string()), 195..308),
                     (
                         ReferenceType::Prompt("expected_response_body".to_string()),
-                        291..337
+                        310..372
                     )
                 ],
             }),
@@ -124,7 +127,39 @@ mod tests {
     #[test]
     fn template_full_request_file() {
         let templated_reqfile = template(
-            REQFILE_STRING,
+            &textwrap::dedent(
+                "
+                ```%config
+                vars = [\"query_value\"]
+                secrets = [\"api_key\"]
+
+                [envs.dev]
+                query_value = \"dev_value\"
+                [envs.prod]
+                query_value = \"prod_value\"
+
+                [prompts]
+                test_value = \"\"
+                expected_response_body = \"\"
+
+                ```
+
+                ```%request
+                POST /?query={{:query_value}} HTTP/1.1
+                x-test: {{?test_value}}
+                x-api-key: {{!api_key}}
+
+                [1, 2, 3]
+                ```
+
+                ```%response
+                HTTP/1.1 200 OK
+
+                {{?expected_response_body}}
+
+                ```
+                ",
+            ),
             "dev",
             &HashMap::from([
                 ("test_value".to_string(), "test_value_value".to_string()),

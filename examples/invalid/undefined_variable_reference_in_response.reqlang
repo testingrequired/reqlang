@@ -1,7 +1,9 @@
----
+```%request
 GET http://example.com HTTP/1.1
----
+````
+
+```%response
 HTTP/1.1 200 OK
 test: {{:value}}
 
----
+```

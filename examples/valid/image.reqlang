@@ -1,6 +1,10 @@
+```%config
 [prompts]
 # Image type to return
 # jpeg, png, svg, webp
 type = ""
----
+```
+
+```%request
 GET https://httpbin.org/image/{{?type}} HTTP/1.1
+```

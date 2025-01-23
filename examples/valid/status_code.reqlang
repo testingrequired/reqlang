@@ -1,5 +1,8 @@
+```%config
 [prompts]
 # Status code the response will return
 status_code = ""
----
+```
+```%request
 GET https://httpbin.org/status/{{?status_code}} HTTP/1.1
+```

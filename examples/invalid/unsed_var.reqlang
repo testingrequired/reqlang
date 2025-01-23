@@ -1,12 +1,7 @@
+```%config
 vars = ["base_url"]
-secrets = []
+```
 
-[envs]
-
-[prompts]
----
+```%request
 GET / HTTP/1.1
----
-HTTP/1.1 200 OK
-
----
+```

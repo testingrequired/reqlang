@@ -169,9 +169,9 @@ mod test {
     async fn test_real_request_params_fetch() {
         let params: RequestParamsFromClient = RequestParamsFromClient {
             reqfile: r#"
-            ---
+```%request
 GET http://example.com HTTP/1.1
-
+```
             "#
             .to_string(),
             env: "default".to_string(),

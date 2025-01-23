@@ -226,7 +226,7 @@ mod tests {
                 "      }\n",
                 "    },\n",
                 "    \"severity\": 1,\n",
-                "    \"message\": \"ParseError: Request file is an empty file\"\n",
+                "    \"message\": \"ParseError: Request file requires a request be defined\"\n",
                 "  }\n",
                 "]\n"
             ));

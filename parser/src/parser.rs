@@ -425,126 +425,134 @@ mod test {
         parser_test!(
             empty_file,
             "",
-            Err(vec![(ParseError::NoDividersError.into(), NO_SPAN)])
+            Err(vec![(ParseError::MissingRequest.into(), NO_SPAN)])
         );
 
         parser_test!(
-            bare_request,
+            request_outside_of_code_fences,
             "GET http://example.com HTTP/1.1\n",
-            Err(vec![(ParseError::NoDividersError.into(), 0..32)])
-        );
-
-        parser_test!(
-            too_many_doc_dividers_with_5,
-            concat!(
-                "---\n",
-                "GET http://example.com HTTP/1.1\n",
-                "---\n",
-                "---\n",
-                "---\n",
-                "---\n"
-            ),
-            Err(vec![(ParseError::TooManyDividersError.into(), 0..52)])
-        );
-
-        parser_test!(
-            too_many_doc_dividers_with_4,
-            concat!(
-                "---\n",
-                "GET http://example.com HTTP/1.1\n",
-                "---\n",
-                "---\n",
-                "---\n"
-            ),
-            Err(vec![(ParseError::TooManyDividersError.into(), 0..48)])
+            Err(vec![(ParseError::MissingRequest.into(), 0..32)])
         );
 
         // Undefined References
 
         parser_test!(
             reference_undefined_variable_in_request,
-            concat!("---\n", "GET / HTTP/1.1\n", "test: {{:value}}\n", "---\n"),
+            textwrap::dedent(
+                "
+                ```%request
+                GET / HTTP/1.1
+                test: {{:value}}
+                ```
+                "
+            ),
             Err(vec![(
                 errors::ReqlangError::ParseError(ParseError::UndefinedReferenceError(
                     ReferenceType::Variable("value".to_string())
                 )),
-                4..36
+                1..48
             )])
         );
 
         parser_test!(
             reference_undefined_prompt_in_request,
-            concat!("---\n", "GET / HTTP/1.1\n", "test: {{?value}}\n", "---\n"),
+            textwrap::dedent(
+                "
+                ```%request
+                GET / HTTP/1.1
+                test: {{?value}}
+                ```
+            "
+            ),
             Err(vec![(
                 errors::ReqlangError::ParseError(ParseError::UndefinedReferenceError(
                     ReferenceType::Prompt("value".to_string())
                 )),
-                4..36
+                1..48
             )])
         );
 
         parser_test!(
             reference_undefined_secret_in_request,
-            concat!("---\n", "GET / HTTP/1.1\n", "test: {{!value}}\n", "---\n"),
+            textwrap::dedent(
+                "
+                ```%request
+                GET / HTTP/1.1
+                test: {{!value}}
+                ```
+                "
+            ),
             Err(vec![(
                 errors::ReqlangError::ParseError(ParseError::UndefinedReferenceError(
                     ReferenceType::Secret("value".to_string())
                 )),
-                4..36
+                1..48
             )])
         );
 
         parser_test!(
             reference_undefined_variable_in_response,
-            concat!(
-                "---\n",
-                "GET / HTTP/1.1\n",
-                "---\n",
-                "HTTP/1.1 200 OK\n",
-                "test: {{:value}}\n\n",
-                "---\n"
+            textwrap::dedent(
+                "
+                ```%request
+                GET / HTTP/1.1
+                ```
+
+                ```%response
+                HTTP/1.1 200 OK
+                test: {{:value}}
+                ```
+            "
             ),
             Err(vec![(
                 errors::ReqlangError::ParseError(ParseError::UndefinedReferenceError(
                     ReferenceType::Variable("value".to_string())
                 )),
-                23..57
+                33..82
             )])
         );
 
         parser_test!(
             reference_undefined_prompt_in_reponse,
-            concat!(
-                "---\n",
-                "GET / HTTP/1.1\n",
-                "---\n",
-                "HTTP/1.1 200 OK\n",
-                "test: {{?value}}\n\n",
-                "---\n"
+            textwrap::dedent(
+                "
+                ```%request
+                GET / HTTP/1.1
+                ```
+
+                ```%response
+                HTTP/1.1 200 OK
+                test: {{?value}}
+                ```
+                "
             ),
             Err(vec![(
                 errors::ReqlangError::ParseError(ParseError::UndefinedReferenceError(
                     ReferenceType::Prompt("value".to_string())
                 )),
-                23..57
+                33..82
             )])
         );
 
         parser_test!(
             reference_undefined_secret_in_response,
-            concat!(
-                "---\n",
-                "GET / HTTP/1.1\n",
-                "---\n",
-                "HTTP/1.1 200 OK\n",
-                "test: {{!value}}\n\n",
-                "---\n"
+            textwrap::dedent(
+                "
+                ```%request
+                GET / HTTP/1.1
+                ```
+
+                ```%response
+                HTTP/1.1 200 OK
+                test: {{!value}}
+                ```
+                "
             ),
             Err(vec![(
                 errors::ReqlangError::ParseError(ParseError::UndefinedReferenceError(
                     ReferenceType::Secret("value".to_string())
                 )),
-                23..57
+                33..82
             )])
         );
 
@@ -552,53 +560,65 @@ mod test {
 
         parser_test!(
             unused_variable,
-            concat!(
-                "vars = [\"base_url\"]\n",
-                "---\n",
-                "GET http://example.com HTTP/1.1\n\n",
-                "---\n",
-                "---\n"
+            textwrap::dedent(
+                "
+                ```%config
+                vars = [\"base_url\"]
+                ```
+
+                ```%request
+                GET http://example.com HTTP/1.1
+                ```
+                "
             ),
             Err(vec![(
                 errors::ReqlangError::ParseError(ParseError::UnusedValueError(
                     ReferenceType::Variable("base_url".to_string())
                 )),
-                0..20
+                1..35
             )])
         );
 
         parser_test!(
             unused_prompt,
-            concat!(
-                "[prompts]\n",
-                "base_url = \"\"\n",
-                "---\n",
-                "GET http://example.com HTTP/1.1\n\n",
-                "---\n",
-                "---\n"
+            textwrap::dedent(
+                "
+                ```%config
+                [prompts]
+                base_url = \"\"
+                ```
+
+                ```%request
+                GET http://example.com HTTP/1.1
+                ```
+                "
             ),
             Err(vec![(
                 errors::ReqlangError::ParseError(ParseError::UnusedValueError(
                     ReferenceType::Prompt("base_url".to_string())
                 )),
-                0..24
+                1..39
             )])
         );
 
         parser_test!(
             unused_secret,
-            concat!(
-                "secrets = [\"base_url\"]\n",
-                "---\n",
-                "GET http://example.com HTTP/1.1\n\n",
-                "---\n",
-                "---\n"
+            textwrap::dedent(
+                "
+                ```%config
+                secrets = [\"base_url\"]
+                ```
+
+                ```%request
+                GET http://example.com HTTP/1.1
+                ```
+                "
             ),
             Err(vec![(
                 errors::ReqlangError::ParseError(ParseError::UnusedValueError(
                     ReferenceType::Secret("base_url".to_string())
                 )),
-                0..23
+                1..38
             )])
         );
 
@@ -606,351 +626,379 @@ mod test {
 
         parser_test!(
             forbidden_header_host,
-            concat!(
-                "---\n",
-                "GET / HTTP/1.1\n",
-                "host: example.com\n",
-                "---\n",
-                "---\n"
+            textwrap::dedent(
+                "
+                ```%request
+                GET / HTTP/1.1
+                host: example.com
+                ```
+                "
             ),
             Err(vec![(
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     "host".to_string()
                 )),
-                4..37
+                1..49
             )])
         );
 
         parser_test!(
             forbidden_header_host_capitalized,
-            concat!(
-                "---\n",
-                "GET / HTTP/1.1\n",
-                "Host: example.com\n",
-                "---\n",
-                "---\n"
+            textwrap::dedent(
+                "
+                ```%request
+                GET / HTTP/1.1
+                Host: example.com
+                ```
+                "
             ),
             Err(vec![(
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     "host".to_string()
                 )),
-                4..37
+                1..49
             )])
         );
 
         parser_test!(
             forbidden_header_host_mixed_capitialization,
-            concat!(
-                "---\n",
-                "GET / HTTP/1.1\n",
-                "hOsT: example.com\n",
-                "---\n",
-                "---\n"
+            textwrap::dedent(
+                "
+                ```%request
+                GET / HTTP/1.1
+                HoST: example.com
+                ```
+                "
             ),
             Err(vec![(
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     "host".to_string()
                 )),
-                4..37
+                1..49
             )])
         );
 
         parser_test!(
             forbidden_header_accept_charset,
-            concat!(
-                "---\n",
-                "GET / HTTP/1.1\n",
-                "accept-charset: value\n",
-                "---\n",
-                "---\n"
+            textwrap::dedent(
+                "
+                ```%request
+                GET https://example.com/ HTTP/1.1
+                accept-charset: value
+                ```
+                "
             ),
             Err(vec![(
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     "accept-charset".to_string()
                 )),
-                4..41
+                1..72
             )])
         );
 
         parser_test!(
             forbidden_header_accept_encoding,
-            concat!(
-                "---\n",
-                "GET / HTTP/1.1\n",
-                "accept-encoding: value\n",
-                "---\n",
-                "---\n"
+            textwrap::dedent(
+                "
+                ```%request
+                GET https://example.com/ HTTP/1.1
+                accept-encoding: value
+                ```
+                "
             ),
             Err(vec![(
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     "accept-encoding".to_string()
                 )),
-                4..42
+                1..73
             )])
         );
 
         parser_test!(
             forbidden_header_acr_headers,
-            concat!(
-                "---\n",
-                "GET / HTTP/1.1\naccess-control-request-headers: value\n",
-                "---\n",
-                "---\n"
+            textwrap::dedent(
+                "
+                ```%request
+                GET https://example.com/ HTTP/1.1
+                access-control-request-headers: value
+                ```
+                "
             ),
             Err(vec![(
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     "access-control-request-headers".to_string()
                 )),
-                4..57
+                1..88
             )])
         );
 
         parser_test!(
             forbidden_header_acr_method,
-            concat!(
-                "---\n",
-                "GET / HTTP/1.1\n",
-                "access-control-request-method: value\n",
-                "---\n",
-                "---\n"
+            textwrap::dedent(
+                "
+                ```%request
+                GET https://example.com/ HTTP/1.1
+                access-control-request-method: value
+                ```
+                "
             ),
             Err(vec![(
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     "access-control-request-method".to_string()
                 )),
-                4..56
+                1..87
             )])
         );
 
         parser_test!(
             forbidden_header_connection,
-            concat!(
-                "---\n",
-                "GET / HTTP/1.1\n",
-                "connection: value\n",
-                "---\n",
-                "---\n"
+            textwrap::dedent(
+                "
+                ```%request
+                GET https://example.com/ HTTP/1.1
+                connection: value
+                ```
+                "
             ),
             Err(vec![(
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     "connection".to_string()
                 )),
-                4..37
+                1..68
             )])
         );
 
         parser_test!(
             forbidden_header_content_length,
-            concat!(
-                "---\n",
-                "GET / HTTP/1.1\n",
-                "content-length: value\n",
-                "---\n",
-                "---\n"
+            textwrap::dedent(
+                "
+                ```%request
+                GET https://example.com/ HTTP/1.1
+                content-length: value
+                ```
+                "
             ),
             Err(vec![(
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     "content-length".to_string()
                 )),
-                4..41
+                1..72
             )])
         );
 
         parser_test!(
             forbidden_header_cookie,
-            concat!(
-                "---\n",
-                "GET / HTTP/1.1\n",
-                "cookie: value\n",
-                "---\n",
-                "---\n"
+            textwrap::dedent(
+                "
+                ```%request
+                GET https://example.com/ HTTP/1.1
+                cookie: value
+                ```
+                "
             ),
             Err(vec![(
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     "cookie".to_string()
                 )),
-                4..33
+                1..64
             )])
         );
 
         parser_test!(
             forbidden_header_date,
-            concat!(
-                "---\n",
-                "GET / HTTP/1.1\n",
-                "date: value\n",
-                "---\n",
-                "---\n"
+            textwrap::dedent(
+                "
+                ```%request
+                GET https://example.com/ HTTP/1.1
+                date: value
+                ```
+                "
             ),
             Err(vec![(
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     "date".to_string()
                 )),
-                4..31
+                1..62
             )])
         );
 
         parser_test!(
             forbidden_header_dnt,
-            concat!(
-                "---\n",
-                "GET / HTTP/1.1\n",
-                "dnt: value\n",
-                "---\n",
-                "---\n"
+            textwrap::dedent(
+                "
+                ```%request
+                GET https://example.com/ HTTP/1.1
+                dnt: value
+                ```
+                "
             ),
             Err(vec![(
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     "dnt".to_string()
                 )),
-                4..30
+                1..61
             )])
         );
 
         parser_test!(
             forbidden_header_expect,
-            concat!(
-                "---\n",
-                "GET / HTTP/1.1\n",
-                "expect: value\n",
-                "---\n",
-                "---\n"
+            textwrap::dedent(
+                "
+                ```%request
+                GET https://example.com/ HTTP/1.1
+                expect: value
+                ```
+                "
             ),
             Err(vec![(
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     "expect".to_string()
                 )),
-                4..33
+                1..64
             )])
         );
 
         parser_test!(
             forbidden_header_keep_alive,
-            concat!(
-                "---\n",
-                "GET / HTTP/1.1\n",
-                "keep-alive: value\n",
-                "---\n",
-                "---\n"
+            textwrap::dedent(
+                "
+                ```%request
+                GET https://example.com/ HTTP/1.1
+                keep-alive: value
+                ```
+                "
             ),
             Err(vec![(
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     "keep-alive".to_string()
                 )),
-                4..37
+                1..68
             )])
         );
 
         parser_test!(
             forbidden_header_origin,
-            concat!(
-                "---\n",
-                "GET / HTTP/1.1\n",
-                "origin: value\n",
-                "---\n",
-                "---\n"
+            textwrap::dedent(
+                "
+                ```%request
+                GET https://example.com/ HTTP/1.1
+                origin: value
+                ```
+                "
             ),
             Err(vec![(
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     "origin".to_string()
                 )),
-                4..33
+                1..64
             )])
         );
 
         parser_test!(
             forbidden_header_permission_policy,
-            concat!(
-                "---\n",
-                "GET / HTTP/1.1\n",
-                "permission-policy: value\n",
-                "---\n",
-                "---\n"
+            textwrap::dedent(
+                "
+                ```%request
+                GET https://example.com/ HTTP/1.1
+                permission-policy: value
+                ```
+                "
             ),
             Err(vec![(
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     "permission-policy".to_string()
                 )),
-                4..44
+                1..75
             )])
         );
 
         parser_test!(
             forbidden_header_te,
-            concat!("---\n", "GET / HTTP/1.1\n", "te: value\n", "---\n", "---\n"),
+            textwrap::dedent(
+                "
+                ```%request
+                GET https://example.com/ HTTP/1.1
+                te: value
+                ```
+                "
+            ),
             Err(vec![(
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     "te".to_string()
                 )),
-                4..29
+                1..60
             )])
         );
 
         parser_test!(
             forbidden_header_trailer,
-            concat!(
-                "---\n",
-                "GET / HTTP/1.1\n",
-                "trailer: value\n",
-                "---\n",
-                "---\n"
+            textwrap::dedent(
+                "
+                ```%request
+                GET https://example.com/ HTTP/1.1
+                trailer: value
+                ```
+                "
             ),
             Err(vec![(
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     "trailer".to_string()
                 )),
-                4..34
+                1..65
             )])
         );
 
         parser_test!(
             forbidden_header_transfer_encoding,
-            concat!(
-                "---\n",
-                "GET / HTTP/1.1\n",
-                "transfer-encoding: value\n",
-                "---\n",
-                "---\n"
+            textwrap::dedent(
+                "
+                ```%request
+                GET https://example.com/ HTTP/1.1
+                transfer-encoding: value
+                ```
+                "
             ),
             Err(vec![(
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     "transfer-encoding".to_string()
                 )),
-                4..44
+                1..75
             )])
         );
 
         parser_test!(
             forbidden_header_upgrade,
-            concat!(
-                "---\n",
-                "GET / HTTP/1.1\n",
-                "upgrade: value\n",
-                "---\n",
-                "---\n"
+            textwrap::dedent(
+                "
+                ```%request
+                GET https://example.com/ HTTP/1.1
+                upgrade: value
+                ```
+                "
             ),
             Err(vec![(
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     "upgrade".to_string()
                 )),
-                4..34
+                1..65
             )])
         );
 
         parser_test!(
             forbidden_header_via,
-            concat!(
-                "---\n",
-                "GET / HTTP/1.1\n",
-                "via: value\n",
-                "---\n",
-                "---\n"
+            textwrap::dedent(
+                "
+                ```%request
+                GET https://example.com/ HTTP/1.1
+                via: value
+                ```
+                "
             ),
             Err(vec![(
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     "via".to_string()
                 )),
-                4..30
+                1..61
             )])
         );
 
@@ -958,37 +1006,44 @@ mod test {
 
         parser_test!(
             invalid_config_syntax_error_incomplete_table,
-            concat!(
-                "vars = [\"body\"]\n",
-                "[envs.dev.body = 123\n",
-                "---\n",
-                "GET / HTTP/1.1\n",
-                "\n",
-                "---\n",
-                "---\n"
+            textwrap::dedent(
+                "
+                ```%config
+                vars = [\"body\"]
+                [envs.dev.body = 123
+                ```
+
+                ```%request
+                GET https://example.com/ HTTP/1.1
+                ```
+                "
             ),
             Err(vec![(
                 errors::ReqlangError::ParseError(ParseError::InvalidConfigError {
                     message: "invalid table header\nexpected `.`, `]`".to_string()
                 }),
-                31..32
+                32..33
             )])
         );
 
         parser_test!(
             invalid_config_syntax_error_invalid_key_name,
-            concat!(
-                "/123=123\n",
-                "---\n",
-                "GET http://example.com HTTP/1.1\n",
-                "---\n",
-                "---\n"
+            textwrap::dedent(
+                "
+                ```%config
+                /123=132
+                ```
+
+                ```%request
+                GET https://example.com/ HTTP/1.1
+                ```
+                "
             ),
             Err(vec![(
                 errors::ReqlangError::ParseError(ParseError::InvalidConfigError {
                     message: "invalid key".to_string()
                 }),
-                0..1
+                1..2
             )])
         );
     }
@@ -1002,64 +1057,25 @@ mod test {
         };
 
         parser_test!(
-            just_request_ends_with_no_newline,
-            concat!("---\n", "GET http://example.com HTTP/1.1", "---\n"),
-            Ok(ParsedRequestFile {
-                config: None,
-                request: (HttpRequest::get("http://example.com", "1.1", vec![]), 4..35),
-                response: None,
-                refs: vec![],
-            })
-        );
-
-        parser_test!(
-            just_request_ends_with_no_newline_with_envs,
-            concat!("[envs]\n---\n", "GET http://example.com HTTP/1.1", "---\n"),
-            Ok(ParsedRequestFile {
-                config: Some((
-                    ParsedConfig {
-                        vars: None,
-                        envs: Some(HashMap::from([("default".to_string(), HashMap::new())])),
-                        prompts: None,
-                        secrets: None,
-                        auth: None
-                    },
-                    0..7
-                )),
-                request: (
-                    HttpRequest::get("http://example.com", "1.1", vec![]),
-                    11..42
-                ),
-                response: None,
-                refs: vec![],
-            })
-        );
-
-        parser_test!(
-            just_request_ends_with_no_newline_or_split,
-            concat!("---\nGET http://example.com HTTP/1.1"),
-            Ok(ParsedRequestFile {
-                config: None,
-                request: (HttpRequest::get("http://example.com", "1.1", vec![]), 4..35),
-                response: None,
-                refs: vec![],
-            })
-        );
-
-        parser_test!(
             just_request_ends_with_single_newline,
-            concat!("---\n", "GET http://example.com HTTP/1.1\n", "---\n"),
+            textwrap::dedent(
+                "
+                ```%request
+                GET https://example.com/ HTTP/1.1
+                ```
+                "
+            ),
             Ok(ParsedRequestFile {
                 config: None,
                 request: (
                     HttpRequest {
                         verb: HttpVerb::get(),
-                        target: "http://example.com".to_string(),
+                        target: "https://example.com/".to_string(),
                         http_version: "1.1".into(),
                         headers: vec![],
                         body: Some("".to_string())
                     },
-                    4..36
+                    1..50
                 ),
                 response: None,
                 refs: vec![]
@@ -1068,7 +1084,13 @@ mod test {
 
         parser_test!(
             just_request_ends_with_multiple_newlines,
-            concat!("---\n", "GET http://example.com HTTP/1.1\n\n", "---\n"),
+            textwrap::dedent(
+                "
+                ```%request
+                GET http://example.com HTTP/1.1
+                ```
+                "
+            ),
             Ok(ParsedRequestFile {
                 config: None,
                 request: (
@@ -1079,7 +1101,7 @@ mod test {
                         headers: vec![],
                         body: Some("".to_string())
                     },
-                    4..37
+                    1..48
                 ),
                 response: None,
                 refs: vec![],
@@ -1088,14 +1110,18 @@ mod test {
 
         parser_test!(
             template_reference_in_config,
-            concat!(
-                "vars = [\"foo\", \"bar\"]\n",
-                "envs.dev.foo = \"test!\"\n",
-                "envs.dev.bar = \"{{:foo}}\"\n",
-                "---\n",
-                "GET http://example.com?value={{:bar}} HTTP/1.1\n\n",
-                "---\n",
-                "---\n"
+            textwrap::dedent(
+                "
+                ```%config
+                vars = [\"foo\", \"bar\"]
+                envs.dev.foo = \"test!\"
+                envs.dev.bar = \"{{:foo}}\"
+                ```
+
+                ```%request
+                GET http://example.com?value={{:bar}} HTTP/1.1
+                ```
+                "
             ),
             Ok(ParsedRequestFile {
                 config: Some((
@@ -1112,7 +1138,7 @@ mod test {
                         secrets: None,
                         auth: None
                     },
-                    0..71
+                    1..86
                 )),
                 request: (
                     HttpRequest {
@@ -1122,47 +1148,51 @@ mod test {
                         headers: vec![],
                         body: Some("".to_string())
                     },
-                    75..123
+                    88..150
                 ),
                 response: None,
                 refs: vec![
-                    (ReferenceType::Variable("bar".to_string()), 75..123),
-                    (ReferenceType::Variable("foo".to_string()), 0..71),
+                    (ReferenceType::Variable("bar".to_string()), 88..150),
+                    (ReferenceType::Variable("foo".to_string()), 1..86),
                 ],
             })
         );
 
         parser_test!(
             full_request_file,
-            concat!(
-                "vars = [\"query_value\"]\n",
-                "secrets = [\"api_key\"]",
-                "\n",
-                "[envs]\n",
-                "[envs.dev]\n",
-                "query_value = \"dev_value\"\n",
-                "\n",
-                "[envs.prod]\n",
-                "query_value = \"prod_value\"\n",
-                "\n",
-                "[prompts]\n",
-                "test_value = \"\"\n",
-                "expected_response_body = \"\"\n",
-                "\n",
-                "---\n",
-                "POST /?query={{:query_value}} HTTP/1.1\n",
-                "x-test: {{?test_value}}\n",
-                "x-api-key: {{!api_key}}\n",
-                "x-provider: {{@provider}}\n",
-                "\n",
-                "[1, 2, 3]\n",
-                "\n",
-                "---\n",
-                "HTTP/1.1 200 OK\n",
-                "\n",
-                "{{?expected_response_body}}\n",
-                "\n",
-                "---\n"
+            textwrap::dedent(
+                "
+                ```%config
+                vars = [\"query_value\"]
+                secrets = [\"api_key\"]
+
+                [envs.dev]
+                query_value = \"dev_value\"
+                [envs.prod]
+                query_value = \"prod_value\"
+
+                [prompts]
+                test_value = \"\"
+                expected_response_body = \"\"
+
+                ```
+
+                ```%request
+                POST /?query={{:query_value}} HTTP/1.1
+                x-test: {{?test_value}}
+                x-api-key: {{!api_key}}
+                x-provider: {{@provider}}
+
+                [1, 2, 3]
+                ```
+
+                ```%response
+                HTTP/1.1 200 OK
+
+                {{?expected_response_body}}
+
+                ```
+                "
             ),
             Ok(ParsedRequestFile {
                 request: (
@@ -1177,7 +1207,7 @@ mod test {
                         ],
                         body: Some("[1, 2, 3]\n\n".to_string())
                     },
-                    189..314
+                    195..334
                 ),
                 response: Some((
                     HttpResponse {
@@ -1187,7 +1217,7 @@ mod test {
                         headers: HashMap::new(),
                         body: Some("{{?expected_response_body}}\n\n".to_string())
                     },
-                    318..364
+                    336..398
                 )),
                 config: Some((
                     ParsedConfig {
@@ -1215,16 +1245,16 @@ mod test {
                         secrets: Some(vec!["api_key".to_string()]),
                         auth: None
                     },
-                    0..185
+                    1..193
                 )),
                 refs: vec![
-                    (ReferenceType::Variable("query_value".to_string()), 189..314),
-                    (ReferenceType::Prompt("test_value".to_string()), 189..314),
-                    (ReferenceType::Secret("api_key".to_string()), 189..314),
-                    (ReferenceType::Provider("provider".to_string()), 189..314),
+                    (ReferenceType::Variable("query_value".to_string()), 195..334),
+                    (ReferenceType::Prompt("test_value".to_string()), 195..334),
+                    (ReferenceType::Secret("api_key".to_string()), 195..334),
+                    (ReferenceType::Provider("provider".to_string()), 195..334),
                     (
                         ReferenceType::Prompt("expected_response_body".to_string()),
-                        318..364
+                        336..398
                     )
                 ],
             })
@@ -1249,18 +1279,31 @@ mod resolve_tests {
 
     resolve_test!(
         get_default_env_when_no_config_declared,
-        concat!("---\n", "GET https://example.com HTTP/1.1\n"),
+        textwrap::dedent(
+            "
+            ```%request
+            GET https://example.com HTTP/1.1
+            ```
+            "
+        ),
         "default",
         None
     );
 
     resolve_test!(
         get_default_env_when_default_env_defined,
-        concat!(
-            "vars = [\"value\"]\n",
-            "envs.default.value = \"foo\"\n",
-            "---\n",
-            "GET https://example.com?{{:value}} HTTP/1.1\n"
+        textwrap::dedent(
+            "
+            ```%config
+            vars = [\"value\"]
+
+            envs.default.value = \"foo\"
+            ```
+
+            ```%request
+            GET https://example.com?{{:value}} HTTP/1.1
+            ```
+            "
         ),
         "default",
         Some(HashMap::from([("value".to_string(), "foo".to_string())]))
@@ -1268,11 +1311,18 @@ mod resolve_tests {
 
     resolve_test!(
         get_default_env_when_user_env_defined,
-        concat!(
-            "vars = [\"value\"]\n",
-            "envs.test.value = \"foo\"\n",
-            "---\n",
-            "GET https://example.com?{{:value}} HTTP/1.1\n"
+        textwrap::dedent(
+            "
+            ```%config
+            vars = [\"value\"]
+
+            envs.test.value = \"foo\"
+            ```
+
+            ```%request
+            GET https://example.com?{{:value}} HTTP/1.1
+            ```
+            "
         ),
         "default",
         None
@@ -1280,18 +1330,31 @@ mod resolve_tests {
 
     resolve_test!(
         get_user_env_when_no_config_declared,
-        concat!("---\n", "GET https://example.com HTTP/1.1\n"),
+        textwrap::dedent(
+            "
+            ```%request
+            GET https://example.com HTTP/1.1
+            ```
+            "
+        ),
         "test",
         None
     );
 
     resolve_test!(
         get_user_env_when_default_env_defined,
-        concat!(
-            "vars = [\"value\"]\n",
-            "envs.default.value = \"foo\"\n",
-            "---\n",
-            "GET https://example.com?{{:value}} HTTP/1.1\n"
+        textwrap::dedent(
+            "
+            ```%config
+            vars = [\"value\"]
+
+            envs.default.value = \"foo\"
+            ```
+
+            ```%request
+            GET https://example.com?{{:value}} HTTP/1.1
+            ```
+            "
         ),
         "test",
         None
@@ -1299,11 +1362,18 @@ mod resolve_tests {
 
     resolve_test!(
         get_user_env_when_user_env_defined,
-        concat!(
-            "vars = [\"value\"]\n",
-            "envs.test.value = \"foo\"\n",
-            "---\n",
-            "GET https://example.com?{{:value}} HTTP/1.1\n"
+        textwrap::dedent(
+            "
+            ```%config
+            vars = [\"value\"]
+
+            envs.test.value = \"foo\"
+            ```
+
+            ```%request
+            GET https://example.com?{{:value}} HTTP/1.1
+            ```
+            "
         ),
         "test",
         Some(HashMap::from([("value".to_string(), "foo".to_string())]))
@@ -1311,11 +1381,18 @@ mod resolve_tests {
 
     resolve_test!(
         get_non_existent_env_when_user_env_defined,
-        concat!(
-            "vars = [\"value\"]\n",
-            "envs.test.value = \"foo\"\n",
-            "---\n",
-            "GET https://example.com?{{:value}} HTTP/1.1\n"
+        textwrap::dedent(
+            "
+            ```%config
+            vars = [\"value\"]
+
+            envs.test.value = \"foo\"
+            ```
+
+            ```%request
+            GET https://example.com?{{:value}} HTTP/1.1
+            ```
+            "
         ),
         "doesnt_exist",
         None

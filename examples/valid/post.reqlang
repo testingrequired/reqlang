@@ -1,3 +1,4 @@
+```%config
 vars = ["test_value"]
 secrets = ["super_secret_value"]
 
@@ -12,8 +13,9 @@ test_value = "prod_value"
 
 [envs.local]
 test_value = "local_value"
+```
 
----
+```%request
 POST https://httpbin.org/post HTTP/1.1
 
 {
@@ -22,3 +24,4 @@ POST https://httpbin.org/post HTTP/1.1
   "prompted_value": "{{?prompt_value}}",
   "secret_value": "{{!super_secret_value}}"
 }
+```

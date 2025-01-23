@@ -16,6 +16,8 @@ errors = { path = "../errors" }
 httparse = "1.8.0"
 toml = "0.8.8"
 regex = "1.10.3"
+markdown = "1.0.0-alpha.21"
 
 [dev-dependencies]
 pretty_assertions = "1.4.1"
+textwrap = "0.16"

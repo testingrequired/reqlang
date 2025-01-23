@@ -1,8 +1,11 @@
----
+```%request
 GET https://httpbin.org/robots.txt HTTP/1.1
----
+```
+
+```%response
 HTTP/1.1 200 OK
 content-type: text/plain
 
 User-agent: *
 Disallow: /deny
+```

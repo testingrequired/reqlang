@@ -23,8 +23,8 @@
       "patterns": [
         {
           "name": "source.toml",
-          "begin": "^(?!---$).*$",
-          "end": "(?=^---$)",
+          "begin": "^```%config$",
+          "end": "^```$",
           "patterns": [
             {
               "include": "#ident"
@@ -76,16 +76,7 @@
       ]
     },
     "comments": {
-      "patterns": [
-        {
-          "name": "comment.line.reqlang",
-          "match": "^---$"
-        },
-        {
-          "name": "invalid.illegal.reqlang",
-          "match": "^---.+$"
-        }
-      ]
+      "patterns": []
     }
   },
   "scopeName": "source.reqlang"

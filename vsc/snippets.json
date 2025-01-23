@@ -2,59 +2,36 @@
   "Init": {
     "prefix": "init",
     "body": [
-      "vars = []",
-      "secrets = []",
-      "",
-      "[envs]",
-      "",
-      "[prompts]",
-      "---",
-      "${1:GET} ${2:/} HTTP/${3:1.1}",
+      "```%request",
+      "${1:GET} ${2:https://example.com/} HTTP/${3:1.1}",
       "$4",
-      "",
-      "---",
-      "HTTP/$3 ${5:200 OK}$6",
-      "",
-      "---",
+      "```",
       "$0"
     ],
     "description": "Initialize new request file"
   },
-  "Init Post": {
-    "prefix": "init-post",
-    "body": [
-      "vars = []",
-      "secrets = []",
-      "",
-      "[envs]",
-      "",
-      "[prompts]",
-      "---",
-      "POST ${1:/} HTTP/${2:1.1}",
-      "host: $3",
-      "",
-      "$4",
-      "",
-      "---",
-      "HTTP/$2 ${5:200 OK}$6",
-      "",
-      "---",
-      "$0"
-    ],
-    "description": "Initialize new request file with a POST request"
-  },
   "Request": {
-    "prefix": "req",
+    "prefix": "request",
     "body": [
-      "${1:GET} ${2:/} HTTP/${3:1.1}",
-      "host: ${4:https://example.com}",
+      "```%request",
+      "${1:GET} ${2:https://example.com/} HTTP/${3:1.1}",
+      "$4",
+      "```",
       "$0"
     ],
     "description": "Initialize new request"
   },
   "Response": {
-    "prefix": "res",
-    "body": ["HTTP/${1:1.1} ${2:200 OK}$0"],
+    "prefix": "response",
+    "body": [
+      "```%response",
+      "HTTP/${1:1.1} ${2:200 OK}",
+      "$3",
+      "",
+      "$4",
+      "```",
+      "$0"
+    ],
     "description": "Initialize new response"
   },
   "Reference": {
@@ -74,16 +51,7 @@
   },
   "Configuration": {
     "prefix": "config",
-    "body": [
-      "vars = [$1]",
-      "secrets = [$2]",
-      "",
-      "[envs]",
-      "$3",
-      "[prompts]",
-      "$4",
-      "$0"
-    ],
+    "body": ["```%config", "$1", "```", "$0"],
     "description": "Initialize a request file configuration"
   }
 }

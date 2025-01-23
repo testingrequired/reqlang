@@ -1,5 +1,9 @@
+```%config
 [prompts]
 # Stream n JSON responses
 number = ""
----
+```
+
+```%request
 GET https://httpbin.org/stream/{{?number}} HTTP/1.1
+```
