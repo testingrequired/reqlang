@@ -1314,6 +1314,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "extract-codeblocks"
+version = "0.1.0"
+dependencies = [
+ "markdown",
+ "pretty_assertions",
+ "span",
+ "textwrap",
+]
+
+[[package]]
 name = "fastrand"
 version = "1.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2516,8 +2526,8 @@ name = "parser"
 version = "0.1.0"
 dependencies = [
  "errors",
+ "extract-codeblocks",
  "httparse",
- "markdown",
  "pretty_assertions",
  "regex",
  "span",

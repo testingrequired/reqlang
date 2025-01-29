@@ -1,6 +1,6 @@
 use errors::{ParseError, ReqlangError};
-use markdown::mdast::Node;
-use span::{Span, Spanned, NO_SPAN};
+use extract_codeblocks::extract_codeblocks;
+use span::{Spanned, NO_SPAN};
 
 use crate::parser::RequestFileSplitUp;
 
@@ -17,61 +17,24 @@ pub fn split(input: &str) -> Result<RequestFileSplitUp, Vec<Spanned<ReqlangError
         return Err(parse_errors);
     }
 
-    let root = markdown::to_mdast(input, &markdown::ParseOptions::default()).unwrap();
+    let requests = extract_codeblocks(input, "%request");
+    let responses = extract_codeblocks(input, "%response");
+    let configs = extract_codeblocks(input, "%config");
 
-    let children: Vec<Node> = root.children().cloned().unwrap_or_default();
-
-    let mut request: Option<String> = None;
-    let mut request_span: Option<Span> = None;
-    let mut response: Option<String> = None;
-    let mut response_span: Option<Span> = None;
-    let mut config: Option<String> = None;
-    let mut config_span: Option<Span> = None;
-
-    for child in &children {
-        if let Node::Code(code) = child {
-            let value = &code.value;
-            let position = code.position.as_ref().unwrap();
-            let start = position.start.offset;
-            let end = position.end.offset;
-
-            if let Some(lang) = &code.lang {
-                if lang == "%request" {
-                    request = Some(value.clone());
-                    request_span = Some(start..end)
-                } else if lang == "%response" {
-                    response = Some(value.clone());
-                    response_span = Some(start..end);
-                } else if lang == "%config" {
-                    config = Some(value.clone());
-                    config_span = Some(start..end);
-                }
-            }
-        }
-    }
-
-    if request.is_none() {
+    if requests.is_empty() {
         return Err(vec![(ParseError::MissingRequest.into(), 0..input.len())]);
     }
 
-    let request: Spanned<String> = (
-        request.map(|r| format!("{r}\n\n")).unwrap(),
-        request_span.expect("should have a request span from the markdown parsing"),
-    );
+    let (request, span) = requests.first().unwrap();
 
-    let response: Option<Spanned<String>> = response.map(|response| {
-        (
-            format!("{response}\n\n"),
-            response_span.expect("should have a response span from the markdown parsing"),
-        )
-    });
+    let request: Spanned<String> = (format!("{request}\n\n"), span.clone());
 
-    let config: Option<Spanned<String>> = config.map(|config| {
-        (
-            config,
-            config_span.expect("should have a config span from the markdown parsing"),
-        )
-    });
+    let response = responses.first().cloned();
+
+    let response: Option<Spanned<String>> =
+        response.map(|(response, span)| (format!("{response}\n\n"), span));
+
+    let config: Option<Spanned<String>> = configs.first().cloned();
 
     Ok(RequestFileSplitUp {
         request,

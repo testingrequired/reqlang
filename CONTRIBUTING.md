@@ -9,6 +9,8 @@ Thank you for your interest in contributing to this project! We welcome contribu
 - [**`diagnostics`**](./diagnostics/): Contains diagnostic functionality, which helps you identify issues in your request files and provide feedback on how to fix them.
 - [**`errors`**](./errors/): A library of shared Rust error types that can be used across the project.
 - [**`examples`**](./examples/): Valid and invalid request files. Designed to illustrate the format's features. Also used when running the [integration tests](./integration-tests/).
+- [**errors**](./errors): Shared errors used by Reqlang
+- [**`extract-codeblocks`**](./extract-codeblocks/): Library for extracting code blocks from markdown strings. This is used for parsing the request, response, and config from request files.
 - [**`integration-tests`**](./integration-tests/): Test suite that parses the [example](./examples/) request files.
 - [**`parser`**](./parser/): A library for parsing, validating, and templating request files.
 - [**`reqlang`**](./reqlang/): Primary library for handling request files. Re-exports structs, enums, functions from other crates.
