@@ -5,26 +5,24 @@ use span::Spanned;
 pub fn extract_codeblocks(input: impl AsRef<str>, lang: impl AsRef<str>) -> Vec<Spanned<String>> {
     let mut results = vec![];
 
-    let md_options = markdown::ParseOptions::default();
-
-    let nodes: Vec<Node> = to_mdast(input.as_ref(), &md_options)
+    let md_nodes: Vec<Node> = to_mdast(input.as_ref(), &markdown::ParseOptions::default())
         .unwrap()
         .children()
         .cloned()
         .unwrap_or_default();
 
-    for node in &nodes {
-        if let Node::Code(code) = node {
-            let position = code.position.as_ref().unwrap();
+    for md_node in md_nodes {
+        if let Node::Code(codeblock) = md_node {
+            let position = codeblock.position.as_ref().unwrap();
             let start = position.start.offset;
             let end = position.end.offset;
 
-            if let Some(codeblock_lang) = &code.lang {
+            if let Some(codeblock_lang) = &codeblock.lang {
                 if codeblock_lang == lang.as_ref() {
-                    let text = &code.value;
-                    let span = start..end;
+                    let codeblock_text = codeblock.value;
+                    let codeblock_span = start..end;
 
-                    results.push((text.clone(), span));
+                    results.push((codeblock_text, codeblock_span));
                 }
             }
         }
