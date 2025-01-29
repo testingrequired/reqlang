@@ -3,6 +3,7 @@ var srcIndex = new Map(JSON.parse('[\
 ["diagnostics",["",[],["lib.rs"]]],\
 ["errors",["",[],["lib.rs"]]],\
 ["export",["",[],["lib.rs"]]],\
+["extract_codeblocks",["",[],["lib.rs"]]],\
 ["integration_tests",["",[],["lib.rs"]]],\
 ["parser",["",[],["lib.rs","parser.rs","splitter.rs","templater.rs"]]],\
 ["reqlang",["",[],["lib.rs"]]],\

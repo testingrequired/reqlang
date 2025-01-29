@@ -1,1 +1,1 @@
-window.ALL_CRATES = ["assert_response","diagnostics","errors","export","integration_tests","parser","reqlang","reqlang_client","reqlang_fetch","reqlang_lsp","span","str_idxpos","types"];
+window.ALL_CRATES = ["assert_response","diagnostics","errors","export","extract_codeblocks","integration_tests","parser","reqlang","reqlang_client","reqlang_fetch","reqlang_lsp","span","str_idxpos","types"];
