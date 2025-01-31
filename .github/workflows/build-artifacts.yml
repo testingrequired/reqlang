@@ -71,7 +71,7 @@ jobs:
       - name: Generate No Jekyll File
         run: cd target/doc && touch .nojekyll
       - name: Upload Docs
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: reqlang-docs
           path: target/doc
@@ -110,22 +110,22 @@ jobs:
       - name: Build
         run: just build_release
       - name: Upload CLI Binary
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: reqlang
           path: target/release/reqlang
       - name: Upload LSP Binary
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: reqlang-lsp
           path: target/release/reqlang-lsp
       - name: Upload Desktop App
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: reqlang-client
           path: target/release/reqlang-client
       - name: Upload VS Code Extension Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: reqlang-0.1.0.vsix
           path: vsc/out/reqlang-0.1.0.vsix
@@ -151,17 +151,17 @@ jobs:
       - name: Build
         run: just build_release
       - name: Upload CLI Binary
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: reqlang.exe
           path: target/release/reqlang.exe
       - name: Upload LSP Binary
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: reqlang-lsp.exe
           path: target/release/reqlang-lsp.exe
       - name: Upload Desktop App
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: reqlang-client.exe
           path: target/release/reqlang-client.exe
