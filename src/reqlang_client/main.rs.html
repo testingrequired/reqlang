@@ -638,6 +638,7 @@
 <a href="#636" id="636">636</a>
 <a href="#637" id="637">637</a>
 <a href="#638" id="638">638</a>
+<a href="#639" id="639">639</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{
     collections::HashMap,
     fs,
@@ -648,7 +649,8 @@
 
 <span class="kw">use </span>eframe::egui;
 <span class="kw">use </span>reqlang::{
-    export, http::HttpRequest, parse, template, Format, ParsedRequestFile, TemplatedRequestFile,
+    export, http::HttpRequest, parse, template, ParsedRequestFile, RequestFormat,
+    TemplatedRequestFile,
 };
 
 <span class="attr">#[allow(dead_code)]
@@ -719,7 +721,7 @@
         };
 
         <span class="kw">let </span>request_string = <span class="kw">match </span>request {
-            <span class="prelude-val">Some</span>(request) =&gt; export(request, Format::HttpMessage),
+            <span class="prelude-val">Some</span>(request) =&gt; export(request, RequestFormat::HttpMessage),
             <span class="prelude-val">None </span>=&gt; String::new(),
         };
 
@@ -948,7 +950,7 @@
 
         <span class="kw">let </span>request = <span class="kw-2">&amp;</span><span class="self">self</span>.reqfile.request;
 
-        <span class="kw">let </span>request_string = export(request, Format::HttpMessage);
+        <span class="kw">let </span>request_string = export(request, RequestFormat::HttpMessage);
 
         egui::CentralPanel::default().show(egui_ctx, |ui| {
             <span class="kw">if </span>ui.button(<span class="string">"Back"</span>).clicked() {
@@ -993,7 +995,7 @@
         <span class="kw">let </span><span class="kw-2">mut </span>next_state: StateTransition = StateTransition::None;
 
         <span class="kw">let </span>request = <span class="kw-2">&amp;</span><span class="self">self</span>.reqfile.as_ref().request;
-        <span class="kw">let </span>request_string = export(request, Format::HttpMessage);
+        <span class="kw">let </span>request_string = export(request, RequestFormat::HttpMessage);
 
         egui::CentralPanel::default().show(egui_ctx, |ui| {
             ui.heading(<span class="string">"Request"</span>);

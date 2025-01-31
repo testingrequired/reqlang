@@ -170,14 +170,91 @@
 <a href="#168" id="168">168</a>
 <a href="#169" id="169">169</a>
 <a href="#170" id="170">170</a>
+<a href="#171" id="171">171</a>
+<a href="#172" id="172">172</a>
+<a href="#173" id="173">173</a>
+<a href="#174" id="174">174</a>
+<a href="#175" id="175">175</a>
+<a href="#176" id="176">176</a>
+<a href="#177" id="177">177</a>
+<a href="#178" id="178">178</a>
+<a href="#179" id="179">179</a>
+<a href="#180" id="180">180</a>
+<a href="#181" id="181">181</a>
+<a href="#182" id="182">182</a>
+<a href="#183" id="183">183</a>
+<a href="#184" id="184">184</a>
+<a href="#185" id="185">185</a>
+<a href="#186" id="186">186</a>
+<a href="#187" id="187">187</a>
+<a href="#188" id="188">188</a>
+<a href="#189" id="189">189</a>
+<a href="#190" id="190">190</a>
+<a href="#191" id="191">191</a>
+<a href="#192" id="192">192</a>
+<a href="#193" id="193">193</a>
+<a href="#194" id="194">194</a>
+<a href="#195" id="195">195</a>
+<a href="#196" id="196">196</a>
+<a href="#197" id="197">197</a>
+<a href="#198" id="198">198</a>
+<a href="#199" id="199">199</a>
+<a href="#200" id="200">200</a>
+<a href="#201" id="201">201</a>
+<a href="#202" id="202">202</a>
+<a href="#203" id="203">203</a>
+<a href="#204" id="204">204</a>
+<a href="#205" id="205">205</a>
+<a href="#206" id="206">206</a>
+<a href="#207" id="207">207</a>
+<a href="#208" id="208">208</a>
+<a href="#209" id="209">209</a>
+<a href="#210" id="210">210</a>
+<a href="#211" id="211">211</a>
+<a href="#212" id="212">212</a>
+<a href="#213" id="213">213</a>
+<a href="#214" id="214">214</a>
+<a href="#215" id="215">215</a>
+<a href="#216" id="216">216</a>
+<a href="#217" id="217">217</a>
+<a href="#218" id="218">218</a>
+<a href="#219" id="219">219</a>
+<a href="#220" id="220">220</a>
+<a href="#221" id="221">221</a>
+<a href="#222" id="222">222</a>
+<a href="#223" id="223">223</a>
+<a href="#224" id="224">224</a>
+<a href="#225" id="225">225</a>
+<a href="#226" id="226">226</a>
+<a href="#227" id="227">227</a>
+<a href="#228" id="228">228</a>
+<a href="#229" id="229">229</a>
+<a href="#230" id="230">230</a>
+<a href="#231" id="231">231</a>
+<a href="#232" id="232">232</a>
+<a href="#233" id="233">233</a>
+<a href="#234" id="234">234</a>
+<a href="#235" id="235">235</a>
+<a href="#236" id="236">236</a>
+<a href="#237" id="237">237</a>
+<a href="#238" id="238">238</a>
+<a href="#239" id="239">239</a>
+<a href="#240" id="240">240</a>
+<a href="#241" id="241">241</a>
+<a href="#242" id="242">242</a>
+<a href="#243" id="243">243</a>
+<a href="#244" id="244">244</a>
+<a href="#245" id="245">245</a>
+<a href="#246" id="246">246</a>
+<a href="#247" id="247">247</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{fmt::Display, str::FromStr};
 
 <span class="kw">use </span>serde::{Deserialize, Serialize};
-<span class="kw">use </span>types::http::HttpRequest;
+<span class="kw">use </span>types::http::{HttpRequest, HttpResponse};
 
 <span class="doccomment">/// Supported formats to export request files to
 </span><span class="attr">#[derive(Copy, Clone, PartialEq, Eq, Debug, Serialize, Deserialize, Default)]
-</span><span class="kw">pub enum </span>Format {
+</span><span class="kw">pub enum </span>RequestFormat {
     <span class="doccomment">/// Export as an HTTP Request message
     </span>HttpMessage,
     <span class="doccomment">/// Export as a curl command
@@ -187,17 +264,17 @@
     </span>Json,
 }
 
-<span class="kw">impl </span>Display <span class="kw">for </span>Format {
+<span class="kw">impl </span>Display <span class="kw">for </span>RequestFormat {
     <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>std::fmt::Formatter&lt;<span class="lifetime">'_</span>&gt;) -&gt; std::fmt::Result {
         <span class="kw">match </span><span class="self">self </span>{
-            Format::HttpMessage =&gt; <span class="macro">write!</span>(f, <span class="string">"http"</span>),
-            Format::CurlCommand =&gt; <span class="macro">write!</span>(f, <span class="string">"curl"</span>),
-            Format::Json =&gt; <span class="macro">write!</span>(f, <span class="string">"json"</span>),
+            RequestFormat::HttpMessage =&gt; <span class="macro">write!</span>(f, <span class="string">"http"</span>),
+            RequestFormat::CurlCommand =&gt; <span class="macro">write!</span>(f, <span class="string">"curl"</span>),
+            RequestFormat::Json =&gt; <span class="macro">write!</span>(f, <span class="string">"json"</span>),
         }
     }
 }
 
-<span class="kw">impl </span>FromStr <span class="kw">for </span>Format {
+<span class="kw">impl </span>FromStr <span class="kw">for </span>RequestFormat {
     <span class="kw">type </span><span class="prelude-val">Err </span>= String;
 
     <span class="kw">fn </span>from_str(s: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, <span class="self">Self</span>::Err&gt; {
@@ -210,15 +287,15 @@
     }
 }
 
-<span class="doccomment">/// Export an [HttpRequest] in a specified [Format].
-</span><span class="kw">pub fn </span>export(request: <span class="kw-2">&amp;</span>HttpRequest, format: Format) -&gt; String {
+<span class="doccomment">/// Export an [HttpRequest] in a specified [RequestFormat].
+</span><span class="kw">pub fn </span>export(request: <span class="kw-2">&amp;</span>HttpRequest, format: RequestFormat) -&gt; String {
     <span class="kw">match </span>format {
         <span class="comment">// HTTP Request message
-        </span>Format::HttpMessage =&gt; {
+        </span>RequestFormat::HttpMessage =&gt; {
             <span class="macro">format!</span>(<span class="string">"{}"</span>, request)
         }
         <span class="comment">// Curl command
-        </span>Format::CurlCommand =&gt; {
+        </span>RequestFormat::CurlCommand =&gt; {
             <span class="kw">let </span>request_verb_flag = <span class="kw">match </span>request.verb.<span class="number">0</span>.as_str() {
                 <span class="string">"GET" </span>=&gt; String::new(),
                 verb =&gt; <span class="macro">format!</span>(<span class="string">"-X {} "</span>, verb),
@@ -261,15 +338,56 @@
                 request_verb_flag, request_url, request.http_version, headers_and_body_args
             )
         }
-        Format::Json =&gt; serde_json::to_string_pretty(request).unwrap(),
+        RequestFormat::Json =&gt; serde_json::to_string_pretty(request).unwrap(),
+    }
+}
+
+<span class="doccomment">/// Supported formats to export request files to
+</span><span class="attr">#[derive(Copy, Clone, PartialEq, Eq, Debug, Serialize, Deserialize, Default)]
+</span><span class="kw">pub enum </span>ResponseFormat {
+    <span class="doccomment">/// Export as an HTTP Response message
+    </span>HttpMessage,
+    <span class="doccomment">/// Export as a JSON object
+    </span><span class="attr">#[default]
+    </span>Json,
+}
+
+<span class="kw">impl </span>Display <span class="kw">for </span>ResponseFormat {
+    <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>std::fmt::Formatter&lt;<span class="lifetime">'_</span>&gt;) -&gt; std::fmt::Result {
+        <span class="kw">match </span><span class="self">self </span>{
+            ResponseFormat::HttpMessage =&gt; <span class="macro">write!</span>(f, <span class="string">"http"</span>),
+            ResponseFormat::Json =&gt; <span class="macro">write!</span>(f, <span class="string">"json"</span>),
+        }
+    }
+}
+
+<span class="kw">impl </span>FromStr <span class="kw">for </span>ResponseFormat {
+    <span class="kw">type </span><span class="prelude-val">Err </span>= String;
+
+    <span class="kw">fn </span>from_str(s: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, <span class="self">Self</span>::Err&gt; {
+        <span class="kw">match </span>s {
+            <span class="string">"http" </span>=&gt; <span class="prelude-val">Ok</span>(<span class="self">Self</span>::HttpMessage),
+            <span class="string">"json" </span>=&gt; <span class="prelude-val">Ok</span>(<span class="self">Self</span>::Json),
+            <span class="kw">_ </span>=&gt; <span class="prelude-val">Err</span>(<span class="macro">format!</span>(<span class="string">"Unknown format: {s}"</span>)),
+        }
+    }
+}
+
+<span class="doccomment">/// Export an [HttpResponse] in a specified [ResponseFormat].
+</span><span class="kw">pub fn </span>export_response(response: <span class="kw-2">&amp;</span>HttpResponse, format: ResponseFormat) -&gt; String {
+    <span class="kw">match </span>format {
+        ResponseFormat::HttpMessage =&gt; <span class="macro">format!</span>(<span class="string">"{}"</span>, response),
+        ResponseFormat::Json =&gt; serde_json::to_string_pretty(response).unwrap(),
     }
 }
 
 <span class="attr">#[cfg(test)]
 </span><span class="kw">mod </span>test {
-    <span class="kw">use </span>types::http::HttpRequest;
+    <span class="kw">use </span>std::collections::HashMap;
 
-    <span class="kw">use </span><span class="kw">crate</span>::export;
+    <span class="kw">use </span>types::http::{HttpRequest, HttpResponse, HttpStatusCode, HttpVersion};
+
+    <span class="kw">use crate</span>::{export, export_response};
 
     <span class="macro">macro_rules!</span> export_test {
         (<span class="macro-nonterminal">$test_name</span>:ident, <span class="macro-nonterminal">$request</span>:expr, <span class="macro-nonterminal">$format</span>:expr, <span class="macro-nonterminal">$expected</span>:expr) =&gt; {
@@ -281,24 +399,34 @@
         };
     }
 
+    <span class="macro">macro_rules!</span> export_response_test {
+        (<span class="macro-nonterminal">$test_name</span>:ident, <span class="macro-nonterminal">$response</span>:expr, <span class="macro-nonterminal">$format</span>:expr, <span class="macro-nonterminal">$expected</span>:expr) =&gt; {
+            <span class="attr">#[test]
+            </span><span class="kw">fn </span><span class="macro-nonterminal">$test_name</span>() {
+                <span class="kw">let </span>actual = export_response(<span class="kw-2">&amp;</span><span class="macro-nonterminal">$response</span>, <span class="macro-nonterminal">$format</span>);
+                <span class="macro">assert_eq!</span>(<span class="macro-nonterminal">$expected</span>, actual);
+            }
+        };
+    }
+
     <span class="macro">export_test!</span>(
         format_to_curl_get_request,
         HttpRequest::get(<span class="string">"/"</span>, <span class="string">"1.1"</span>, <span class="macro">vec!</span>[]),
-        <span class="kw">crate</span>::Format::CurlCommand,
+        <span class="kw">crate</span>::RequestFormat::CurlCommand,
         <span class="string">"curl / --http1.1 -v"
     </span>);
 
     <span class="macro">export_test!</span>(
         format_to_curl_get_request_with_single_header,
         HttpRequest::get(<span class="string">"/"</span>, <span class="string">"1.1"</span>, <span class="macro">vec!</span>[(<span class="string">"test"</span>.to_string(), <span class="string">"value"</span>.to_string())]),
-        <span class="kw">crate</span>::Format::CurlCommand,
+        <span class="kw">crate</span>::RequestFormat::CurlCommand,
         <span class="string">"curl / --http1.1 -H \"test: value\" -v"
     </span>);
 
     <span class="macro">export_test!</span>(
         format_to_curl_post_request,
         HttpRequest::post(<span class="string">"/"</span>, <span class="string">"1.1"</span>, <span class="macro">vec!</span>[], <span class="prelude-val">Some</span>(<span class="string">""</span>)),
-        <span class="kw">crate</span>::Format::CurlCommand,
+        <span class="kw">crate</span>::RequestFormat::CurlCommand,
         <span class="string">"curl -X POST / --http1.1 -v"
     </span>);
 
@@ -310,7 +438,7 @@
             <span class="macro">vec!</span>[(<span class="string">"test"</span>.to_string(), <span class="string">"value"</span>.to_string())],
             <span class="prelude-val">None
         </span>),
-        <span class="kw">crate</span>::Format::CurlCommand,
+        <span class="kw">crate</span>::RequestFormat::CurlCommand,
         <span class="string">"curl -X POST / --http1.1 -H \"test: value\" -v"
     </span>);
 
@@ -322,22 +450,48 @@
             <span class="macro">vec!</span>[(<span class="string">"test"</span>.to_string(), <span class="string">"value"</span>.to_string())],
             <span class="prelude-val">Some</span>(<span class="string">"testing"</span>)
         ),
-        <span class="kw">crate</span>::Format::CurlCommand,
+        <span class="kw">crate</span>::RequestFormat::CurlCommand,
         <span class="string">"curl -X POST / --http1.1 -H \"test: value\" -d 'testing' -v"
     </span>);
 
     <span class="macro">export_test!</span>(
         format_to_http_get_request,
         HttpRequest::get(<span class="string">"/"</span>, <span class="string">"1.1"</span>, <span class="macro">vec!</span>[]),
-        <span class="kw">crate</span>::Format::HttpMessage,
+        <span class="kw">crate</span>::RequestFormat::HttpMessage,
         <span class="string">"GET / HTTP/1.1\n"
     </span>);
 
     <span class="macro">export_test!</span>(
         format_to_http_post_request,
         HttpRequest::post(<span class="string">"/"</span>, <span class="string">"1.1"</span>, <span class="macro">vec!</span>[], <span class="prelude-val">Some</span>(<span class="string">"[1, 2, 3]\n"</span>)),
-        <span class="kw">crate</span>::Format::HttpMessage,
+        <span class="kw">crate</span>::RequestFormat::HttpMessage,
         <span class="string">"POST / HTTP/1.1\n\n[1, 2, 3]\n"
+    </span>);
+
+    <span class="macro">export_response_test!</span>(
+        format_response_to_http,
+        HttpResponse {
+            http_version: HttpVersion::one_point_one(),
+            status_code: HttpStatusCode::new(<span class="number">200</span>),
+            status_text: <span class="string">"OK"</span>.into(),
+            headers: HashMap::new(),
+            body: <span class="prelude-val">Some</span>(<span class="string">""</span>.to_owned())
+        },
+        <span class="kw">crate</span>::ResponseFormat::HttpMessage,
+        <span class="string">"HTTP/1.1 200 OK\n"
+    </span>);
+
+    <span class="macro">export_response_test!</span>(
+        format_response_to_http_with_headers,
+        HttpResponse {
+            http_version: HttpVersion::one_point_one(),
+            status_code: HttpStatusCode::new(<span class="number">200</span>),
+            status_text: <span class="string">"OK"</span>.into(),
+            headers: HashMap::from([(<span class="string">"content-type"</span>.to_string(), <span class="string">"application/json"</span>.to_string())]),
+            body: <span class="prelude-val">Some</span>(<span class="string">""</span>.to_owned())
+        },
+        <span class="kw">crate</span>::ResponseFormat::HttpMessage,
+        <span class="string">"HTTP/1.1 200 OK\ncontent-type: application/json\n"
     </span>);
 }
 </code></pre></div></section></main></body></html>
