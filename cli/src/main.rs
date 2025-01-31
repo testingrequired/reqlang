@@ -1,6 +1,9 @@
 use clap::builder::PossibleValuesParser;
 use clap::{crate_authors, crate_description, crate_version, Arg, ArgMatches, Command};
-use reqlang::{export_response, parse, HttpRequestFetcher, ParseResult, ResponseFormat};
+use reqlang::{
+    assert_response::assert_response, export_response, parse, HttpRequestFetcher, ParseResult,
+    ResponseFormat,
+};
 use std::{collections::HashMap, fs, process::exit};
 
 use reqlang::{diagnostics::get_diagnostics, export, template, Fetch, RequestFormat};
@@ -101,6 +104,8 @@ fn parse_command(matches: &ArgMatches) {
 }
 
 async fn run_command(matches: &ArgMatches) {
+    // CLI Args
+
     let path = matches.get_one::<String>("path").unwrap();
 
     let default_env = String::from("default");
@@ -121,21 +126,39 @@ async fn run_command(matches: &ArgMatches) {
         .map(|f| f.parse::<ResponseFormat>().unwrap())
         .unwrap_or(ResponseFormat::HttpMessage);
 
+    let is_testing_response = matches.get_flag("test");
+
+    // Read the request file
+
     let contents = fs::read_to_string(path).expect("Should have been able to read the file");
-
     let provider_values = HashMap::from([(String::from("env"), env.clone())]);
-
     let reqfile = template(&contents, env, &prompts, &secrets, &provider_values);
+
+    // Execute the request
 
     match reqfile {
         Ok(reqfile) => {
             let fetcher: HttpRequestFetcher = reqfile.request.into();
-
             let response = fetcher.fetch().await;
 
             match &response {
                 Ok(response) => {
-                    println!("{}", export_response(response, format));
+                    // Check if the `--test` flag was passed
+                    if is_testing_response {
+                        // Check if the request file has a response assertion defined
+                        if let Some(expected_response) = &reqfile.response {
+                            // Compare the actual response with the expected response
+                            if let Err(diffs) = assert_response(expected_response, response) {
+                                eprintln!("Response did not match expected response: {:#?}", diffs);
+                                exit(1);
+                            }
+                        }
+                    }
+
+                    // Format the response as specified by the `--format` flag
+                    let formatted_response = export_response(response, format);
+
+                    println!("{}", formatted_response);
                     exit(0);
                 }
                 Err(err) => {
@@ -218,14 +241,14 @@ async fn main() {
                         .short('P')
                         .long("prompt")
                         .value_parser(parse_key_val::<String, String>)
-                        .help("Pass prompt values to resolve with"),
+                        .help("Input a prompt value"),
                 )
                 .arg(
                     Arg::new("secrets")
                         .short('S')
                         .long("secret")
                         .value_parser(parse_key_val::<String, String>)
-                        .help("Pass secret values to resolve with"),
+                        .help("Input a secret value"),
                 )
                 .arg(
                     Arg::new("format")
@@ -233,7 +256,15 @@ async fn main() {
                         .long("format")
                         .default_value("http")
                         .value_parser(PossibleValuesParser::new(["http", "json"]))
-                        .help("Format to export response"),
+                        .help("Format the response"),
+                )
+                .arg(
+                    // an bool flag called test
+                    Arg::new("test")
+                        .short('t')
+                        .long("test")
+                        .num_args(0)
+                        .help("Test if the response matches the expected response, if defined"),
                 ),
         )
         .get_matches();
@@ -547,7 +578,6 @@ mod tests {
         ));
     }
 
-    // Write a test to run the status code request file
     #[test]
     fn run_status_code_request_file() {
         let mut cmd = Command::cargo_bin("reqlang").unwrap();
@@ -556,6 +586,20 @@ mod tests {
             .arg("../examples/valid/status_code.reqlang")
             .arg("--prompt")
             .arg("status_code=200")
+            .assert();
+
+        assert.success().code(0);
+    }
+
+    #[test]
+    fn run_status_code_request_file_with_response_assertion() {
+        let mut cmd = Command::cargo_bin("reqlang").unwrap();
+        let assert = cmd
+            .arg("run")
+            .arg("../examples/valid/status_code.reqlang")
+            .arg("--prompt")
+            .arg("status_code=200")
+            .arg("--test")
             .assert();
 
         assert.success().code(0);
@@ -632,5 +676,49 @@ mod tests {
             "\n",
             "For more information, try '--help'.\n"
         ));
+    }
+
+    #[test]
+    fn run_mismatch_response_with_response_assertion() {
+        let mut cmd = Command::cargo_bin("reqlang").unwrap();
+        let assert = cmd
+            .arg("run")
+            .arg("../examples/invalid/mismatch_response.reqlang")
+            .arg("--test")
+            .assert();
+
+        let expected_stderr = textwrap::dedent(
+            "
+            Response did not match expected response: [
+                StatusCode {
+                    expected: HttpStatusCode(
+                        200,
+                    ),
+                    actual: HttpStatusCode(
+                        201,
+                    ),
+                },
+                StatusText {
+                    expected: \"OK\",
+                    actual: \"Created\",
+                },
+            ]
+            ",
+        )
+        .trim_start()
+        .to_string();
+
+        assert.failure().code(1).stderr(expected_stderr);
+    }
+
+    #[test]
+    fn run_mismatch_response_without_response_assertion() {
+        let mut cmd = Command::cargo_bin("reqlang").unwrap();
+        let assert = cmd
+            .arg("run")
+            .arg("../examples/invalid/mismatch_response.reqlang")
+            .assert();
+
+        assert.success().code(0);
     }
 }

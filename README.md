@@ -252,9 +252,11 @@ Arguments:
 
 Options:
   -e, --env <env>         Resolve with an environment
-  -P, --prompt <prompts>  Pass prompt values to resolve with
-  -S, --secret <secrets>  Pass secret values to resolve with
-  -f, --format <format>   Format to export response [default: http] [possible values: http, json]
+  -P, --prompt <prompts>  Input a prompt value
+  -S, --secret <secrets>  Input a secret value
+  -f, --format <format>   Format the response [default: http] [possible values: http, json]
+  -t, --test              Test if the response matches the expected response, if defined
+  -h, --help              Print help
 ```
 
 ##### Example
@@ -271,6 +273,31 @@ content-length: 0
 server: gunicorn/19.9.0
 access-control-allow-credentials: true
 access-control-allow-origin: *
+```
+
+###### Running Response Assertions
+
+```shell
+reqlang run examples/invalid/mismatch_response.reqlang -t
+```
+
+See: [mismatch_response.reqlang](./examples/invalid/mismatch_response.reqlang)
+
+```
+Response did not match expected response: [
+    StatusCode {
+        expected: HttpStatusCode(
+            200,
+        ),
+        actual: HttpStatusCode(
+            201,
+        ),
+    },
+    StatusText {
+        expected: "OK",
+        actual: "Created",
+    },
+]
 ```
 
 #### Parse Request File

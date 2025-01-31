@@ -1,0 +1,11 @@
+This request file is to test a failing response assertion.
+
+```%request
+GET https://httpbin.org/status/201 HTTP/1.1
+```
+
+The status code in the response assertion doesn't match the status code specified in the request.
+
+```%response
+HTTP/1.1 200 OK
+```
