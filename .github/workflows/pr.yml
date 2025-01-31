@@ -13,7 +13,7 @@ jobs:
           components: clippy, rustfmt
           toolchain: 1.78.0
       - uses: Swatinem/rust-cache@v1
-      - uses: actions/setup-node@v3
+      - uses: actions/setup-node@v4
         with:
           cache: npm
           cache-dependency-path: vsc/package-lock.json
