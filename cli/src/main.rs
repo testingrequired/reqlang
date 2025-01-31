@@ -1,9 +1,9 @@
 use clap::builder::PossibleValuesParser;
 use clap::{crate_authors, crate_description, crate_version, Arg, ArgMatches, Command};
-use reqlang::{parse, ParseResult};
+use reqlang::{parse, HttpRequestFetcher, ParseResult};
 use std::{collections::HashMap, fs, process::exit};
 
-use reqlang::{diagnostics::get_diagnostics, export, template, Format};
+use reqlang::{diagnostics::get_diagnostics, export, template, Fetch, Format};
 
 use std::error::Error;
 
@@ -100,7 +100,62 @@ fn parse_command(matches: &ArgMatches) {
     }
 }
 
-fn main() {
+async fn run_comand(matches: &ArgMatches) {
+    let path = matches.get_one::<String>("path").unwrap();
+
+    let default_env = String::from("default");
+    let env = matches.get_one::<String>("env").unwrap_or(&default_env);
+
+    let prompts = matches
+        .get_many::<(String, String)>("prompts")
+        .map(|values| values.cloned().collect::<HashMap<String, String>>())
+        .unwrap_or_default();
+
+    let secrets = matches
+        .get_many::<(String, String)>("secrets")
+        .map(|values| values.cloned().collect::<HashMap<String, String>>())
+        .unwrap_or_default();
+
+    let contents = fs::read_to_string(path).expect("Should have been able to read the file");
+
+    let provider_values = HashMap::from([(String::from("env"), env.clone())]);
+
+    let reqfile = template(&contents, env, &prompts, &secrets, &provider_values);
+
+    match reqfile {
+        Ok(reqfile) => {
+            let fetcher: HttpRequestFetcher = reqfile.request.into();
+
+            let response = fetcher.fetch().await;
+
+            match response {
+                Ok(response) => {
+                    println!("{:?}", response);
+                    exit(0);
+                }
+                Err(err) => {
+                    eprintln!("Error occurred while making the request: {err:?}");
+                    exit(1);
+                }
+            }
+        }
+        Err(errs) => {
+            let diagnostics = get_diagnostics(&errs, &contents);
+
+            if !diagnostics.is_empty() {
+                eprintln!("Invalid request file or errors with input");
+                let json = serde_json::to_string_pretty(&diagnostics).unwrap();
+                println!("{json}");
+                exit(1);
+            }
+        }
+    };
+}
+
+#[tokio::main]
+async fn main() {
+    let path_arg = Arg::new("path").required(true).help("Path to request file");
+
     let matches = Command::new("reqlang")
         .version(crate_version!())
         .author(crate_authors!("\n"))
@@ -108,7 +163,7 @@ fn main() {
         .subcommand(
             Command::new("export")
                 .about("Export request to specified format")
-                .arg(Arg::new("path").required(true).help("Path to request file"))
+                .arg(path_arg.clone())
                 .arg(
                     Arg::new("env")
                         .short('e')
@@ -141,13 +196,39 @@ fn main() {
         .subcommand(
             Command::new("parse")
                 .about("Parse a request file")
-                .arg(Arg::new("path").required(true).help("Path to request file")),
+                .arg(path_arg.clone()),
+        )
+        .subcommand(
+            Command::new("run")
+                .about("Run a request file")
+                .arg(path_arg.clone())
+                .arg(
+                    Arg::new("env")
+                        .short('e')
+                        .long("env")
+                        .help("Resolve with an environment"),
+                )
+                .arg(
+                    Arg::new("prompts")
+                        .short('P')
+                        .long("prompt")
+                        .value_parser(parse_key_val::<String, String>)
+                        .help("Pass prompt values to resolve with"),
+                )
+                .arg(
+                    Arg::new("secrets")
+                        .short('S')
+                        .long("secret")
+                        .value_parser(parse_key_val::<String, String>)
+                        .help("Pass secret values to resolve with"),
+                ),
         )
         .get_matches();
 
     match matches.subcommand() {
         Some(("export", sub_matches)) => export_command(sub_matches),
         Some(("parse", sub_matches)) => parse_command(sub_matches),
+        Some(("run", sub_matches)) => run_comand(sub_matches).await,
         _ => eprintln!("No valid subcommand provided. Use --help for more information."),
     }
 }
@@ -441,6 +522,74 @@ mod tests {
 
         let assert = cmd
             .arg("export")
+            .arg("../examples/valid/status_code.reqlang")
+            .arg("-P")
+            .arg("404")
+            .assert();
+
+        assert.failure().stderr(concat!(
+            "error: invalid value '404' for '--prompt <prompts>': should be formatted as key=value pair: `404`\n",
+            "\n",
+            "For more information, try '--help'.\n"
+        ));
+    }
+
+    // Write a test to run the status code request file
+    #[test]
+    fn run_status_code_request_file() {
+        let mut cmd = Command::cargo_bin("reqlang").unwrap();
+        let assert = cmd
+            .arg("run")
+            .arg("../examples/valid/status_code.reqlang")
+            .arg("--prompt")
+            .arg("status_code=200")
+            .assert();
+
+        assert.success();
+    }
+
+    #[test]
+    fn run_invalid_prompt_value_using_space() {
+        let mut cmd = Command::cargo_bin("reqlang").unwrap();
+
+        let assert = cmd
+            .arg("run")
+            .arg("../examples/valid/status_code.reqlang")
+            .arg("-P")
+            .arg("status_code 404")
+            .assert();
+
+        assert.failure().stderr(concat!(
+            "error: invalid value 'status_code 404' for '--prompt <prompts>': should be formatted as key=value pair: `status_code 404`\n",
+            "\n",
+            "For more information, try '--help'.\n"
+        ));
+    }
+
+    #[test]
+    fn run_invalid_prompt_value_just_key() {
+        let mut cmd = Command::cargo_bin("reqlang").unwrap();
+
+        let assert = cmd
+            .arg("run")
+            .arg("../examples/valid/status_code.reqlang")
+            .arg("-P")
+            .arg("status_code")
+            .assert();
+
+        assert.failure().stderr(concat!(
+            "error: invalid value 'status_code' for '--prompt <prompts>': should be formatted as key=value pair: `status_code`\n",
+            "\n",
+            "For more information, try '--help'.\n"
+        ));
+    }
+
+    #[test]
+    fn run_invalid_prompt_value_just_value() {
+        let mut cmd = Command::cargo_bin("reqlang").unwrap();
+
+        let assert = cmd
+            .arg("run")
             .arg("../examples/valid/status_code.reqlang")
             .arg("-P")
             .arg("404")

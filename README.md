@@ -240,7 +240,33 @@ These act as both tooling for request file and reference implementations for cli
 
 The [`reqlang`](./cli) CLI validates and exports requests in to a variety of formats (`http`, `curl`, `json`).
 
-#### Parsing
+#### Execute Request
+
+Run a request file.
+
+```
+Usage: reqlang run [OPTIONS] <path>
+
+Arguments:
+  <path>  Path to request file
+
+Options:
+  -e, --env <env>         Specify the environment to execute in
+  -P, --prompt <prompts>  Prompts required by request file
+  -S, --secret <secrets>  Secrets required by request file
+```
+
+##### Example
+
+```shell
+reqlang run ./examples/valid/status_code.reqlang --prompt status_code=200
+```
+
+```
+HttpResponse { http_version: HttpVersion("1.1"), status_code: HttpStatusCode(200), status_text: "OK", headers: {"content-length": "0", "connection": "keep-alive", "server": "gunicorn/19.9.0", "content-type": "text/html; charset=utf-8", "access-control-allow-credentials": "true", "date": "...", "access-control-allow-origin": "*"}, body: Some("") }
+```
+
+#### Parse Request File
 
 Validate and parse request files. It returns a JSON object with info about the request file: environment names, variables, prompts, secrets, the (untemplated) request itself.
 
