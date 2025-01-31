@@ -10,12 +10,12 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy, rustfmt
           toolchain: 1.78.0
-      - uses: Swatinem/rust-cache@v1
+      - uses: Swatinem/rust-cache@v2
       - uses: actions/setup-node@v4
         with:
           cache: npm
@@ -27,7 +27,7 @@ jobs:
           tool: just
       - name: Install packages (Linux)
         if: runner.os == 'Linux'
-        uses: awalsh128/cache-apt-pkgs-action@v1.4.2
+        uses: awalsh128/cache-apt-pkgs-action@v1.4.3
         with:
           # Required for egui in reqlang-client
           # https://github.com/emilk/egui/blob/master/.github/workflows/rust.yml#L23C7-L29C40
@@ -42,12 +42,12 @@ jobs:
     runs-on: ubuntu-latest
     needs: [verify]
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy, rustfmt
           toolchain: 1.78.0
-      - uses: Swatinem/rust-cache@v1
+      - uses: Swatinem/rust-cache@v2
       - uses: actions/setup-node@v4
         with:
           cache: npm
@@ -59,7 +59,7 @@ jobs:
           tool: just
       - name: Install packages (Linux)
         if: runner.os == 'Linux'
-        uses: awalsh128/cache-apt-pkgs-action@v1.4.2
+        uses: awalsh128/cache-apt-pkgs-action@v1.4.3
         with:
           # Required for egui in reqlang-client
           # https://github.com/emilk/egui/blob/master/.github/workflows/rust.yml#L23C7-L29C40
@@ -83,12 +83,12 @@ jobs:
     runs-on: ubuntu-latest
     needs: [verify]
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy, rustfmt
           toolchain: 1.78.0
-      - uses: Swatinem/rust-cache@v1
+      - uses: Swatinem/rust-cache@v2
       - uses: actions/setup-node@v4
         with:
           cache: npm
@@ -100,7 +100,7 @@ jobs:
           tool: just
       - name: Install packages (Linux)
         if: runner.os == 'Linux'
-        uses: awalsh128/cache-apt-pkgs-action@v1.4.2
+        uses: awalsh128/cache-apt-pkgs-action@v1.4.3
         with:
           # Required for egui in reqlang-client
           # https://github.com/emilk/egui/blob/master/.github/workflows/rust.yml#L23C7-L29C40
@@ -133,12 +133,12 @@ jobs:
     runs-on: windows-latest
     needs: [verify]
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy, rustfmt
           toolchain: 1.78.0
-      - uses: Swatinem/rust-cache@v1
+      - uses: Swatinem/rust-cache@v2
       - uses: actions/setup-node@v4
         with:
           cache: npm
