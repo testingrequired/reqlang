@@ -11,3 +11,4 @@ esbuild-build.mjs
 .nvmrc
 justfile
 **/*.test.{js,ts}
+*.png
