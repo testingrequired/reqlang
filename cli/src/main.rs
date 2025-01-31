@@ -683,7 +683,7 @@ mod tests {
         let mut cmd = Command::cargo_bin("reqlang").unwrap();
         let assert = cmd
             .arg("run")
-            .arg("../examples/invalid/mismatch_response.reqlang")
+            .arg("../examples/valid/mismatch_response.reqlang")
             .arg("--test")
             .assert();
 
@@ -716,7 +716,7 @@ mod tests {
         let mut cmd = Command::cargo_bin("reqlang").unwrap();
         let assert = cmd
             .arg("run")
-            .arg("../examples/invalid/mismatch_response.reqlang")
+            .arg("../examples/valid/mismatch_response.reqlang")
             .assert();
 
         assert.success().code(0);

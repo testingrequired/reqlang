@@ -278,10 +278,10 @@ access-control-allow-origin: *
 ###### Running Response Assertions
 
 ```shell
-reqlang run examples/invalid/mismatch_response.reqlang -t
+reqlang run examples/valid/mismatch_response.reqlang -t
 ```
 
-See: [mismatch_response.reqlang](./examples/invalid/mismatch_response.reqlang)
+See: [mismatch_response.reqlang](./examples/valid/mismatch_response.reqlang)
 
 ```
 Response did not match expected response: [
