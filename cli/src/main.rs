@@ -1,6 +1,6 @@
 use clap::builder::PossibleValuesParser;
 use clap::{crate_authors, crate_description, crate_version, Arg, ArgMatches, Command};
-use reqlang::{parse, HttpRequestFetcher, ParseResult};
+use reqlang::{export_response, parse, HttpRequestFetcher, ParseResult, ResponseFormat};
 use std::{collections::HashMap, fs, process::exit};
 
 use reqlang::{diagnostics::get_diagnostics, export, template, Fetch, RequestFormat};
@@ -116,6 +116,11 @@ async fn run_command(matches: &ArgMatches) {
         .map(|values| values.cloned().collect::<HashMap<String, String>>())
         .unwrap_or_default();
 
+    let format = matches
+        .get_one::<String>("format")
+        .map(|f| f.parse::<ResponseFormat>().unwrap())
+        .unwrap_or(ResponseFormat::HttpMessage);
+
     let contents = fs::read_to_string(path).expect("Should have been able to read the file");
 
     let provider_values = HashMap::from([(String::from("env"), env.clone())]);
@@ -130,7 +135,7 @@ async fn run_command(matches: &ArgMatches) {
 
             match &response {
                 Ok(response) => {
-                    println!("{}", response);
+                    println!("{}", export_response(response, format));
                     exit(0);
                 }
                 Err(err) => {
@@ -221,6 +226,14 @@ async fn main() {
                         .long("secret")
                         .value_parser(parse_key_val::<String, String>)
                         .help("Pass secret values to resolve with"),
+                )
+                .arg(
+                    Arg::new("format")
+                        .short('f')
+                        .long("format")
+                        .default_value("http")
+                        .value_parser(PossibleValuesParser::new(["http", "json"]))
+                        .help("Format to export response"),
                 ),
         )
         .get_matches();
@@ -597,6 +610,25 @@ mod tests {
 
         assert.failure().stderr(concat!(
             "error: invalid value '404' for '--prompt <prompts>': should be formatted as key=value pair: `404`\n",
+            "\n",
+            "For more information, try '--help'.\n"
+        ));
+    }
+
+    #[test]
+    fn run_with_invalid_format() {
+        let mut cmd = Command::cargo_bin("reqlang").unwrap();
+
+        let assert = cmd
+            .arg("run")
+            .arg("../examples/valid/status_code.reqlang")
+            .arg("-f")
+            .arg("invalid")
+            .assert();
+
+        assert.failure().stderr(concat!(
+            "error: invalid value 'invalid' for '--format <format>'\n",
+            "  [possible values: http, json]\n",
             "\n",
             "For more information, try '--help'.\n"
         ));

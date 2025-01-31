@@ -242,7 +242,7 @@ The [`reqlang`](./cli) CLI validates and exports requests in to a variety of for
 
 #### Execute Request
 
-Run a request file.
+Execute the request from a request file.
 
 ```
 Usage: reqlang run [OPTIONS] <path>
@@ -251,9 +251,10 @@ Arguments:
   <path>  Path to request file
 
 Options:
-  -e, --env <env>         Specify the environment to execute in
-  -P, --prompt <prompts>  Prompts required by request file
-  -S, --secret <secrets>  Secrets required by request file
+  -e, --env <env>         Resolve with an environment
+  -P, --prompt <prompts>  Pass prompt values to resolve with
+  -S, --secret <secrets>  Pass secret values to resolve with
+  -f, --format <format>   Format to export response [default: http] [possible values: http, json]
 ```
 
 ##### Example

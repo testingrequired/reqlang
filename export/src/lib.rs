@@ -103,13 +103,33 @@ pub enum ResponseFormat {
     Json,
 }
 
+impl Display for ResponseFormat {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ResponseFormat::HttpMessage => write!(f, "http"),
+            ResponseFormat::Json => write!(f, "json"),
+        }
+    }
+}
+
+impl FromStr for ResponseFormat {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "http" => Ok(Self::HttpMessage),
+            "json" => Ok(Self::Json),
+            _ => Err(format!("Unknown format: {s}")),
+        }
+    }
+}
+
 /// Export an [HttpResponse] in a specified [ResponseFormat].
 pub fn export_response(response: &HttpResponse, format: ResponseFormat) -> String {
-    if let ResponseFormat::HttpMessage = format {
-        return format!("{}", response);
+    match format {
+        ResponseFormat::HttpMessage => return format!("{}", response),
+        ResponseFormat::Json => serde_json::to_string_pretty(response).unwrap(),
     }
-
-    String::new()
 }
 
 #[cfg(test)]
