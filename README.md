@@ -1,6 +1,6 @@
 # Request Language
 
-A file format specification for defining HTTP requests, response assertions, and associated data/configuration in "request files".
+A file format specification for defining HTTP requests, response assertions, and configuration in "request files".
 
 ## Goals
 
