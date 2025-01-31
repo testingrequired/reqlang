@@ -3,7 +3,7 @@ use clap::{crate_authors, crate_description, crate_version, Arg, ArgMatches, Com
 use reqlang::{parse, HttpRequestFetcher, ParseResult};
 use std::{collections::HashMap, fs, process::exit};
 
-use reqlang::{diagnostics::get_diagnostics, export, template, Fetch, Format};
+use reqlang::{diagnostics::get_diagnostics, export, template, Fetch, RequestFormat};
 
 use std::error::Error;
 
@@ -47,8 +47,8 @@ fn export_command(matches: &ArgMatches) {
 
     let format = matches
         .get_one::<String>("format")
-        .map(|f| f.parse::<Format>().unwrap())
-        .unwrap_or(Format::HttpMessage);
+        .map(|f| f.parse::<RequestFormat>().unwrap())
+        .unwrap_or(RequestFormat::HttpMessage);
 
     let contents = fs::read_to_string(path).expect("Should have been able to read the file");
 
@@ -100,7 +100,7 @@ fn parse_command(matches: &ArgMatches) {
     }
 }
 
-async fn run_comand(matches: &ArgMatches) {
+async fn run_command(matches: &ArgMatches) {
     let path = matches.get_one::<String>("path").unwrap();
 
     let default_env = String::from("default");
@@ -128,9 +128,9 @@ async fn run_comand(matches: &ArgMatches) {
 
             let response = fetcher.fetch().await;
 
-            match response {
+            match &response {
                 Ok(response) => {
-                    println!("{:?}", response);
+                    println!("{}", response);
                     exit(0);
                 }
                 Err(err) => {
@@ -228,7 +228,7 @@ async fn main() {
     match matches.subcommand() {
         Some(("export", sub_matches)) => export_command(sub_matches),
         Some(("parse", sub_matches)) => parse_command(sub_matches),
-        Some(("run", sub_matches)) => run_comand(sub_matches).await,
+        Some(("run", sub_matches)) => run_command(sub_matches).await,
         _ => eprintln!("No valid subcommand provided. Use --help for more information."),
     }
 }
@@ -545,7 +545,7 @@ mod tests {
             .arg("status_code=200")
             .assert();
 
-        assert.success();
+        assert.success().code(0);
     }
 
     #[test]

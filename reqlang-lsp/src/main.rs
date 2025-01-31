@@ -7,7 +7,7 @@ use reqlang::{
     diagnostics::{
         get_diagnostics, Diagnosis, DiagnosisPosition, DiagnosisRange, DiagnosisSeverity,
     },
-    export, parse, template, Fetch, Format, HttpRequestFetcher, ParseResult, ReqlangError,
+    export, parse, template, Fetch, HttpRequestFetcher, ParseResult, ReqlangError, RequestFormat,
     RequestParamsFromClient, Spanned,
 };
 use reqwest::Url;
@@ -276,7 +276,7 @@ struct FromClientExportRequestParams {
     vars: HashMap<String, String>,
     prompts: HashMap<String, String>,
     secrets: HashMap<String, String>,
-    format: Format,
+    format: RequestFormat,
 }
 
 impl From<Value> for FromClientExportRequestParams {

@@ -263,7 +263,13 @@ reqlang run ./examples/valid/status_code.reqlang --prompt status_code=200
 ```
 
 ```
-HttpResponse { http_version: HttpVersion("1.1"), status_code: HttpStatusCode(200), status_text: "OK", headers: {"content-length": "0", "connection": "keep-alive", "server": "gunicorn/19.9.0", "content-type": "text/html; charset=utf-8", "access-control-allow-credentials": "true", "date": "...", "access-control-allow-origin": "*"}, body: Some("") }
+HTTP/1.1 200 OK
+content-type: text/html; charset=utf-8
+connection: keep-alive
+content-length: 0
+server: gunicorn/19.9.0
+access-control-allow-credentials: true
+access-control-allow-origin: *
 ```
 
 #### Parse Request File

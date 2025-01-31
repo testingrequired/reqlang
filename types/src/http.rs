@@ -1,4 +1,7 @@
-use std::{collections::HashMap, fmt::Display};
+use std::{
+    collections::HashMap,
+    fmt::{self, Display},
+};
 
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
@@ -219,6 +222,12 @@ impl TryFrom<String> for HttpStatusCode {
     }
 }
 
+impl fmt::Display for HttpStatusCode {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
 /// HTTP Response
 #[derive(Clone, Debug, PartialEq, Default, Serialize, Deserialize, TS)]
 #[ts(export)]
@@ -228,6 +237,43 @@ pub struct HttpResponse {
     pub status_text: String,
     pub headers: HashMap<String, String>,
     pub body: Option<String>,
+}
+
+impl Display for HttpResponse {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let headers = if self.headers.is_empty() {
+            None
+        } else {
+            Some(format!(
+                "{}\n",
+                self.headers
+                    .clone()
+                    .into_iter()
+                    .map(|x| format!("{}: {}", x.0, x.1))
+                    .collect::<Vec<String>>()
+                    .join("\n")
+                    .trim_end()
+            ))
+        };
+
+        let body = self
+            .body
+            .clone()
+            .and_then(|x| if x.is_empty() { None } else { Some(x) });
+
+        let the_rest = match (&headers, &body) {
+            (Some(headers), Some(body)) => format!("{headers}\n{body}"),
+            (Some(headers), None) => headers.to_string(),
+            (None, Some(body)) => format!("\n{body}"),
+            (None, None) => String::new(),
+        };
+
+        write!(
+            f,
+            "HTTP/{} {} {}\n{}",
+            self.http_version, self.status_code, self.status_text, the_rest
+        )
+    }
 }
 
 #[cfg(test)]
@@ -303,6 +349,11 @@ mod tests {
         #[case(511)]
         fn valid(#[case] status_code: u16) {
             matches!(HttpStatusCode::new(status_code), HttpStatusCode(_));
+        }
+
+        #[test]
+        fn to_string() {
+            assert_eq!("200", format!("{}", HttpStatusCode::new(200)));
         }
 
         #[rstest]

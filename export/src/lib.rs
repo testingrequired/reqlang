@@ -1,11 +1,11 @@
 use std::{fmt::Display, str::FromStr};
 
 use serde::{Deserialize, Serialize};
-use types::http::HttpRequest;
+use types::http::{HttpRequest, HttpResponse};
 
 /// Supported formats to export request files to
 #[derive(Copy, Clone, PartialEq, Eq, Debug, Serialize, Deserialize, Default)]
-pub enum Format {
+pub enum RequestFormat {
     /// Export as an HTTP Request message
     HttpMessage,
     /// Export as a curl command
@@ -15,17 +15,17 @@ pub enum Format {
     Json,
 }
 
-impl Display for Format {
+impl Display for RequestFormat {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Format::HttpMessage => write!(f, "http"),
-            Format::CurlCommand => write!(f, "curl"),
-            Format::Json => write!(f, "json"),
+            RequestFormat::HttpMessage => write!(f, "http"),
+            RequestFormat::CurlCommand => write!(f, "curl"),
+            RequestFormat::Json => write!(f, "json"),
         }
     }
 }
 
-impl FromStr for Format {
+impl FromStr for RequestFormat {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -38,15 +38,15 @@ impl FromStr for Format {
     }
 }
 
-/// Export an [HttpRequest] in a specified [Format].
-pub fn export(request: &HttpRequest, format: Format) -> String {
+/// Export an [HttpRequest] in a specified [RequestFormat].
+pub fn export(request: &HttpRequest, format: RequestFormat) -> String {
     match format {
         // HTTP Request message
-        Format::HttpMessage => {
+        RequestFormat::HttpMessage => {
             format!("{}", request)
         }
         // Curl command
-        Format::CurlCommand => {
+        RequestFormat::CurlCommand => {
             let request_verb_flag = match request.verb.0.as_str() {
                 "GET" => String::new(),
                 verb => format!("-X {} ", verb),
@@ -89,15 +89,36 @@ pub fn export(request: &HttpRequest, format: Format) -> String {
                 request_verb_flag, request_url, request.http_version, headers_and_body_args
             )
         }
-        Format::Json => serde_json::to_string_pretty(request).unwrap(),
+        RequestFormat::Json => serde_json::to_string_pretty(request).unwrap(),
     }
+}
+
+/// Supported formats to export request files to
+#[derive(Copy, Clone, PartialEq, Eq, Debug, Serialize, Deserialize, Default)]
+pub enum ResponseFormat {
+    /// Export as an HTTP Response message
+    HttpMessage,
+    /// Export as a JSON object
+    #[default]
+    Json,
+}
+
+/// Export an [HttpResponse] in a specified [ResponseFormat].
+pub fn export_response(response: &HttpResponse, format: ResponseFormat) -> String {
+    if let ResponseFormat::HttpMessage = format {
+        return format!("{}", response);
+    }
+
+    String::new()
 }
 
 #[cfg(test)]
 mod test {
-    use types::http::HttpRequest;
+    use std::collections::HashMap;
 
-    use crate::export;
+    use types::http::{HttpRequest, HttpResponse, HttpStatusCode, HttpVersion};
+
+    use crate::{export, export_response};
 
     macro_rules! export_test {
         ($test_name:ident, $request:expr, $format:expr, $expected:expr) => {
@@ -109,24 +130,34 @@ mod test {
         };
     }
 
+    macro_rules! export_response_test {
+        ($test_name:ident, $response:expr, $format:expr, $expected:expr) => {
+            #[test]
+            fn $test_name() {
+                let actual = export_response(&$response, $format);
+                assert_eq!($expected, actual);
+            }
+        };
+    }
+
     export_test!(
         format_to_curl_get_request,
         HttpRequest::get("/", "1.1", vec![]),
-        crate::Format::CurlCommand,
+        crate::RequestFormat::CurlCommand,
         "curl / --http1.1 -v"
     );
 
     export_test!(
         format_to_curl_get_request_with_single_header,
         HttpRequest::get("/", "1.1", vec![("test".to_string(), "value".to_string())]),
-        crate::Format::CurlCommand,
+        crate::RequestFormat::CurlCommand,
         "curl / --http1.1 -H \"test: value\" -v"
     );
 
     export_test!(
         format_to_curl_post_request,
         HttpRequest::post("/", "1.1", vec![], Some("")),
-        crate::Format::CurlCommand,
+        crate::RequestFormat::CurlCommand,
         "curl -X POST / --http1.1 -v"
     );
 
@@ -138,7 +169,7 @@ mod test {
             vec![("test".to_string(), "value".to_string())],
             None
         ),
-        crate::Format::CurlCommand,
+        crate::RequestFormat::CurlCommand,
         "curl -X POST / --http1.1 -H \"test: value\" -v"
     );
 
@@ -150,21 +181,47 @@ mod test {
             vec![("test".to_string(), "value".to_string())],
             Some("testing")
         ),
-        crate::Format::CurlCommand,
+        crate::RequestFormat::CurlCommand,
         "curl -X POST / --http1.1 -H \"test: value\" -d 'testing' -v"
     );
 
     export_test!(
         format_to_http_get_request,
         HttpRequest::get("/", "1.1", vec![]),
-        crate::Format::HttpMessage,
+        crate::RequestFormat::HttpMessage,
         "GET / HTTP/1.1\n"
     );
 
     export_test!(
         format_to_http_post_request,
         HttpRequest::post("/", "1.1", vec![], Some("[1, 2, 3]\n")),
-        crate::Format::HttpMessage,
+        crate::RequestFormat::HttpMessage,
         "POST / HTTP/1.1\n\n[1, 2, 3]\n"
+    );
+
+    export_response_test!(
+        format_response_to_http,
+        HttpResponse {
+            http_version: HttpVersion::one_point_one(),
+            status_code: HttpStatusCode::new(200),
+            status_text: "OK".into(),
+            headers: HashMap::new(),
+            body: Some("".to_owned())
+        },
+        crate::ResponseFormat::HttpMessage,
+        "HTTP/1.1 200 OK\n"
+    );
+
+    export_response_test!(
+        format_response_to_http_with_headers,
+        HttpResponse {
+            http_version: HttpVersion::one_point_one(),
+            status_code: HttpStatusCode::new(200),
+            status_text: "OK".into(),
+            headers: HashMap::from([("content-type".to_string(), "application/json".to_string())]),
+            body: Some("".to_owned())
+        },
+        crate::ResponseFormat::HttpMessage,
+        "HTTP/1.1 200 OK\ncontent-type: application/json\n"
     );
 }

@@ -8,7 +8,8 @@ use std::{
 
 use eframe::egui;
 use reqlang::{
-    export, http::HttpRequest, parse, template, Format, ParsedRequestFile, TemplatedRequestFile,
+    export, http::HttpRequest, parse, template, ParsedRequestFile, RequestFormat,
+    TemplatedRequestFile,
 };
 
 #[allow(dead_code)]
@@ -79,7 +80,7 @@ impl ViewReqfileState {
         };
 
         let request_string = match request {
-            Some(request) => export(request, Format::HttpMessage),
+            Some(request) => export(request, RequestFormat::HttpMessage),
             None => String::new(),
         };
 
@@ -308,7 +309,7 @@ impl ReviewRequestState {
 
         let request = &self.reqfile.request;
 
-        let request_string = export(request, Format::HttpMessage);
+        let request_string = export(request, RequestFormat::HttpMessage);
 
         egui::CentralPanel::default().show(egui_ctx, |ui| {
             if ui.button("Back").clicked() {
@@ -353,7 +354,7 @@ impl ExecutingRequestState {
         let mut next_state: StateTransition = StateTransition::None;
 
         let request = &self.reqfile.as_ref().request;
-        let request_string = export(request, Format::HttpMessage);
+        let request_string = export(request, RequestFormat::HttpMessage);
 
         egui::CentralPanel::default().show(egui_ctx, |ui| {
             ui.heading("Request");
