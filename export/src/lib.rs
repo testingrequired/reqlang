@@ -127,7 +127,7 @@ impl FromStr for ResponseFormat {
 /// Export an [HttpResponse] in a specified [ResponseFormat].
 pub fn export_response(response: &HttpResponse, format: ResponseFormat) -> String {
     match format {
-        ResponseFormat::HttpMessage => return format!("{}", response),
+        ResponseFormat::HttpMessage => format!("{}", response),
         ResponseFormat::Json => serde_json::to_string_pretty(response).unwrap(),
     }
 }
