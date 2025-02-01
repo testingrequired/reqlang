@@ -240,6 +240,26 @@ These act as both tooling for request file and reference implementations for cli
 
 The [`reqlang`](./cli) CLI validates and exports requests in to a variety of formats (`http`, `curl`, `json`).
 
+```shell
+reqlang
+```
+
+```
+Command to work with request files
+
+Usage: reqlang [COMMAND]
+
+Commands:
+  export  Export request to specified format
+  parse   Parse a request file
+  run     Run a request file
+  help    Print this message or the help of the given subcommand(s)
+
+Options:
+  -h, --help     Print help
+  -V, --version  Print version
+```
+
 #### Execute Request
 
 Execute the request from a request file.

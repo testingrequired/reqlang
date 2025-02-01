@@ -188,6 +188,7 @@ async fn main() {
         .version(crate_version!())
         .author(crate_authors!("\n"))
         .about(crate_description!())
+        .arg_required_else_help(true)
         .subcommand(
             Command::new("export")
                 .about("Export request to specified format")
@@ -273,7 +274,7 @@ async fn main() {
         Some(("export", sub_matches)) => export_command(sub_matches),
         Some(("parse", sub_matches)) => parse_command(sub_matches),
         Some(("run", sub_matches)) => run_command(sub_matches).await,
-        _ => eprintln!("No valid subcommand provided. Use --help for more information."),
+        _ => eprintln!("Invalid subcommand. Use --help for more information."),
     }
 }
 
@@ -290,9 +291,48 @@ mod tests {
 
         let assert = cmd.assert();
 
-        assert
-            .success()
-            .stderr("No valid subcommand provided. Use --help for more information.\n");
+        let expected_stderr = textwrap::dedent(
+            "
+            Command to work with request files
+
+            Usage: reqlang [COMMAND]
+
+            Commands:
+              export  Export request to specified format
+              parse   Parse a request file
+              run     Run a request file
+              help    Print this message or the help of the given subcommand(s)
+
+            Options:
+              -h, --help     Print help
+              -V, --version  Print version
+            ",
+        )
+        .trim_start()
+        .to_string();
+
+        assert.failure().stderr(expected_stderr);
+    }
+
+    #[test]
+    fn invalid_subcommand() {
+        let mut cmd = Command::cargo_bin("reqlang").unwrap();
+
+        let assert = cmd.arg("foobar").assert();
+
+        let expected_stderr = textwrap::dedent(
+            "
+            error: unrecognized subcommand 'foobar'
+
+            Usage: reqlang [COMMAND]
+
+            For more information, try '--help'.
+            ",
+        )
+        .trim_start()
+        .to_string();
+
+        assert.failure().stderr(expected_stderr);
     }
 
     #[test]
