@@ -260,7 +260,7 @@ Options:
   -V, --version  Print version
 ```
 
-#### Execute Request
+#### Run
 
 Execute the request from a request file.
 
@@ -279,7 +279,7 @@ Options:
   -h, --help              Print help
 ```
 
-##### Example
+##### Examples
 
 ```shell
 reqlang run ./examples/valid/status_code.reqlang --prompt status_code=200
@@ -295,10 +295,10 @@ access-control-allow-credentials: true
 access-control-allow-origin: *
 ```
 
-###### Running Response Assertions
+##### Testing Responses
 
 ```shell
-reqlang run examples/valid/mismatch_response.reqlang -t
+reqlang run examples/valid/mismatch_response.reqlang --test
 ```
 
 See: [mismatch_response.reqlang](./examples/valid/mismatch_response.reqlang)
@@ -320,9 +320,21 @@ Response did not match expected response: [
 ]
 ```
 
-#### Parse Request File
+#### Parse
 
 Validate and parse request files. It returns a JSON object with info about the request file: environment names, variables, prompts, secrets, the (untemplated) request itself.
+
+```
+Usage: reqlang parse <path>
+
+Arguments:
+  <path>  Path to request file
+
+Options:
+  -h, --help  Print help
+```
+
+##### Examples
 
 ```shell
 reqlang parse ./examples/valid/status_code.reqlang
@@ -514,11 +526,27 @@ reqlang parse examples/invalid/empty.reqlang
 ]
 ```
 
-#### Exporting
+#### Export
 
-Request files can be templated then exported in to different formats.
+Parse and template the request file then export it in different formats.
 
-##### JSON
+```
+Usage: reqlang export [OPTIONS] <path>
+
+Arguments:
+  <path>  Path to request file
+
+Options:
+  -e, --env <env>         Resolve with an environment
+  -P, --prompt <prompts>  Pass prompt values to resolve with
+  -S, --secret <secrets>  Pass secret values to resolve with
+  -f, --format <format>   Format to export [default: json] [possible values: http, curl, json]
+  -h, --help              Print help
+```
+
+##### Examples
+
+###### JSON
 
 ```shell
 reqlang export examples/valid/status_code.reqlang --prompt status_code=200 --format json
@@ -526,8 +554,6 @@ reqlang export examples/valid/status_code.reqlang --prompt status_code=200 --for
 # This is the same thing
 reqlang export examples/valid/status_code.reqlang --prompt status_code=200
 ```
-
-###### Output
 
 ```json
 {
@@ -539,13 +565,11 @@ reqlang export examples/valid/status_code.reqlang --prompt status_code=200
 }
 ```
 
-##### HTTP Request Message
+###### HTTP Request Message
 
 ```shell
 reqlang export examples/valid/status_code.reqlang --prompt status_code=201 --format http
 ```
-
-###### Output
 
 ```
 GET https://httpbin.org/status/201 HTTP/1.1
@@ -557,18 +581,9 @@ GET https://httpbin.org/status/201 HTTP/1.1
 reqlang export examples/valid/status_code.reqlang --prompt status_code=400 --format curl
 ```
 
-###### Output
-
-```
+```shell
 curl https://httpbin.org/status/400 --http1.1 -v
 ```
-
-##### Flags
-
-- `--env env_name`/`-e env_name` Pass in the environment to be used in the request.
-- `--prompt key=value`/`-P key=value` Pass in prompt value to be used in the request.
-- `--secret key=value`/`-S key=value` Pass in secret value to be used in the request.
-- `--format format`/`-f format` Specify the format of the exported request: `json`, `http`, or `curl` (defaults to `json`)
 
 ##### Validation Errors
 
