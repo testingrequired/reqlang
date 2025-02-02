@@ -1,4 +1,6 @@
+use console::Style;
 use serde::{Deserialize, Serialize};
+use similar::{ChangeTag, TextDiff};
 use types::http::{HttpResponse, HttpStatusCode, HttpVersion};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -27,11 +29,203 @@ pub enum ResponseDiff {
     },
 }
 
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+pub struct ResponseDiffs(Vec<ResponseDiff>, HttpResponse);
+
+impl ResponseDiffs {
+    pub fn diffs(&self) -> Vec<ResponseDiff> {
+        self.0.clone()
+    }
+
+    pub fn print(&self) -> () {
+        let mut http_version_diff: Option<(String, String)> = None;
+        let mut status_code_diff: Option<(String, String)> = None;
+        let mut status_text_diff: Option<(String, String)> = None;
+
+        let mut header_diffs: Vec<(String, String)> = vec![];
+        let mut body_diff: Option<(String, String)> = None;
+
+        for response_diff in self.0.iter() {
+            match response_diff {
+                ResponseDiff::StatusCode { expected, actual } => {
+                    status_code_diff = Some((expected.to_string(), actual.to_string()))
+                }
+                ResponseDiff::StatusText { expected, actual } => {
+                    status_text_diff = Some((expected.to_string(), actual.to_string()))
+                }
+                ResponseDiff::HttpVersion { expected, actual } => {
+                    http_version_diff = Some((expected.to_string(), actual.to_string()))
+                }
+                ResponseDiff::MissingHeader(header) => {
+                    header_diffs.push((format!("{header}: ..."), String::new()));
+                }
+                ResponseDiff::MismatchHeaderValue {
+                    header,
+                    expected,
+                    actual,
+                } => {
+                    header_diffs.push((
+                        format!("{header}: {expected}"),
+                        format!("{header}: {actual}"),
+                    ));
+                }
+                ResponseDiff::Body { expected, actual } => {
+                    body_diff = Some((
+                        expected.as_ref().cloned().unwrap_or_default(),
+                        actual.as_ref().cloned().unwrap_or_default(),
+                    ))
+                }
+            };
+        }
+
+        let first_line_diff: Option<(String, String)> =
+            match (http_version_diff, status_code_diff, status_text_diff) {
+                (None, None, None) => None,
+                (None, None, Some((expected_status_text, actual_status_text))) => Some((
+                    format!(
+                        "HTTP/{} {} {}",
+                        self.1.http_version, self.1.status_code, expected_status_text
+                    ),
+                    format!(
+                        "HTTP/{} {} {}",
+                        self.1.http_version, self.1.status_code, actual_status_text
+                    ),
+                )),
+                (None, Some((expected_status_code, actual_status_code)), None) => Some((
+                    format!(
+                        "HTTP/{} {} {}",
+                        self.1.http_version, expected_status_code, self.1.status_text
+                    ),
+                    format!(
+                        "HTTP/{} {} {}",
+                        self.1.http_version, actual_status_code, self.1.status_text
+                    ),
+                )),
+                (
+                    None,
+                    Some((expected_status_code, actual_status_code)),
+                    Some((expected_status_text, actual_status_text)),
+                ) => Some((
+                    format!(
+                        "HTTP/{} {} {}",
+                        self.1.http_version, expected_status_code, expected_status_text
+                    ),
+                    format!(
+                        "HTTP/{} {} {}",
+                        self.1.http_version, actual_status_code, actual_status_text
+                    ),
+                )),
+                (Some((expected_http_version, actual_http_version)), None, None) => Some((
+                    format!(
+                        "HTTP/{} {} {}",
+                        expected_http_version, self.1.status_code, self.1.status_text
+                    ),
+                    format!(
+                        "HTTP/{} {} {}",
+                        actual_http_version, self.1.status_code, self.1.status_text
+                    ),
+                )),
+                (
+                    Some((expected_http_version, actual_http_version)),
+                    None,
+                    Some((expected_status_text, actual_status_text)),
+                ) => Some((
+                    format!(
+                        "HTTP/{} {} {}",
+                        expected_http_version, self.1.status_code, expected_status_text
+                    ),
+                    format!(
+                        "HTTP/{} {} {}",
+                        actual_http_version, self.1.status_code, actual_status_text
+                    ),
+                )),
+                (
+                    Some((expected_http_version, actual_http_version)),
+                    Some((expected_status_code, actual_status_code)),
+                    None,
+                ) => Some((
+                    format!(
+                        "HTTP/{} {} {}",
+                        expected_http_version, expected_status_code, self.1.status_text
+                    ),
+                    format!(
+                        "HTTP/{} {} {}",
+                        actual_http_version, actual_status_code, self.1.status_text
+                    ),
+                )),
+                (
+                    Some((expected_http_version, actual_http_version)),
+                    Some((expected_status_code, actual_status_code)),
+                    Some((expected_status_text, actual_status_text)),
+                ) => Some((
+                    format!(
+                        "HTTP/{} {} {}",
+                        expected_http_version, expected_status_code, expected_status_text
+                    ),
+                    format!(
+                        "HTTP/{} {} {}",
+                        actual_http_version, actual_status_code, actual_status_text
+                    ),
+                )),
+            };
+
+        if let Some((expected, actual)) = &first_line_diff {
+            let diff = TextDiff::from_lines(expected, actual);
+
+            for op in diff.ops() {
+                for change in diff.iter_changes(op) {
+                    let (sign, style) = match change.tag() {
+                        ChangeTag::Delete => ("-", Style::new().red()),
+                        ChangeTag::Insert => ("+", Style::new().green()),
+                        ChangeTag::Equal => (" ", Style::new()),
+                    };
+
+                    eprint!("{}{}", style.apply_to(sign).bold(), style.apply_to(change));
+                }
+            }
+        }
+
+        for (expected, actual) in header_diffs.iter() {
+            let diff = TextDiff::from_lines(expected, actual);
+
+            for op in diff.ops() {
+                for change in diff.iter_changes(op) {
+                    let (sign, style) = match change.tag() {
+                        ChangeTag::Delete => ("-", Style::new().red()),
+                        ChangeTag::Insert => ("+", Style::new().green()),
+                        ChangeTag::Equal => (" ", Style::new()),
+                    };
+
+                    eprint!("{}{}", style.apply_to(sign).bold(), style.apply_to(change));
+                }
+            }
+        }
+
+        if let Some((expected, actual)) = &body_diff {
+            eprintln!();
+
+            let diff = TextDiff::from_lines(expected, actual);
+
+            for op in diff.ops() {
+                for change in diff.iter_changes(op) {
+                    let (sign, style) = match change.tag() {
+                        ChangeTag::Delete => ("-", Style::new().red()),
+                        ChangeTag::Insert => ("+", Style::new().green()),
+                        ChangeTag::Equal => (" ", Style::new()),
+                    };
+
+                    eprint!("{}{}", style.apply_to(sign).bold(), style.apply_to(change));
+                }
+            }
+        }
+    }
+}
+
 /// Asserts that the `actual` response matches the `expected` response. Returns an error if there are any differences.
 pub fn assert_response(
     expected: &HttpResponse,
     actual: &HttpResponse,
-) -> Result<(), Vec<ResponseDiff>> {
+) -> Result<(), ResponseDiffs> {
     let mut differences: Vec<ResponseDiff> = vec![];
 
     if expected.status_code != actual.status_code {
@@ -73,7 +267,7 @@ pub fn assert_response(
     }
 
     if !differences.is_empty() {
-        return Err(differences);
+        return Err(ResponseDiffs(differences, expected.clone()));
     }
 
     Ok(())
@@ -129,16 +323,19 @@ mod tests {
         };
 
         assert_eq!(
-            Err(vec![
-                ResponseDiff::StatusCode {
-                    expected: HttpStatusCode::new(200),
-                    actual: HttpStatusCode::new(201)
-                },
-                ResponseDiff::StatusText {
-                    expected: "OK".to_string(),
-                    actual: "CREATED".to_string()
-                }
-            ]),
+            Err(ResponseDiffs(
+                vec![
+                    ResponseDiff::StatusCode {
+                        expected: HttpStatusCode::new(200),
+                        actual: HttpStatusCode::new(201)
+                    },
+                    ResponseDiff::StatusText {
+                        expected: "OK".to_string(),
+                        actual: "CREATED".to_string()
+                    }
+                ],
+                expected.clone()
+            )),
             assert_response(&expected, &actual)
         )
     }
@@ -165,9 +362,10 @@ mod tests {
         };
 
         assert_eq!(
-            Err(vec![ResponseDiff::MissingHeader(
-                "X-Custom-Header".to_string()
-            )]),
+            Err(ResponseDiffs(
+                vec![ResponseDiff::MissingHeader("X-Custom-Header".to_string())],
+                expected.clone()
+            )),
             assert_response(&expected, &actual)
         )
     }
@@ -215,11 +413,14 @@ mod tests {
         };
 
         assert_eq!(
-            Err(vec![ResponseDiff::MismatchHeaderValue {
-                header: "Content-Type".to_string(),
-                expected: "application/json".to_string(),
-                actual: "text/plain".to_string(),
-            }]),
+            Err(ResponseDiffs(
+                vec![ResponseDiff::MismatchHeaderValue {
+                    header: "Content-Type".to_string(),
+                    expected: "application/json".to_string(),
+                    actual: "text/plain".to_string(),
+                }],
+                expected.clone()
+            )),
             assert_response(&expected, &actual)
         )
     }
@@ -243,10 +444,13 @@ mod tests {
         };
 
         assert_eq!(
-            Err(vec![ResponseDiff::Body {
-                expected: Some(String::from("Hello World!")),
-                actual: Some(String::from("Greetings World!")),
-            }]),
+            Err(ResponseDiffs(
+                vec![ResponseDiff::Body {
+                    expected: Some(String::from("Hello World!")),
+                    actual: Some(String::from("Greetings World!")),
+                }],
+                expected.clone()
+            )),
             assert_response(&expected, &actual)
         )
     }
@@ -270,10 +474,13 @@ mod tests {
         };
 
         assert_eq!(
-            Err(vec![ResponseDiff::Body {
-                expected: Some(String::from("Hello World!")),
-                actual: None,
-            }]),
+            Err(ResponseDiffs(
+                vec![ResponseDiff::Body {
+                    expected: Some(String::from("Hello World!")),
+                    actual: None,
+                }],
+                expected.clone()
+            )),
             assert_response(&expected, &actual)
         )
     }

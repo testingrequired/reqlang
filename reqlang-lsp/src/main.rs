@@ -203,17 +203,16 @@ impl LanguageServer for Backend {
                 )
                 .await;
 
-            let diff = reqfile
-                .response
-                .and_then(|expected_response| assert_response(&expected_response, &response).err())
-                .unwrap_or_default();
-
-            self.client
-                .log_message(
-                    MessageType::WARNING,
-                    format!("Differences found in the response:\n{:?}", diff),
-                )
-                .await;
+            if let Some(expected_response) = reqfile.response {
+                if let Err(diffs) = assert_response(&expected_response, &response) {
+                    self.client
+                        .log_message(
+                            MessageType::WARNING,
+                            format!("Differences found in the response:\n{:?}", diffs.diffs()),
+                        )
+                        .await;
+                }
+            };
 
             return Ok(Some(
                 serde_json::to_string(&response)
