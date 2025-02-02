@@ -978,9 +978,9 @@ mod tests {
                      }
                    ], 
               -    "title": "Test Slide Show"
+              +    "title": "Sample Slide Show"
               -  },
               -  "extra": true
-              +    "title": "Sample Slide Show"
               +  }
                }
               -
