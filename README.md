@@ -297,6 +297,8 @@ access-control-allow-origin: *
 
 ##### Testing Responses
 
+Run the response assertion, if defined in the request file, the response will be compared to the expected response.
+
 ```shell
 reqlang run examples/valid/mismatch_response.reqlang --test
 ```
@@ -304,20 +306,69 @@ reqlang run examples/valid/mismatch_response.reqlang --test
 See: [mismatch_response.reqlang](./examples/valid/mismatch_response.reqlang)
 
 ```
-Response did not match expected response: [
-    StatusCode {
-        expected: HttpStatusCode(
-            200,
-        ),
-        actual: HttpStatusCode(
-            201,
-        ),
-    },
-    StatusText {
-        expected: "OK",
-        actual: "Created",
-    },
-]
+HTTP/1.1 200 OK
+connection: keep-alive
+server: gunicorn/19.9.0
+access-control-allow-origin: *
+access-control-allow-credentials: true
+date: Sun, 02 Feb 2025 03:55:33 GMT
+content-type: application/json
+content-length: 429
+
+{
+  "slideshow": {
+    "author": "Yours Truly",
+    "date": "date of publication",
+    "slides": [
+      {
+        "title": "Wake up to WonderWidgets!",
+        "type": "all"
+      },
+      {
+        "items": [
+          "Why <em>WonderWidgets</em> are great",
+          "Who <em>buys</em> WonderWidgets"
+        ],
+        "title": "Overview",
+        "type": "all"
+      }
+    ],
+    "title": "Sample Slide Show"
+  }
+}
+
+Response assertion failed:
+
+-HTTP/1.1 201 Created
++HTTP/1.1 200 OK
+-x-test-value: ...
+
+ {
+   "slideshow": {
+-    "author": "Yours Truly",
++    "author": "Yours Truly",
++    "date": "date of publication",
+     "slides": [
+       {
+         "title": "Wake up to WonderWidgets!",
+         "type": "all"
+       },
+       {
+         "items": [
+           "Why <em>WonderWidgets</em> are great",
+           "Who <em>buys</em> WonderWidgets"
+         ],
+         "title": "Overview",
+         "type": "all"
+       }
+     ],
+-    "title": "Test Slide Show"
+-  },
+-  "extra": true
++    "title": "Sample Slide Show"
++  }
+ }
+-
 ```
 
 #### Parse
