@@ -287,6 +287,23 @@ mod tests {
     use assert_cmd::Command;
     use reqlang::{parse, ParseResult};
 
+    macro_rules! assert_command {
+        ($command:expr) => {{
+            let mut args: Vec<&str> = $command.split_whitespace().collect();
+
+            let command_name = args.remove(0);
+
+            let mut cmd = Command::cargo_bin(command_name).unwrap();
+
+            for arg in args {
+                cmd.arg(arg);
+            }
+
+            let assert = cmd.assert();
+            assert
+        }};
+    }
+
     #[test]
     fn no_args() {
         let mut cmd = Command::cargo_bin("reqlang").unwrap();
@@ -318,9 +335,7 @@ mod tests {
 
     #[test]
     fn invalid_subcommand() {
-        let mut cmd = Command::cargo_bin("reqlang").unwrap();
-
-        let assert = cmd.arg("foobar").assert();
+        let assert = assert_command!("reqlang foobar");
 
         let expected_stderr = textwrap::dedent(
             "
@@ -339,11 +354,10 @@ mod tests {
 
     #[test]
     fn parses_valid_reqfile() {
-        let mut cmd = Command::cargo_bin("reqlang").unwrap();
-
         let reqfile_path = "../examples/valid/post.reqlang";
 
-        let assert = cmd.arg("parse").arg(reqfile_path).assert();
+        let cmd = format!("reqlang parse {reqfile_path}");
+        let assert = assert_command!(cmd);
 
         let reqfile_source = fs::read_to_string(reqfile_path).unwrap();
         let parsed_reqfile = parse(&reqfile_source).unwrap();
@@ -369,11 +383,10 @@ mod tests {
 
     #[test]
     fn parses_invalid_reqfile() {
-        let mut cmd = Command::cargo_bin("reqlang").unwrap();
-
         let reqfile_path = "../examples/invalid/empty.reqlang";
 
-        let assert = cmd.arg("parse").arg(reqfile_path).assert();
+        let cmd = format!("reqlang parse {reqfile_path}");
+        let assert = assert_command!(cmd);
 
         assert
             .failure()
@@ -401,71 +414,49 @@ mod tests {
 
     #[test]
     fn export_no_args() {
-        let mut cmd = Command::cargo_bin("reqlang").unwrap();
-
-        let assert = cmd.arg("export").assert();
-
-        assert.failure().stderr(concat!(
-            "error: the following required arguments were not provided:\n",
-            "  <path>\n",
-            "\n",
-            "Usage: reqlang export <path>\n",
-            "\n",
-            "For more information, try '--help'.\n"
-        ));
-    }
-
-    #[test]
-    fn export_missing_prompt() {
-        let mut cmd = Command::cargo_bin("reqlang").unwrap();
-
-        let assert = cmd
-            .arg("export")
-            .arg("../examples/valid/post.reqlang")
-            .arg("-e")
-            .arg("dev")
-            .arg("-S")
-            .arg("super_secret_value=123")
-            .assert();
-
-        assert
+        (assert_command!("reqlang export"))
             .failure()
-            .code(1)
-            .stderr("Invalid request file or errors when exporting\n")
-            .stdout(concat!(
-                "[\n",
-                "  {\n",
-                "    \"range\": {\n",
-                "      \"start\": {\n",
-                "        \"line\": 0,\n",
-                "        \"character\": 0\n",
-                "      },\n",
-                "      \"end\": {\n",
-                "        \"line\": 0,\n",
-                "        \"character\": 0\n",
-                "      }\n",
-                "    },\n",
-                "    \"severity\": 1,\n",
-                "    \"message\": \"ResolverError: Prompt required but not passed: prompt_value\"\n",
-                "  }\n",
-                "]\n"
+            .stderr(concat!(
+                "error: the following required arguments were not provided:\n",
+                "  <path>\n",
+                "\n",
+                "Usage: reqlang export <path>\n",
+                "\n",
+                "For more information, try '--help'.\n"
             ));
     }
 
     #[test]
+    fn export_missing_prompt() {
+        (assert_command!(
+            "reqlang export ../examples/valid/post.reqlang -e dev -S super_secret_value=123"
+        ))
+        .failure()
+        .code(1)
+        .stderr("Invalid request file or errors when exporting\n")
+        .stdout(concat!(
+            "[\n",
+            "  {\n",
+            "    \"range\": {\n",
+            "      \"start\": {\n",
+            "        \"line\": 0,\n",
+            "        \"character\": 0\n",
+            "      },\n",
+            "      \"end\": {\n",
+            "        \"line\": 0,\n",
+            "        \"character\": 0\n",
+            "      }\n",
+            "    },\n",
+            "    \"severity\": 1,\n",
+            "    \"message\": \"ResolverError: Prompt required but not passed: prompt_value\"\n",
+            "  }\n",
+            "]\n"
+        ));
+    }
+
+    #[test]
     fn export_missing_secret() {
-        let mut cmd = Command::cargo_bin("reqlang").unwrap();
-
-        let assert = cmd
-            .arg("export")
-            .arg("../examples/valid/post.reqlang")
-            .arg("-e")
-            .arg("dev")
-            .arg("-P")
-            .arg("prompt_value=foo")
-            .assert();
-
-        assert
+        (assert_command!("reqlang export ../examples/valid/post.reqlang -e dev -P prompt_value=foo"))
             .failure()
             .code(1)
             .stderr("Invalid request file or errors when exporting\n")
@@ -491,16 +482,11 @@ mod tests {
 
     #[test]
     fn export_to_default_format() {
-        let mut cmd = Command::cargo_bin("reqlang").unwrap();
-
-        let assert = cmd
-            .arg("export")
-            .arg("../examples/valid/status_code.reqlang")
-            .arg("-P")
-            .arg("status_code=404")
-            .assert();
-
-        assert.success().stdout(concat!(
+        (assert_command!(
+            "reqlang export ../examples/valid/status_code.reqlang -P status_code=404"
+        ))
+        .success()
+        .stdout(concat!(
             "{\n",
             "  \"verb\": \"GET\",\n",
             "  \"target\": \"https://httpbin.org/status/404\",\n",
@@ -513,72 +499,44 @@ mod tests {
 
     #[test]
     fn export_to_http() {
-        let mut cmd = Command::cargo_bin("reqlang").unwrap();
-
-        let assert = cmd
-            .arg("export")
-            .arg("../examples/valid/status_code.reqlang")
-            .arg("-f")
-            .arg("http")
-            .arg("-P")
-            .arg("status_code=200")
-            .assert();
-
-        assert
-            .success()
-            .stdout("GET https://httpbin.org/status/200 HTTP/1.1\n\n");
+        (assert_command!(
+            "reqlang export ../examples/valid/status_code.reqlang -f http -P status_code=200"
+        ))
+        .success()
+        .stdout("GET https://httpbin.org/status/200 HTTP/1.1\n\n");
     }
 
     #[test]
     fn export_to_curl() {
-        let mut cmd = Command::cargo_bin("reqlang").unwrap();
-
-        let assert = cmd
-            .arg("export")
-            .arg("../examples/valid/status_code.reqlang")
-            .arg("-f")
-            .arg("curl")
-            .arg("-P")
-            .arg("status_code=204")
-            .assert();
-
-        assert
-            .success()
-            .stdout("curl https://httpbin.org/status/204 --http1.1 -v\n");
+        (assert_command!(
+            "reqlang export ../examples/valid/status_code.reqlang -f curl -P status_code=204"
+        ))
+        .success()
+        .stdout("curl https://httpbin.org/status/204 --http1.1 -v\n");
     }
 
     #[test]
     fn export_to_invalid_format() {
-        let mut cmd = Command::cargo_bin("reqlang").unwrap();
-
-        let assert = cmd
-            .arg("export")
-            .arg("../examples/valid/status_code.reqlang")
-            .arg("-f")
-            .arg("invalid")
-            .assert();
-
-        assert.failure().stderr(concat!(
-            "error: invalid value 'invalid' for '--format <format>'\n",
-            "  [possible values: http, curl, json]\n",
-            "\n",
-            "For more information, try '--help'.\n"
-        ));
+        (assert_command!("reqlang export ../examples/valid/status_code.reqlang -f invalid"))
+            .failure()
+            .stderr(concat!(
+                "error: invalid value 'invalid' for '--format <format>'\n",
+                "  [possible values: http, curl, json]\n",
+                "\n",
+                "For more information, try '--help'.\n"
+            ));
     }
 
     #[test]
     fn export_invalid_prompt_value_using_space() {
-        let mut cmd = Command::cargo_bin("reqlang").unwrap();
-
-        let assert = cmd
-            .arg("export")
-            .arg("../examples/valid/status_code.reqlang")
-            .arg("-P")
-            .arg("status_code 404")
-            .assert();
-
-        assert.failure().stderr(concat!(
-            "error: invalid value 'status_code 404' for '--prompt <prompts>': should be formatted as key=value pair: `status_code 404`\n",
+        (assert_command!(
+            "reqlang export ../examples/valid/status_code.reqlang -P status_code 404"
+        ))
+        .failure()
+        .stderr(concat!(
+            "error: unexpected argument \'404\' found\n",
+            "\n",
+            "Usage: reqlang export [OPTIONS] <path>\n",
             "\n",
             "For more information, try '--help'.\n"
         ));
@@ -586,14 +544,8 @@ mod tests {
 
     #[test]
     fn export_invalid_prompt_value_just_key() {
-        let mut cmd = Command::cargo_bin("reqlang").unwrap();
-
-        let assert = cmd
-            .arg("export")
-            .arg("../examples/valid/status_code.reqlang")
-            .arg("-P")
-            .arg("status_code")
-            .assert();
+        let assert =
+            assert_command!("reqlang export ../examples/valid/status_code.reqlang -P status_code");
 
         assert.failure().stderr(concat!(
             "error: invalid value 'status_code' for '--prompt <prompts>': should be formatted as key=value pair: `status_code`\n",
@@ -604,14 +556,7 @@ mod tests {
 
     #[test]
     fn export_invalid_prompt_value_just_value() {
-        let mut cmd = Command::cargo_bin("reqlang").unwrap();
-
-        let assert = cmd
-            .arg("export")
-            .arg("../examples/valid/status_code.reqlang")
-            .arg("-P")
-            .arg("404")
-            .assert();
+        let assert = assert_command!("reqlang export ../examples/valid/status_code.reqlang -P 404");
 
         assert.failure().stderr(concat!(
             "error: invalid value '404' for '--prompt <prompts>': should be formatted as key=value pair: `404`\n",
@@ -622,44 +567,31 @@ mod tests {
 
     #[test]
     fn run_status_code_request_file() {
-        let mut cmd = Command::cargo_bin("reqlang").unwrap();
-        let assert = cmd
-            .arg("run")
-            .arg("../examples/valid/status_code.reqlang")
-            .arg("--prompt")
-            .arg("status_code=200")
-            .assert();
-
-        assert.success().code(0);
+        (assert_command!(
+            "reqlang run ../examples/valid/status_code.reqlang --prompt status_code=200"
+        ))
+        .success()
+        .code(0);
     }
 
     #[test]
     fn run_status_code_request_file_with_response_assertion() {
-        let mut cmd = Command::cargo_bin("reqlang").unwrap();
-        let assert = cmd
-            .arg("run")
-            .arg("../examples/valid/status_code.reqlang")
-            .arg("--prompt")
-            .arg("status_code=200")
-            .arg("--test")
-            .assert();
-
-        assert.success().code(0);
+        (assert_command!(
+            "reqlang run ../examples/valid/status_code.reqlang --prompt status_code=200 --test"
+        ))
+        .success()
+        .code(0);
     }
 
     #[test]
     fn run_invalid_prompt_value_using_space() {
-        let mut cmd = Command::cargo_bin("reqlang").unwrap();
-
-        let assert = cmd
-            .arg("run")
-            .arg("../examples/valid/status_code.reqlang")
-            .arg("-P")
-            .arg("status_code 404")
-            .assert();
+        let assert =
+            assert_command!("reqlang run ../examples/valid/status_code.reqlang -P status_code 404");
 
         assert.failure().stderr(concat!(
-            "error: invalid value 'status_code 404' for '--prompt <prompts>': should be formatted as key=value pair: `status_code 404`\n",
+            "error: unexpected argument \'404\' found\n",
+            "\n",
+            "Usage: reqlang run [OPTIONS] <path>\n",
             "\n",
             "For more information, try '--help'.\n"
         ));
@@ -667,14 +599,8 @@ mod tests {
 
     #[test]
     fn run_invalid_prompt_value_just_key() {
-        let mut cmd = Command::cargo_bin("reqlang").unwrap();
-
-        let assert = cmd
-            .arg("run")
-            .arg("../examples/valid/status_code.reqlang")
-            .arg("-P")
-            .arg("status_code")
-            .assert();
+        let assert =
+            assert_command!("reqlang run ../examples/valid/status_code.reqlang -P status_code");
 
         assert.failure().stderr(concat!(
             "error: invalid value 'status_code' for '--prompt <prompts>': should be formatted as key=value pair: `status_code`\n",
@@ -685,14 +611,7 @@ mod tests {
 
     #[test]
     fn run_invalid_prompt_value_just_value() {
-        let mut cmd = Command::cargo_bin("reqlang").unwrap();
-
-        let assert = cmd
-            .arg("run")
-            .arg("../examples/valid/status_code.reqlang")
-            .arg("-P")
-            .arg("404")
-            .assert();
+        let assert = assert_command!("reqlang run ../examples/valid/status_code.reqlang -P 404");
 
         assert.failure().stderr(concat!(
             "error: invalid value '404' for '--prompt <prompts>': should be formatted as key=value pair: `404`\n",
@@ -703,14 +622,8 @@ mod tests {
 
     #[test]
     fn run_with_invalid_format() {
-        let mut cmd = Command::cargo_bin("reqlang").unwrap();
-
-        let assert = cmd
-            .arg("run")
-            .arg("../examples/valid/status_code.reqlang")
-            .arg("-f")
-            .arg("invalid")
-            .assert();
+        let assert =
+            assert_command!("reqlang run ../examples/valid/status_code.reqlang -f invalid");
 
         assert.failure().stderr(concat!(
             "error: invalid value 'invalid' for '--format <format>'\n",
@@ -722,13 +635,6 @@ mod tests {
 
     #[test]
     fn run_mismatch_response_with_response_assertion() {
-        let mut cmd = Command::cargo_bin("reqlang").unwrap();
-        let assert = cmd
-            .arg("run")
-            .arg("../examples/valid/mismatch_response.reqlang")
-            .arg("--test")
-            .assert();
-
         let expected_stderr = textwrap::dedent(
             r#"
               Response assertion failed:
@@ -769,17 +675,16 @@ mod tests {
         .trim_start()
         .to_string();
 
-        assert.failure().code(1).stderr(expected_stderr);
+        (assert_command!("reqlang run ../examples/valid/mismatch_response.reqlang --test"))
+            .failure()
+            .code(1)
+            .stderr(expected_stderr);
     }
 
     #[test]
     fn run_mismatch_response_without_response_assertion() {
-        let mut cmd = Command::cargo_bin("reqlang").unwrap();
-        let assert = cmd
-            .arg("run")
-            .arg("../examples/valid/mismatch_response.reqlang")
-            .assert();
-
-        assert.success().code(0);
+        assert_command!("reqlang run ../examples/valid/mismatch_response.reqlang")
+            .success()
+            .code(0);
     }
 }
