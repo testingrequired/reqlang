@@ -6,7 +6,3 @@ status_code = ""
 ```%request
 GET https://httpbin.org/status/{{?status_code}} HTTP/1.1
 ```
-
-```%response
-HTTP/1.1 200 OK
-```

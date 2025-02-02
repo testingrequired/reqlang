@@ -1,11 +1,37 @@
 This request file is to test a failing response assertion.
 
 ```%request
-GET https://httpbin.org/status/201 HTTP/1.1
+GET https://httpbin.org/json HTTP/1.1
+content-type: application/json
 ```
+
 
 The status code in the response assertion doesn't match the status code specified in the request.
 
 ```%response
-HTTP/1.1 200 OK
+HTTP/1.1 201 Created
+content-type: application/json
+x-test-value: 123
+
+{
+  "slideshow": {
+    "author": "Yours Truly",
+    "slides": [
+      {
+        "title": "Wake up to WonderWidgets!", 
+        "type": "all"
+      }, 
+      {
+        "items": [
+          "Why <em>WonderWidgets</em> are great", 
+          "Who <em>buys</em> WonderWidgets"
+        ], 
+        "title": "Overview", 
+        "type": "all"
+      }
+    ], 
+    "title": "Test Slide Show"
+  },
+  "extra": true
+}
 ```
