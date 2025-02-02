@@ -16,6 +16,7 @@ reqlang = { path = "../reqlang" }
 serde = { version = "1" }
 serde_json = "1.0"
 similar = { version = "2.7.0" }
+console = "0.15.10"
 
 [dev-dependencies]
 assert_cmd = { version = "2" }

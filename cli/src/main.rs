@@ -10,6 +10,8 @@ use std::{collections::HashMap, fs, process::exit};
 
 use reqlang::{diagnostics::get_diagnostics, export, template, Fetch, RequestFormat};
 
+use console::Style;
+
 use std::error::Error;
 
 /// Parse a single key-value pair
@@ -336,28 +338,40 @@ async fn run_command(matches: &ArgMatches) {
                                 if let Some((expected, actual)) = &first_line_diff {
                                     let diff = TextDiff::from_lines(expected, actual);
 
-                                    for change in diff.iter_all_changes() {
-                                        let sign = match change.tag() {
-                                            ChangeTag::Delete => "-",
-                                            ChangeTag::Insert => "+",
-                                            ChangeTag::Equal => " ",
-                                        };
+                                    for op in diff.ops() {
+                                        for change in diff.iter_changes(op) {
+                                            let (sign, style) = match change.tag() {
+                                                ChangeTag::Delete => ("-", Style::new().red()),
+                                                ChangeTag::Insert => ("+", Style::new().green()),
+                                                ChangeTag::Equal => (" ", Style::new()),
+                                            };
 
-                                        eprint!("{}{}", sign, change);
+                                            eprint!(
+                                                "{}{}",
+                                                style.apply_to(sign).bold(),
+                                                style.apply_to(change)
+                                            );
+                                        }
                                     }
                                 }
 
                                 for (expected, actual) in header_diffs.iter() {
                                     let diff = TextDiff::from_lines(expected, actual);
 
-                                    for change in diff.iter_all_changes() {
-                                        let sign = match change.tag() {
-                                            ChangeTag::Delete => "-",
-                                            ChangeTag::Insert => "+",
-                                            ChangeTag::Equal => " ",
-                                        };
+                                    for op in diff.ops() {
+                                        for change in diff.iter_changes(op) {
+                                            let (sign, style) = match change.tag() {
+                                                ChangeTag::Delete => ("-", Style::new().red()),
+                                                ChangeTag::Insert => ("+", Style::new().green()),
+                                                ChangeTag::Equal => (" ", Style::new()),
+                                            };
 
-                                        eprint!("{}{}", sign, change);
+                                            eprint!(
+                                                "{}{}",
+                                                style.apply_to(sign).bold(),
+                                                style.apply_to(change)
+                                            );
+                                        }
                                     }
                                 }
 
@@ -366,14 +380,20 @@ async fn run_command(matches: &ArgMatches) {
 
                                     let diff = TextDiff::from_lines(expected, actual);
 
-                                    for change in diff.iter_all_changes() {
-                                        let sign = match change.tag() {
-                                            ChangeTag::Delete => "-",
-                                            ChangeTag::Insert => "+",
-                                            ChangeTag::Equal => " ",
-                                        };
+                                    for op in diff.ops() {
+                                        for change in diff.iter_changes(op) {
+                                            let (sign, style) = match change.tag() {
+                                                ChangeTag::Delete => ("-", Style::new().red()),
+                                                ChangeTag::Insert => ("+", Style::new().green()),
+                                                ChangeTag::Equal => (" ", Style::new()),
+                                            };
 
-                                        eprint!("{}{}", sign, change);
+                                            eprint!(
+                                                "{}{}",
+                                                style.apply_to(sign).bold(),
+                                                style.apply_to(change)
+                                            );
+                                        }
                                     }
                                 }
 
