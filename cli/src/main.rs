@@ -154,9 +154,7 @@ async fn run_command(matches: &ArgMatches) {
                         if let Some(expected_response) = &reqfile.response {
                             // Compare the actual response with the expected response
                             if let Err(diffs) = assert_response(expected_response, response) {
-                                eprintln!("Response assertion failed:\n");
-
-                                diffs.print();
+                                eprintln!("Response assertion failed:\n{diffs}");
 
                                 exit(1);
                             }
@@ -765,6 +763,7 @@ mod tests {
               +  }
                }
               -
+              
             "#,
         )
         .trim_start()

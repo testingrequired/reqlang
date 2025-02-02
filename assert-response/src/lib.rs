@@ -1,3 +1,5 @@
+use std::fmt::{self, Display};
+
 use console::Style;
 use serde::{Deserialize, Serialize};
 use similar::{ChangeTag, TextDiff};
@@ -32,12 +34,18 @@ pub enum ResponseDiff {
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct ResponseDiffs(Vec<ResponseDiff>, HttpResponse);
 
+impl Display for ResponseDiffs {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.to_diff_string())
+    }
+}
+
 impl ResponseDiffs {
     pub fn diffs(&self) -> Vec<ResponseDiff> {
         self.0.clone()
     }
 
-    pub fn print(&self) -> () {
+    pub fn to_diff_string(&self) -> String {
         let mut http_version_diff: Option<(String, String)> = None;
         let mut status_code_diff: Option<(String, String)> = None;
         let mut status_text_diff: Option<(String, String)> = None;
@@ -169,6 +177,10 @@ impl ResponseDiffs {
                 )),
             };
 
+        let mut output = String::new();
+
+        output.push('\n');
+
         if let Some((expected, actual)) = &first_line_diff {
             let diff = TextDiff::from_lines(expected, actual);
 
@@ -180,7 +192,11 @@ impl ResponseDiffs {
                         ChangeTag::Equal => (" ", Style::new()),
                     };
 
-                    eprint!("{}{}", style.apply_to(sign).bold(), style.apply_to(change));
+                    output.push_str(&format!(
+                        "{}{}",
+                        style.apply_to(sign).bold(),
+                        style.apply_to(change)
+                    ));
                 }
             }
         }
@@ -196,13 +212,17 @@ impl ResponseDiffs {
                         ChangeTag::Equal => (" ", Style::new()),
                     };
 
-                    eprint!("{}{}", style.apply_to(sign).bold(), style.apply_to(change));
+                    output.push_str(&format!(
+                        "{}{}",
+                        style.apply_to(sign).bold(),
+                        style.apply_to(change)
+                    ));
                 }
             }
         }
 
         if let Some((expected, actual)) = &body_diff {
-            eprintln!();
+            output.push('\n');
 
             let diff = TextDiff::from_lines(expected, actual);
 
@@ -214,10 +234,16 @@ impl ResponseDiffs {
                         ChangeTag::Equal => (" ", Style::new()),
                     };
 
-                    eprint!("{}{}", style.apply_to(sign).bold(), style.apply_to(change));
+                    output.push_str(&format!(
+                        "{}{}",
+                        style.apply_to(sign).bold(),
+                        style.apply_to(change)
+                    ));
                 }
             }
         }
+
+        output
     }
 }
 
@@ -225,7 +251,7 @@ impl ResponseDiffs {
 pub fn assert_response(
     expected: &HttpResponse,
     actual: &HttpResponse,
-) -> Result<(), ResponseDiffs> {
+) -> Result<(), Box<ResponseDiffs>> {
     let mut differences: Vec<ResponseDiff> = vec![];
 
     if expected.status_code != actual.status_code {
@@ -267,7 +293,7 @@ pub fn assert_response(
     }
 
     if !differences.is_empty() {
-        return Err(ResponseDiffs(differences, expected.clone()));
+        return Err(ResponseDiffs(differences, expected.clone()).into());
     }
 
     Ok(())
@@ -335,7 +361,8 @@ mod tests {
                     }
                 ],
                 expected.clone()
-            )),
+            )
+            .into()),
             assert_response(&expected, &actual)
         )
     }
@@ -365,7 +392,8 @@ mod tests {
             Err(ResponseDiffs(
                 vec![ResponseDiff::MissingHeader("X-Custom-Header".to_string())],
                 expected.clone()
-            )),
+            )
+            .into()),
             assert_response(&expected, &actual)
         )
     }
@@ -420,7 +448,8 @@ mod tests {
                     actual: "text/plain".to_string(),
                 }],
                 expected.clone()
-            )),
+            )
+            .into()),
             assert_response(&expected, &actual)
         )
     }
@@ -450,7 +479,8 @@ mod tests {
                     actual: Some(String::from("Greetings World!")),
                 }],
                 expected.clone()
-            )),
+            )
+            .into()),
             assert_response(&expected, &actual)
         )
     }
@@ -480,7 +510,8 @@ mod tests {
                     actual: None,
                 }],
                 expected.clone()
-            )),
+            )
+            .into()),
             assert_response(&expected, &actual)
         )
     }

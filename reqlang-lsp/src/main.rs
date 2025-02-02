@@ -43,11 +43,12 @@ impl LanguageServer for Backend {
     async fn initialize(&self, _: InitializeParams) -> RpcResult<InitializeResult> {
         let version = env!("CARGO_PKG_VERSION").to_string();
 
+        let initial_log = format!("Reqlang Language Server (v{}) running...", version);
+
+        eprintln!("{initial_log}");
+
         self.client
-            .log_message(
-                MessageType::INFO,
-                format!("Reqlang Language Server (v{}) running...", version),
-            )
+            .log_message(MessageType::INFO, initial_log)
             .await;
 
         Ok(InitializeResult {
@@ -208,7 +209,7 @@ impl LanguageServer for Backend {
                     self.client
                         .log_message(
                             MessageType::WARNING,
-                            format!("Differences found in the response:\n{:?}", diffs.diffs()),
+                            format!("Differences found in the response:\n{diffs}"),
                         )
                         .await;
                 }
