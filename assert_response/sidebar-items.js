@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["ResponseDiff"],"fn":["assert_response"]};
+window.SIDEBAR_ITEMS = {"enum":["ResponseDiff"],"fn":["assert_response"],"struct":["ResponseDiffs"]};

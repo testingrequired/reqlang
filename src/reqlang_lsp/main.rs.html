@@ -536,11 +536,12 @@
     <span class="kw">async fn </span>initialize(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="kw">_</span>: InitializeParams) -&gt; RpcResult&lt;InitializeResult&gt; {
         <span class="kw">let </span>version = <span class="macro">env!</span>(<span class="string">"CARGO_PKG_VERSION"</span>).to_string();
 
+        <span class="kw">let </span>initial_log = <span class="macro">format!</span>(<span class="string">"Reqlang Language Server (v{}) running..."</span>, version);
+
+        <span class="macro">eprintln!</span>(<span class="string">"{initial_log}"</span>);
+
         <span class="self">self</span>.client
-            .log_message(
-                MessageType::INFO,
-                <span class="macro">format!</span>(<span class="string">"Reqlang Language Server (v{}) running..."</span>, version),
-            )
+            .log_message(MessageType::INFO, initial_log)
             .<span class="kw">await</span>;
 
         <span class="prelude-val">Ok</span>(InitializeResult {
@@ -696,17 +697,16 @@
                 )
                 .<span class="kw">await</span>;
 
-            <span class="kw">let </span>diff = reqfile
-                .response
-                .and_then(|expected_response| assert_response(<span class="kw-2">&amp;</span>expected_response, <span class="kw-2">&amp;</span>response).err())
-                .unwrap_or_default();
-
-            <span class="self">self</span>.client
-                .log_message(
-                    MessageType::WARNING,
-                    <span class="macro">format!</span>(<span class="string">"Differences found in the response:\n{:?}"</span>, diff),
-                )
-                .<span class="kw">await</span>;
+            <span class="kw">if let </span><span class="prelude-val">Some</span>(expected_response) = reqfile.response {
+                <span class="kw">if let </span><span class="prelude-val">Err</span>(diffs) = assert_response(<span class="kw-2">&amp;</span>expected_response, <span class="kw-2">&amp;</span>response) {
+                    <span class="self">self</span>.client
+                        .log_message(
+                            MessageType::WARNING,
+                            <span class="macro">format!</span>(<span class="string">"Differences found in the response:\n{diffs}"</span>),
+                        )
+                        .<span class="kw">await</span>;
+                }
+            };
 
             <span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(
                 serde_json::to_string(<span class="kw-2">&amp;</span>response)
