@@ -305,7 +305,7 @@ reqlang run examples/valid/mismatch_response.reqlang --test
 
 See: [mismatch_response.reqlang](./examples/valid/mismatch_response.reqlang)
 
-```
+```diff
 HTTP/1.1 200 OK
 connection: keep-alive
 server: gunicorn/19.9.0
