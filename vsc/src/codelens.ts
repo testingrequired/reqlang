@@ -52,7 +52,7 @@ export class ReqlangCodeLensProvider implements CodeLensProvider {
       const client = getClient();
 
       client.outputChannel.appendLine(
-        `No parsed request file found for '${uri}'`,
+        `Unable to provide code lenses for '${uri}'. Parsing results were not found in the workspace state.\n`,
       );
 
       return lenses;

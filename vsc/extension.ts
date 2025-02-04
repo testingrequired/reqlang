@@ -43,7 +43,9 @@ export async function activate(context: ExtensionContext) {
     ),
     commands.registerCommand(Commands.Menu, menuHandler(context)),
     commands.registerCommand(Commands.PickEnv, pickCurrentEnv(context)),
-    commands.registerCommand(Commands.ClearEnv, clearCurrentEnv(context)),
+    commands.registerCommand(Commands.ClearEnv, (context) =>
+      clearCurrentEnv(context),
+    ),
     commands.registerCommand(Commands.RunRequest, runRequest(context)),
     commands.registerCommand(Commands.OpenMdnDocsHttp, openMdnHttpDocs),
     commands.registerCommand(
@@ -101,16 +103,11 @@ function subscribeToParseNotificationsFromServer(context: ExtensionContext) {
     getClient().onNotification(
       "reqlang/parse",
       async (params: ParseNotificationFromServer) => {
-        const newState = state.setParseResult(
-          params.file_id,
-          context,
-          params.result,
+        getClient().outputChannel.appendLine(
+          `Recieved parse notification from language server for '${params.file_id}': ${JSON.stringify(params.result)}\n`,
         );
 
-        getClient().outputChannel.appendLine(params.file_id);
-        getClient().outputChannel.appendLine(
-          JSON.stringify(newState.parsedReqfileFromServer, null, 2),
-        );
+        state.setParseResult(params.file_id, context, params.result);
       },
     ),
   );

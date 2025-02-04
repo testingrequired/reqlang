@@ -465,6 +465,29 @@ mod tests {
         }
 
         #[test]
+        fn get_envs_when_config_is_defined_empty_b() {
+            let reqfile = ParsedRequestFile {
+                config: Some((
+                    ParsedConfig {
+                        vars: Some(vec!["var".to_string()]),
+                        envs: None,
+                        prompts: None,
+                        secrets: None,
+                        auth: None,
+                    },
+                    NO_SPAN,
+                )),
+                request: (HttpRequest::get("/", "1.1", vec![]), NO_SPAN),
+                response: None,
+                refs: vec![],
+            };
+
+            let empty: Vec<String> = Vec::new();
+
+            assert_eq!(empty, reqfile.envs());
+        }
+
+        #[test]
         fn get_envs_when_config_is_defined_but_envs_none() {
             let reqfile = ParsedRequestFile {
                 config: Some((

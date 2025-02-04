@@ -7,6 +7,7 @@ import {
 } from "./types";
 import * as RsResult from "rsresult";
 import { updateStatusText } from "./status";
+import { getClient } from "./client";
 
 /**
  * Set a request file's workspace state with it's parsed request file
@@ -21,6 +22,10 @@ export function setParseResult(
   result: RsResult.Result<ParsedReqfileFromServer>,
 ): ReqfileState {
   return updateState(fileKey, context, (state) => {
+    getClient().outputChannel.appendLine(
+      `Setting parsed request file for '${fileKey}': ${JSON.stringify(result)}`,
+    );
+
     state.parsedReqfileFromServer = result;
     return state;
   });
