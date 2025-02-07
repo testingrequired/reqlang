@@ -12,12 +12,38 @@ use crate::{
 /// Template a request file string into a [TemplatedRequestFile].
 pub fn template(
     reqfile_string: &str,
-    env: &str,
+    env: Option<&str>,
     prompts: &HashMap<String, String>,
     secrets: &HashMap<String, String>,
     provider_values: &HashMap<String, String>,
 ) -> Result<TemplatedRequestFile, Vec<Spanned<ReqlangError>>> {
     let parsed_reqfile = parse(reqfile_string)?;
+
+    if let Some(env) = env {
+        match &parsed_reqfile.config {
+            Some((config, span)) => {
+                if config.envs().is_empty() {
+                    return Err(vec![(
+                        ResolverError::NoEnvironmentsDefined(env.to_string()).into(),
+                        span.clone(),
+                    )]);
+                }
+            }
+            None => {
+                return Err(vec![(
+                    ResolverError::NoEnvironmentsDefined(env.to_string()).into(),
+                    0..0,
+                )]);
+            }
+        }
+
+        if !parsed_reqfile.envs().contains(&env.to_string()) {
+            return Err(vec![(
+                ResolverError::InvalidEnvError(env.to_string()).into(),
+                parsed_reqfile.config.map(|x| x.1).unwrap_or_default(),
+            )]);
+        }
+    }
 
     let mut templating_errors: Vec<Spanned<ReqlangError>> = vec![];
 
@@ -63,18 +89,30 @@ pub fn template(
     // Replace template references with the resolved values
     let templated_input = {
         let mut input = reqfile_string.to_string();
-        let vars = reqfile.env(env).unwrap_or_default();
 
+        // If the environment is provided, use it to resolve template references
+        let vars = match env {
+            Some(env) => reqfile.env(env).unwrap_or_default(),
+            None => {
+                // TODO: validate if environments are defined in the request file
+                HashMap::new()
+            }
+        };
+
+        // Replace template references with the resolved values
         for (template_ref, ref_type) in &template_refs_to_replace {
             let value = match ref_type {
-                ReferenceType::Variable(name) => Some(vars.get(name).unwrap().to_owned()),
-                ReferenceType::Prompt(name) => Some(prompts.get(name).unwrap().to_owned()),
-                ReferenceType::Secret(name) => Some(secrets.get(name).unwrap().to_owned()),
-                ReferenceType::Provider(name) => provider_values.get(name).cloned(),
+                ReferenceType::Variable(name) => vars.get(name),
+                ReferenceType::Prompt(name) => prompts.get(name),
+                ReferenceType::Secret(name) => secrets.get(name),
+                ReferenceType::Provider(name) => provider_values.get(name),
                 _ => None,
             };
 
-            input = input.replace(template_ref, &value.unwrap_or(template_ref.clone()));
+            // If reference can not be resolved, keep the template reference as is
+            if value.is_some() {
+                input = input.replace(template_ref, value.unwrap());
+            }
         }
 
         input
@@ -99,7 +137,7 @@ pub fn template(
 mod test {
     use std::collections::HashMap;
 
-    use errors::ReqlangError;
+    use errors::{ReqlangError, ResolverError};
     use span::NO_SPAN;
     use types::{
         http::{HttpRequest, HttpResponse, HttpStatusCode},
@@ -162,7 +200,7 @@ HTTP/1.1 200 OK
     templater_test!(
         full_request_file,
         REQFILE,
-        "dev",
+        Some("dev"),
         HashMap::from([
             ("test_value".to_string(), "test_value_value".to_string()),
             (
@@ -196,7 +234,7 @@ HTTP/1.1 200 OK
     templater_test!(
         missing_secret_input,
         REQFILE,
-        "dev",
+        Some("dev"),
         HashMap::from([
             ("test_value".to_string(), "test_value_value".to_string()),
             (
@@ -217,7 +255,7 @@ HTTP/1.1 200 OK
     templater_test!(
         missing_prompt_input,
         REQFILE,
-        "dev",
+        Some("dev"),
         HashMap::from([("test_value".to_string(), "test_value_value".to_string()),]),
         HashMap::from([("api_key".to_string(), "api_key_value".to_string())]),
         &HashMap::default(),
@@ -246,7 +284,7 @@ HTTP/1.1 200 OK
             ```
             "
         ),
-        "dev",
+        Some("dev"),
         HashMap::new(),
         HashMap::from([("api_key".to_string(), "api_key_value".to_string())]),
         &HashMap::default(),
@@ -260,5 +298,96 @@ HTTP/1.1 200 OK
             },
             response: None,
         })
+    );
+
+    templater_test!(
+        resolve_env_with_no_config,
+        textwrap::dedent(
+            "
+            ```%request
+            GET https://example.com/ HTTP/1.1
+            ```
+            "
+        ),
+        Some("dev"),
+        HashMap::new(),
+        HashMap::new(),
+        &HashMap::default(),
+        Err(vec![(
+            ResolverError::NoEnvironmentsDefined("dev".to_string()).into(),
+            0..0
+        )])
+    );
+
+    templater_test!(
+        resolve_env_with_config_but_no_envs,
+        textwrap::dedent(
+            "
+            ```%config
+            ```
+
+            ```%request
+            GET https://example.com/ HTTP/1.1
+            ```
+            "
+        ),
+        Some("dev"),
+        HashMap::new(),
+        HashMap::new(),
+        &HashMap::default(),
+        Err(vec![(
+            ResolverError::NoEnvironmentsDefined("dev".to_string()).into(),
+            1..15
+        )])
+    );
+
+    templater_test!(
+        resolve_env_with_config_and_envs_but_none_defined,
+        textwrap::dedent(
+            "
+            ```%config
+            [envs]
+            ```
+
+            ```%request
+            GET https://example.com/ HTTP/1.1
+            ```
+            "
+        ),
+        Some("dev"),
+        HashMap::new(),
+        HashMap::new(),
+        &HashMap::default(),
+        Err(vec![(
+            ResolverError::NoEnvironmentsDefined("dev".to_string()).into(),
+            1..22
+        )])
+    );
+
+    templater_test!(
+        resolve_env_with_config_and_envs_but_invalid_env,
+        textwrap::dedent(
+            "
+            ```%config
+            vars = [\"foo\"]
+
+            [envs]
+            [envs.test]
+            foo = \"bar\"
+            ```
+
+            ```%request
+            GET https://example.com/?value={{:foo}} HTTP/1.1
+            ```
+            "
+        ),
+        Some("dev"),
+        HashMap::new(),
+        HashMap::new(),
+        &HashMap::default(),
+        Err(vec![(
+            ResolverError::InvalidEnvError("dev".to_string()).into(),
+            1..62
+        )])
     );
 }

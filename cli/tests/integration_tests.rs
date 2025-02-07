@@ -147,7 +147,7 @@ mod tests {
     #[test]
     fn export_missing_prompt() {
         (assert_command!(
-            "reqlang export ../examples/valid/post.reqlang -e dev -S super_secret_value=123"
+            "reqlang export ../examples/valid/post.reqlang -e test -S super_secret_value=123"
         ))
         .failure()
         .code(1)
@@ -174,7 +174,7 @@ mod tests {
 
     #[test]
     fn export_missing_secret() {
-        (assert_command!("reqlang export ../examples/valid/post.reqlang -e dev -P prompt_value=foo"))
+        (assert_command!("reqlang export ../examples/valid/post.reqlang -e test -P prompt_value=foo"))
             .failure()
             .code(1)
             .stderr("Invalid request file or errors when exporting\n")
@@ -280,6 +280,62 @@ mod tests {
             "error: invalid value '404' for '--prompt <prompts>': should be formatted as key=value pair: `404`\n",
             "\n",
             "For more information, try '--help'.\n"
+        ));
+    }
+
+    #[test]
+    fn export_invalid_env() {
+        (assert_command!(
+            "reqlang export ../examples/valid/post.reqlang -e dev -S super_secret_value=123 -P prompt_value=456"
+        ))
+        .failure()
+        .code(1)
+        .stderr("Invalid request file or errors when exporting\n")
+        .stdout(concat!(
+            "[\n",
+            "  {\n",
+            "    \"range\": {\n",
+            "      \"start\": {\n",
+            "        \"line\": 0,\n",
+            "        \"character\": 0\n",
+            "      },\n",
+            "      \"end\": {\n",
+            "        \"line\": 15,\n",
+            "        \"character\": 3\n",
+            "      }\n",
+            "    },\n",
+            "    \"severity\": 1,\n",
+            "    \"message\": \"ResolverError: 'dev' is not a defined environment in the request file\"\n",
+            "  }\n",
+            "]\n"
+        ));
+    }
+
+    #[test]
+    fn export_no_envs_defined() {
+        (assert_command!(
+            "reqlang export ../examples/valid/status_code.reqlang -e dev -P status_code=200"
+        ))
+        .failure()
+        .code(1)
+        .stderr("Invalid request file or errors when exporting\n")
+        .stdout(concat!(
+            "[\n",
+            "  {\n",
+            "    \"range\": {\n",
+            "      \"start\": {\n",
+            "        \"line\": 0,\n",
+            "        \"character\": 0\n",
+            "      },\n",
+            "      \"end\": {\n",
+            "        \"line\": 4,\n",
+            "        \"character\": 3\n",
+            "      }\n",
+            "    },\n",
+            "    \"severity\": 1,\n",
+            "    \"message\": \"ResolverError: Trying to resolve the environment 'dev' but no environments are defined in the request file\"\n",
+            "  }\n",
+            "]\n"
         ));
     }
 
@@ -404,5 +460,61 @@ mod tests {
         assert_command!("reqlang run ../examples/valid/mismatch_response.reqlang")
             .success()
             .code(0);
+    }
+
+    #[test]
+    fn run_invalid_env() {
+        (assert_command!(
+            "reqlang run ../examples/valid/post.reqlang -e dev -S super_secret_value=123 -P prompt_value=456"
+        ))
+        .failure()
+        .code(1)
+        .stderr("Invalid request file or errors with input\n")
+        .stdout(concat!(
+            "[\n",
+            "  {\n",
+            "    \"range\": {\n",
+            "      \"start\": {\n",
+            "        \"line\": 0,\n",
+            "        \"character\": 0\n",
+            "      },\n",
+            "      \"end\": {\n",
+            "        \"line\": 15,\n",
+            "        \"character\": 3\n",
+            "      }\n",
+            "    },\n",
+            "    \"severity\": 1,\n",
+            "    \"message\": \"ResolverError: 'dev' is not a defined environment in the request file\"\n",
+            "  }\n",
+            "]\n"
+        ));
+    }
+
+    #[test]
+    fn run_no_envs_defined() {
+        (assert_command!(
+            "reqlang run ../examples/valid/status_code.reqlang -e dev -P status_code=200"
+        ))
+        .failure()
+        .code(1)
+        .stderr("Invalid request file or errors with input\n")
+        .stdout(concat!(
+            "[\n",
+            "  {\n",
+            "    \"range\": {\n",
+            "      \"start\": {\n",
+            "        \"line\": 0,\n",
+            "        \"character\": 0\n",
+            "      },\n",
+            "      \"end\": {\n",
+            "        \"line\": 4,\n",
+            "        \"character\": 3\n",
+            "      }\n",
+            "    },\n",
+            "    \"severity\": 1,\n",
+            "    \"message\": \"ResolverError: Trying to resolve the environment 'dev' but no environments are defined in the request file\"\n",
+            "  }\n",
+            "]\n"
+        ));
     }
 }

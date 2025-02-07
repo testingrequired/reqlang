@@ -273,7 +273,11 @@ impl InputParamsState {
             if ui.button("Run").clicked() {
                 let reqfile = template(
                     &client_ctx.source.clone().unwrap(),
-                    &self.env,
+                    if self.env.is_empty() {
+                        None
+                    } else {
+                        Some(&self.env)
+                    },
                     &self.prompts.clone(),
                     &self.secrets.clone(),
                     &HashMap::new(),

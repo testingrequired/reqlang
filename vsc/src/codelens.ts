@@ -95,12 +95,7 @@ export class ReqlangCodeLensProvider implements CodeLensProvider {
     // Get the current state of whether we're waiting for a response or not.
     const isWaitingForResponse = getIsWaitingForResponse(uri, this.context);
 
-    // If an environment is set, add a run request lens
-    if (env !== null) {
-      lenses.push(
-        new RunRequestCodeLens(requestLensRange, isWaitingForResponse),
-      );
-    }
+    lenses.push(new RunRequestCodeLens(requestLensRange, isWaitingForResponse));
 
     if (lastResponse !== null && !isWaitingForResponse) {
       lenses.push(new LastReponseCodeLens(requestLensRange, lastResponse));

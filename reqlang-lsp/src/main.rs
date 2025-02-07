@@ -253,7 +253,7 @@ impl LanguageServer for Backend {
 
             let reqfile = template(
                 &from_client_params.reqfile,
-                &from_client_params.env,
+                from_client_params.env.as_deref(),
                 &from_client_params.prompts,
                 &from_client_params.secrets,
                 &Default::default(),
@@ -309,9 +309,10 @@ impl LanguageServer for Backend {
                 from_client_params_value.clone().into();
 
             // Setup provider values
-            let env = from_client_params.env.as_str();
+            let env = from_client_params.env.as_deref();
             let mut provider = HashMap::new();
-            provider.insert("env".to_string(), env.to_string());
+
+            provider.insert("env".to_string(), env.unwrap_or_default().to_string());
 
             // Get reqfile text content
             let url = Url::parse(&from_client_params.uri).expect("Should be a valid url");
@@ -347,7 +348,7 @@ impl LanguageServer for Backend {
 #[derive(Debug, Deserialize, Serialize, Default)]
 struct FromClientExportRequestParams {
     uri: String,
-    env: String,
+    env: Option<String>,
     vars: HashMap<String, String>,
     prompts: HashMap<String, String>,
     secrets: HashMap<String, String>,
@@ -367,8 +368,7 @@ impl From<Value> for FromClientExportRequestParams {
             .get("env")
             .expect("Should be present")
             .as_str()
-            .expect("Should be a string")
-            .to_string();
+            .map(|x| x.to_string());
 
         let vars_from_params = params_value
             .get("vars")

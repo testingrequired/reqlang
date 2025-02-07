@@ -156,7 +156,7 @@ impl ParsedConfig {
 pub struct RequestParamsFromClient {
     /// The text content of the request file
     pub reqfile: String,
-    pub env: String,
+    pub env: Option<String>,
     pub vars: HashMap<String, String>,
     pub prompts: HashMap<String, String>,
     pub secrets: HashMap<String, String>,
@@ -173,10 +173,8 @@ impl From<Value> for RequestParamsFromClient {
 
         let env = params_value
             .get("env")
-            .expect("Should be present")
-            .as_str()
-            .expect("Should be a string")
-            .to_string();
+            .and_then(|x| x.as_str())
+            .map(|x| x.to_string());
 
         let vars_from_params = params_value
             .get("vars")
