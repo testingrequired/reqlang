@@ -1474,20 +1474,6 @@
 <a href="#1472" id="1472">1472</a>
 <a href="#1473" id="1473">1473</a>
 <a href="#1474" id="1474">1474</a>
-<a href="#1475" id="1475">1475</a>
-<a href="#1476" id="1476">1476</a>
-<a href="#1477" id="1477">1477</a>
-<a href="#1478" id="1478">1478</a>
-<a href="#1479" id="1479">1479</a>
-<a href="#1480" id="1480">1480</a>
-<a href="#1481" id="1481">1481</a>
-<a href="#1482" id="1482">1482</a>
-<a href="#1483" id="1483">1483</a>
-<a href="#1484" id="1484">1484</a>
-<a href="#1485" id="1485">1485</a>
-<a href="#1486" id="1486">1486</a>
-<a href="#1487" id="1487">1487</a>
-<a href="#1488" id="1488">1488</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>errors::{ParseError, ReqlangError};
 <span class="kw">use </span>regex::Regex;
 <span class="kw">use </span>span::{Spanned, NO_SPAN};
@@ -1563,21 +1549,7 @@
         };
 
         <span class="kw">let </span>config = <span class="kw">match </span>parse_config(<span class="kw-2">&amp;</span>reqfile.config) {
-            <span class="prelude-val">Some</span>(<span class="prelude-val">Ok</span>((<span class="kw-2">mut </span>config, config_span))) =&gt; {
-                <span class="kw">if let </span><span class="prelude-val">Some</span>(envs) = <span class="kw-2">&amp;mut </span>config.envs {
-                    <span class="kw">if </span>envs.keys().len() == <span class="number">0 </span>{
-                        envs.insert(<span class="string">"default"</span>.to_string(), HashMap::new());
-                    }
-                } <span class="kw">else </span>{
-                    <span class="kw">let </span><span class="kw-2">mut </span>envs: HashMap&lt;String, HashMap&lt;String, String&gt;&gt; = HashMap::new();
-
-                    envs.insert(<span class="string">"default"</span>.to_string(), HashMap::new());
-
-                    config.envs = <span class="prelude-val">Some</span>(envs);
-                }
-
-                <span class="prelude-val">Some</span>((config, config_span))
-            }
+            <span class="prelude-val">Some</span>(<span class="prelude-val">Ok</span>((config, config_span))) =&gt; <span class="prelude-val">Some</span>((config, config_span)),
             <span class="prelude-val">Some</span>(<span class="prelude-val">Err</span>(err)) =&gt; {
                 parse_errors.extend(err);
                 <span class="prelude-val">None
@@ -2805,7 +2777,7 @@
                 config: <span class="prelude-val">Some</span>((
                     ParsedConfig {
                         vars: <span class="prelude-val">None</span>,
-                        envs: <span class="prelude-val">Some</span>(HashMap::from([(<span class="string">"default"</span>.to_owned(), HashMap::default())])),
+                        envs: <span class="prelude-val">None</span>,
                         prompts: <span class="prelude-val">Some</span>(HashMap::from([(<span class="string">"status_code"</span>.to_owned(), <span class="prelude-val">Some</span>(<span class="string">""</span>.to_owned()))])),
                         secrets: <span class="prelude-val">None</span>,
                         auth: <span class="prelude-val">None

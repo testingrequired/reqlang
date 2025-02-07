@@ -52,6 +52,8 @@
 <a href="#50" id="50">50</a>
 <a href="#51" id="51">51</a>
 <a href="#52" id="52">52</a>
+<a href="#53" id="53">53</a>
+<a href="#54" id="54">54</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>serde::{Deserialize, Serialize};
 <span class="kw">use </span>thiserror::Error;
 <span class="kw">use </span>types::ReferenceType;
@@ -85,8 +87,10 @@
 
 <span class="attr">#[derive(Debug, Clone, Error, PartialEq, Serialize, Deserialize)]
 </span><span class="kw">pub enum </span>ResolverError {
-    <span class="attr">#[error(<span class="string">"Invalid env: {0}"</span>)]
+    <span class="attr">#[error(<span class="string">"'{0}' is not a defined environment in the request file"</span>)]
     </span>InvalidEnvError(String),
+    <span class="attr">#[error(<span class="string">"Trying to resolve the environment '{0}' but no environments are defined in the request file"</span>)]
+    </span>NoEnvironmentsDefined(String),
     <span class="attr">#[error(<span class="string">"Prompt required but not passed: {0}"</span>)]
     </span>PromptValueNotPassed(String),
     <span class="attr">#[error(<span class="string">"Secret required but not passed: {0}"</span>)]

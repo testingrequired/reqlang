@@ -319,7 +319,7 @@
     <span class="kw">fn </span>from(params: RequestParamsFromClient) -&gt; <span class="self">Self </span>{
         <span class="kw">let </span>reqfile = template(
             <span class="kw-2">&amp;</span>params.reqfile,
-            <span class="kw-2">&amp;</span>params.env,
+            params.env.as_deref(),
             <span class="kw-2">&amp;</span>params.prompts,
             <span class="kw-2">&amp;</span>params.secrets,
             <span class="kw-2">&amp;</span>HashMap::new(),
@@ -382,7 +382,7 @@ GET http://example.com HTTP/1.1
 ```
             "#
             </span>.to_string(),
-            env: <span class="string">"default"</span>.to_string(),
+            env: <span class="prelude-val">None</span>,
             vars: HashMap::new(),
             prompts: HashMap::new(),
             secrets: HashMap::new(),
