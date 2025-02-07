@@ -160,7 +160,7 @@ mod tests {
                 ```
                 ",
             ),
-            "dev",
+            Some("dev"),
             &HashMap::from([
                 ("test_value".to_string(), "test_value_value".to_string()),
                 (

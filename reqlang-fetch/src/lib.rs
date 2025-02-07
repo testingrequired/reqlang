@@ -111,7 +111,7 @@ impl From<RequestParamsFromClient> for HttpRequestFetcher {
     fn from(params: RequestParamsFromClient) -> Self {
         let reqfile = template(
             &params.reqfile,
-            &params.env,
+            params.env.as_deref(),
             &params.prompts,
             &params.secrets,
             &HashMap::new(),
@@ -174,7 +174,7 @@ GET http://example.com HTTP/1.1
 ```
             "#
             .to_string(),
-            env: "default".to_string(),
+            env: None,
             vars: HashMap::new(),
             prompts: HashMap::new(),
             secrets: HashMap::new(),

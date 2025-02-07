@@ -26,12 +26,11 @@ mod integration_tests {
         let path = PathBuf::from("../examples/valid/status_code.reqlang");
         let source = fs::read_to_string(path).expect("text should have been read from file");
 
-        let env = "default";
         let prompts = HashMap::from([("status_code".to_string(), "201".to_string())]);
         let secrets = HashMap::new();
-        let provider_values = HashMap::from([("env".to_string(), "default".to_string())]);
+        let provider_values = HashMap::new();
 
-        let reqfile = reqlang::template(&source, env, &prompts, &secrets, &provider_values)
+        let reqfile = reqlang::template(&source, None, &prompts, &secrets, &provider_values)
             .expect("request file should have been templated");
 
         let fetcher: HttpRequestFetcher = reqfile.request.into();

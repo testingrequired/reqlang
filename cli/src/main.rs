@@ -35,8 +35,7 @@ where
 fn export_command(matches: &ArgMatches) {
     let path = matches.get_one::<String>("path").unwrap();
 
-    let default_env = String::from("default");
-    let env = matches.get_one::<String>("env").unwrap_or(&default_env);
+    let env: Option<&str> = matches.get_one::<String>("env").map(|x| x.as_str());
 
     let prompts = matches
         .get_many::<(String, String)>("prompts")
@@ -55,7 +54,10 @@ fn export_command(matches: &ArgMatches) {
 
     let contents = fs::read_to_string(path).expect("Should have been able to read the file");
 
-    let provider_values = HashMap::from([(String::from("env"), env.clone())]);
+    let provider_values = HashMap::from([(
+        String::from("env"),
+        env.map(|x| x.to_string()).unwrap_or_default(),
+    )]);
 
     let reqfile = template(&contents, env, &prompts, &secrets, &provider_values);
 
@@ -108,8 +110,7 @@ async fn run_command(matches: &ArgMatches) {
 
     let path = matches.get_one::<String>("path").unwrap();
 
-    let default_env = String::from("default");
-    let env = matches.get_one::<String>("env").unwrap_or(&default_env);
+    let env = matches.get_one::<String>("env").map(|s| s.as_str());
 
     let prompts = matches
         .get_many::<(String, String)>("prompts")
@@ -131,7 +132,10 @@ async fn run_command(matches: &ArgMatches) {
     // Read the request file
 
     let contents = fs::read_to_string(path).expect("Should have been able to read the file");
-    let provider_values = HashMap::from([(String::from("env"), env.clone())]);
+    let provider_values = HashMap::from([(
+        String::from("env"),
+        env.map(|x| x.to_string()).unwrap_or_default(),
+    )]);
     let reqfile = template(&contents, env, &prompts, &secrets, &provider_values);
 
     // Execute the request

@@ -73,21 +73,7 @@ pub fn parse(input: &str) -> Result<ParsedRequestFile, Vec<Spanned<ReqlangError>
         };
 
         let config = match parse_config(&reqfile.config) {
-            Some(Ok((mut config, config_span))) => {
-                if let Some(envs) = &mut config.envs {
-                    if envs.keys().len() == 0 {
-                        envs.insert("default".to_string(), HashMap::new());
-                    }
-                } else {
-                    let mut envs: HashMap<String, HashMap<String, String>> = HashMap::new();
-
-                    envs.insert("default".to_string(), HashMap::new());
-
-                    config.envs = Some(envs);
-                }
-
-                Some((config, config_span))
-            }
+            Some(Ok((config, config_span))) => Some((config, config_span)),
             Some(Err(err)) => {
                 parse_errors.extend(err);
                 None
@@ -1315,7 +1301,7 @@ mod test {
                 config: Some((
                     ParsedConfig {
                         vars: None,
-                        envs: Some(HashMap::from([("default".to_owned(), HashMap::default())])),
+                        envs: None,
                         prompts: Some(HashMap::from([("status_code".to_owned(), Some("".to_owned()))])),
                         secrets: None,
                         auth: None

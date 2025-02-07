@@ -59,39 +59,71 @@ export const pickCurrentEnv = (context: ExtensionContext) => async () => {
   const parseResult = state.getParseResults(uri, context);
 
   if (parseResult === null) {
+    getClient().outputChannel.appendLine(
+      `No parsed request file found for '${uri}', unable to pick an environment.\n`,
+    );
+
     return;
   }
 
-  await RsResult.ifOk(parseResult, async (parsedResult) => {
-    if (!window.activeTextEditor) {
-      return;
-    }
+  await RsResult.ifOkOr(
+    parseResult,
+    async (parsedResult) => {
+      if (!window.activeTextEditor) {
+        return;
+      }
 
-    if (parsedResult.envs.length === 0) {
-      return clearCurrentEnv(context)();
-    }
+      if (parsedResult.envs.length === 0) {
+        getClient().outputChannel.appendLine(
+          `No environments found in parsed request file: '${uri}'. Clearing the environment.\n`,
+        );
 
-    const currentEnv = state.getEnv(uri, context);
+        return clearCurrentEnv(context);
+      }
 
-    const env =
-      (await window.showQuickPick(parsedResult.envs, {
-        title: "Select environment for request",
-        placeHolder: currentEnv ?? parsedResult.envs[0],
-      })) ??
-      currentEnv ??
-      parsedResult.envs[0];
+      const currentEnv = state.getEnv(uri, context);
 
-    if (env.length === 0) {
-      return clearCurrentEnv(context)();
-    }
+      getClient().outputChannel.appendLine(
+        `Current environment set for: '${uri}' is ${currentEnv}. Showing env picker model...\n`,
+      );
 
-    state.setEnv(window.activeTextEditor.document.uri.toString(), context, env);
+      const env =
+        (await window.showQuickPick(parsedResult.envs, {
+          title: "Select environment for request",
+          placeHolder: currentEnv ?? parsedResult.envs[0],
+        })) ??
+        currentEnv ??
+        parsedResult.envs[0];
 
-    updateStatusText(context);
-  });
+      if (env.length === 0) {
+        getClient().outputChannel.appendLine(
+          `No environment selected, clearing environment for: '${uri}'\n`,
+        );
+
+        return clearCurrentEnv(context);
+      }
+
+      getClient().outputChannel.appendLine(
+        `New environment set for: '${uri}'. ${env}.\n`,
+      );
+
+      state.setEnv(
+        window.activeTextEditor.document.uri.toString(),
+        context,
+        env,
+      );
+
+      updateStatusText(context);
+    },
+    (err) => {
+      getClient().outputChannel.appendLine(
+        `Error parsing request file: ${err}. Unable to pick an environment.\n`,
+      );
+    },
+  );
 };
 
-export const clearCurrentEnv = (context: ExtensionContext) => async () => {
+export const clearCurrentEnv = async (context: ExtensionContext) => {
   if (!window.activeTextEditor) {
     return;
   }

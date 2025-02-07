@@ -98,10 +98,22 @@ impl LanguageServer for Backend {
         let result: Result<ParseResult, _> = parse(&source).map(|reqfile| reqfile.into());
 
         if let Err(errs) = &result {
+            let diagnostics = get_diagnostics(errs, &source);
+
+            self.client
+                .log_message(
+                    MessageType::ERROR,
+                    format!(
+                        "{} errors parsing opened file '{uri}':\n{diagnostics:#?}",
+                        diagnostics.len()
+                    ),
+                )
+                .await;
+
             self.client
                 .publish_diagnostics(
                     uri.clone(),
-                    get_diagnostics(errs, &source)
+                    diagnostics
                         .iter()
                         .map(|x| (LspDiagnosis((*x).clone())).into())
                         .collect(),
@@ -109,6 +121,13 @@ impl LanguageServer for Backend {
                 )
                 .await;
         }
+
+        self.client
+            .log_message(
+                MessageType::INFO,
+                format!("Sending reqlang/parse notification for opened file '{uri}'"),
+            )
+            .await;
 
         self.client
             .send_notification::<ParseNotification>(ParseNotificationParams::new(
@@ -125,10 +144,22 @@ impl LanguageServer for Backend {
         let result: Result<ParseResult, _> = parse(source).map(|reqfile| reqfile.into());
 
         if let Err(errs) = &result {
+            let diagnostics = get_diagnostics(errs, source);
+
+            self.client
+                .log_message(
+                    MessageType::ERROR,
+                    format!(
+                        "{} errors parsing changed file '{uri}':\n{diagnostics:#?}",
+                        diagnostics.len()
+                    ),
+                )
+                .await;
+
             self.client
                 .publish_diagnostics(
                     uri.clone(),
-                    get_diagnostics(errs, source)
+                    diagnostics
                         .iter()
                         .map(|x| (LspDiagnosis((*x).clone())).into())
                         .collect(),
@@ -136,24 +167,68 @@ impl LanguageServer for Backend {
                 )
                 .await;
         }
+
+        self.client
+            .log_message(
+                MessageType::INFO,
+                format!("Sending reqlang/parse notification for changed file '{uri}'"),
+            )
+            .await;
+
+        self.client
+            .send_notification::<ParseNotification>(ParseNotificationParams::new(
+                uri.clone(),
+                result,
+            ))
+            .await;
     }
 
     async fn did_save(&self, params: DidSaveTextDocumentParams) {
         let uri = params.text_document.uri;
-        let text = params.text.unwrap_or_default();
+        let source = params.text.unwrap_or_default();
 
         let mut file_texts = self.file_texts.lock().await;
-        file_texts.insert(uri.clone(), text.clone());
+        file_texts.insert(uri.clone(), source.clone());
 
-        let result: Result<ParseResult, Vec<Spanned<ReqlangError>>> =
-            parse(&text).map(|unresolved_reqfile| {
-                let result: ParseResult = unresolved_reqfile.into();
+        let result: Result<ParseResult, _> = parse(&source).map(|reqfile| reqfile.into());
 
-                result
-            });
+        if let Err(errs) = &result {
+            let diagnostics = get_diagnostics(errs, &source);
+
+            self.client
+                .log_message(
+                    MessageType::ERROR,
+                    format!(
+                        "{} errors parsing saved file '{uri}':\n{diagnostics:#?}",
+                        diagnostics.len()
+                    ),
+                )
+                .await;
+
+            self.client
+                .publish_diagnostics(
+                    uri.clone(),
+                    diagnostics
+                        .iter()
+                        .map(|x| (LspDiagnosis((*x).clone())).into())
+                        .collect(),
+                    None,
+                )
+                .await;
+        }
 
         self.client
-            .send_notification::<ParseNotification>(ParseNotificationParams::new(uri, result))
+            .log_message(
+                MessageType::INFO,
+                format!("Sending reqlang/parse notification for saved file '{uri}'"),
+            )
+            .await;
+
+        self.client
+            .send_notification::<ParseNotification>(ParseNotificationParams::new(
+                uri.clone(),
+                result,
+            ))
             .await;
     }
 
@@ -178,7 +253,7 @@ impl LanguageServer for Backend {
 
             let reqfile = template(
                 &from_client_params.reqfile,
-                &from_client_params.env,
+                from_client_params.env.as_deref(),
                 &from_client_params.prompts,
                 &from_client_params.secrets,
                 &Default::default(),
@@ -234,9 +309,10 @@ impl LanguageServer for Backend {
                 from_client_params_value.clone().into();
 
             // Setup provider values
-            let env = from_client_params.env.as_str();
+            let env = from_client_params.env.as_deref();
             let mut provider = HashMap::new();
-            provider.insert("env".to_string(), env.to_string());
+
+            provider.insert("env".to_string(), env.unwrap_or_default().to_string());
 
             // Get reqfile text content
             let url = Url::parse(&from_client_params.uri).expect("Should be a valid url");
@@ -272,7 +348,7 @@ impl LanguageServer for Backend {
 #[derive(Debug, Deserialize, Serialize, Default)]
 struct FromClientExportRequestParams {
     uri: String,
-    env: String,
+    env: Option<String>,
     vars: HashMap<String, String>,
     prompts: HashMap<String, String>,
     secrets: HashMap<String, String>,
@@ -292,8 +368,7 @@ impl From<Value> for FromClientExportRequestParams {
             .get("env")
             .expect("Should be present")
             .as_str()
-            .expect("Should be a string")
-            .to_string();
+            .map(|x| x.to_string());
 
         let vars_from_params = params_value
             .get("vars")
@@ -366,6 +441,9 @@ impl ParseNotificationParams {
     }
 }
 
+/// Notification sent to the client when a file has been parsed
+///
+/// Uses the `reqlang/parse` event
 enum ParseNotification {}
 
 impl Notification for ParseNotification {

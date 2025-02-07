@@ -31,8 +31,10 @@ pub enum ParseError {
 
 #[derive(Debug, Clone, Error, PartialEq, Serialize, Deserialize)]
 pub enum ResolverError {
-    #[error("Invalid env: {0}")]
+    #[error("'{0}' is not a defined environment in the request file")]
     InvalidEnvError(String),
+    #[error("Trying to resolve the environment '{0}' but no environments are defined in the request file")]
+    NoEnvironmentsDefined(String),
     #[error("Prompt required but not passed: {0}")]
     PromptValueNotPassed(String),
     #[error("Secret required but not passed: {0}")]
