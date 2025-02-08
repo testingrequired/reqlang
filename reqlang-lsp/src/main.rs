@@ -120,6 +120,10 @@ impl LanguageServer for Backend {
                     Some(params.text_document.version),
                 )
                 .await;
+        } else {
+            self.client
+                .publish_diagnostics(uri.clone(), vec![], Some(params.text_document.version))
+                .await;
         }
 
         self.client
@@ -165,6 +169,10 @@ impl LanguageServer for Backend {
                         .collect(),
                     Some(params.text_document.version),
                 )
+                .await;
+        } else {
+            self.client
+                .publish_diagnostics(uri.clone(), vec![], Some(params.text_document.version))
                 .await;
         }
 
@@ -214,6 +222,10 @@ impl LanguageServer for Backend {
                         .collect(),
                     None,
                 )
+                .await;
+        } else {
+            self.client
+                .publish_diagnostics(uri.clone(), vec![], None)
                 .await;
         }
 
