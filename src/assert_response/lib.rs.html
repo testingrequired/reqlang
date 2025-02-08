@@ -788,19 +788,21 @@
         });
     }
 
-    <span class="kw">for </span>key <span class="kw">in </span>expected.headers.keys() {
-        <span class="kw">if </span>!actual.headers.contains_key(key) {
-            differences.push(ResponseDiff::MissingHeader(key.to_string()));
-        } <span class="kw">else </span>{
-            <span class="kw">let </span>expected_header_value = expected.headers.get(key).unwrap();
-            <span class="kw">let </span>actual_header_value = actual.headers.get(key).unwrap();
+    <span class="kw">for </span>(expected_key, expected_value) <span class="kw">in </span>expected.headers.iter() {
+        <span class="kw">let </span>maybe_actual_header = actual.headers.iter().find(|x| x.<span class="number">0 </span>== <span class="kw-2">*</span>expected_key);
 
-            <span class="kw">if </span>actual_header_value != expected_header_value {
-                differences.push(ResponseDiff::MismatchHeaderValue {
-                    header: key.to_string(),
-                    expected: expected_header_value.clone(),
-                    actual: actual_header_value.clone(),
-                });
+        <span class="kw">match </span>maybe_actual_header {
+            <span class="prelude-val">Some</span>((<span class="kw">_</span>, actual_value)) =&gt; {
+                <span class="kw">if </span>actual_value != expected_value {
+                    differences.push(ResponseDiff::MismatchHeaderValue {
+                        header: expected_key.clone(),
+                        expected: expected_value.clone(),
+                        actual: actual_value.clone(),
+                    })
+                }
+            }
+            <span class="prelude-val">None </span>=&gt; {
+                differences.push(ResponseDiff::MissingHeader(expected_key.clone()));
             }
         }
     }
@@ -821,8 +823,6 @@
 
 <span class="attr">#[cfg(test)]
 </span><span class="kw">mod </span>tests {
-    <span class="kw">use </span>std::collections::HashMap;
-
     <span class="kw">use </span>types::http::{HttpStatusCode, HttpVersion};
 
     <span class="kw">use super</span>::<span class="kw-2">*</span>;
@@ -835,7 +835,7 @@
             http_version: HttpVersion::one_point_one(),
             status_code: HttpStatusCode::new(<span class="number">200</span>),
             status_text: <span class="string">"OK"</span>.to_string(),
-            headers: HashMap::from([(<span class="string">"Content-Type"</span>.to_string(), <span class="string">"application/json"</span>.to_string())]),
+            headers: <span class="macro">vec!</span>[(<span class="string">"Content-Type"</span>.to_string(), <span class="string">"application/json"</span>.to_string())],
             body: <span class="prelude-val">Some</span>(<span class="string">r#"{"key": "value"}"#</span>.to_string()),
         };
 
@@ -843,7 +843,7 @@
             http_version: HttpVersion::one_point_one(),
             status_code: HttpStatusCode::new(<span class="number">200</span>),
             status_text: <span class="string">"OK"</span>.to_string(),
-            headers: HashMap::from([(<span class="string">"Content-Type"</span>.to_string(), <span class="string">"application/json"</span>.to_string())]),
+            headers: <span class="macro">vec!</span>[(<span class="string">"Content-Type"</span>.to_string(), <span class="string">"application/json"</span>.to_string())],
             body: <span class="prelude-val">Some</span>(<span class="string">r#"{"key": "value"}"#</span>.to_string()),
         };
 
@@ -856,7 +856,7 @@
             http_version: HttpVersion::one_point_one(),
             status_code: HttpStatusCode::new(<span class="number">200</span>),
             status_text: <span class="string">"OK"</span>.to_string(),
-            headers: HashMap::from([(<span class="string">"Content-Type"</span>.to_string(), <span class="string">"application/json"</span>.to_string())]),
+            headers: <span class="macro">vec!</span>[(<span class="string">"Content-Type"</span>.to_string(), <span class="string">"application/json"</span>.to_string())],
             body: <span class="prelude-val">Some</span>(<span class="string">r#"{"key": "value"}"#</span>.to_string()),
         };
 
@@ -864,7 +864,7 @@
             http_version: HttpVersion::one_point_one(),
             status_code: HttpStatusCode::new(<span class="number">201</span>),
             status_text: <span class="string">"CREATED"</span>.to_string(),
-            headers: HashMap::from([(<span class="string">"Content-Type"</span>.to_string(), <span class="string">"application/json"</span>.to_string())]),
+            headers: <span class="macro">vec!</span>[(<span class="string">"Content-Type"</span>.to_string(), <span class="string">"application/json"</span>.to_string())],
             body: <span class="prelude-val">Some</span>(<span class="string">r#"{"key": "value"}"#</span>.to_string()),
         };
 
@@ -893,10 +893,10 @@
             http_version: HttpVersion::one_point_one(),
             status_code: HttpStatusCode::new(<span class="number">200</span>),
             status_text: <span class="string">"OK"</span>.to_string(),
-            headers: HashMap::from([
+            headers: <span class="macro">vec!</span>[
                 (<span class="string">"Content-Type"</span>.to_string(), <span class="string">"application/json"</span>.to_string()),
                 (<span class="string">"X-Custom-Header"</span>.to_string(), <span class="string">"custom-value"</span>.to_string()),
-            ]),
+            ],
             body: <span class="prelude-val">Some</span>(<span class="string">r#"{"key": "value"}"#</span>.to_string()),
         };
 
@@ -904,7 +904,7 @@
             http_version: HttpVersion::one_point_one(),
             status_code: HttpStatusCode::new(<span class="number">200</span>),
             status_text: <span class="string">"OK"</span>.to_string(),
-            headers: HashMap::from([(<span class="string">"Content-Type"</span>.to_string(), <span class="string">"application/json"</span>.to_string())]),
+            headers: <span class="macro">vec!</span>[(<span class="string">"Content-Type"</span>.to_string(), <span class="string">"application/json"</span>.to_string())],
             body: <span class="prelude-val">Some</span>(<span class="string">r#"{"key": "value"}"#</span>.to_string()),
         };
 
@@ -924,7 +924,7 @@
             http_version: HttpVersion::one_point_one(),
             status_code: HttpStatusCode::new(<span class="number">200</span>),
             status_text: <span class="string">"OK"</span>.to_string(),
-            headers: HashMap::from([(<span class="string">"Content-Type"</span>.to_string(), <span class="string">"application/json"</span>.to_string())]),
+            headers: <span class="macro">vec!</span>[(<span class="string">"Content-Type"</span>.to_string(), <span class="string">"application/json"</span>.to_string())],
             body: <span class="prelude-val">Some</span>(<span class="string">r#"{"key": "value"}"#</span>.to_string()),
         };
 
@@ -932,10 +932,10 @@
             http_version: HttpVersion::one_point_one(),
             status_code: HttpStatusCode::new(<span class="number">200</span>),
             status_text: <span class="string">"OK"</span>.to_string(),
-            headers: HashMap::from([
+            headers: <span class="macro">vec!</span>[
                 (<span class="string">"Content-Type"</span>.to_string(), <span class="string">"application/json"</span>.to_string()),
                 (<span class="string">"X-Custom-Header"</span>.to_string(), <span class="string">"custom-value"</span>.to_string()),
-            ]),
+            ],
             body: <span class="prelude-val">Some</span>(<span class="string">r#"{"key": "value"}"#</span>.to_string()),
         };
 
@@ -948,7 +948,7 @@
             http_version: HttpVersion::one_point_one(),
             status_code: HttpStatusCode::new(<span class="number">200</span>),
             status_text: <span class="string">"OK"</span>.to_string(),
-            headers: HashMap::from([(<span class="string">"Content-Type"</span>.to_string(), <span class="string">"application/json"</span>.to_string())]),
+            headers: <span class="macro">vec!</span>[(<span class="string">"Content-Type"</span>.to_string(), <span class="string">"application/json"</span>.to_string())],
             body: <span class="prelude-val">Some</span>(<span class="string">r#"{"key": "value"}"#</span>.to_string()),
         };
 
@@ -956,7 +956,7 @@
             http_version: HttpVersion::one_point_one(),
             status_code: HttpStatusCode::new(<span class="number">200</span>),
             status_text: <span class="string">"OK"</span>.to_string(),
-            headers: HashMap::from([(<span class="string">"Content-Type"</span>.to_string(), <span class="string">"text/plain"</span>.to_string())]),
+            headers: <span class="macro">vec!</span>[(<span class="string">"Content-Type"</span>.to_string(), <span class="string">"text/plain"</span>.to_string())],
             body: <span class="prelude-val">Some</span>(<span class="string">r#"{"key": "value"}"#</span>.to_string()),
         };
 
@@ -980,7 +980,7 @@
             http_version: HttpVersion::one_point_one(),
             status_code: HttpStatusCode::new(<span class="number">200</span>),
             status_text: <span class="string">"OK"</span>.to_string(),
-            headers: HashMap::from([(<span class="string">"Content-Type"</span>.to_string(), <span class="string">"text/plain"</span>.to_string())]),
+            headers: <span class="macro">vec!</span>[(<span class="string">"Content-Type"</span>.to_string(), <span class="string">"text/plain"</span>.to_string())],
             body: <span class="prelude-val">Some</span>(<span class="string">"Hello World!"</span>.to_string()),
         };
 
@@ -988,7 +988,7 @@
             http_version: HttpVersion::one_point_one(),
             status_code: HttpStatusCode::new(<span class="number">200</span>),
             status_text: <span class="string">"OK"</span>.to_string(),
-            headers: HashMap::from([(<span class="string">"Content-Type"</span>.to_string(), <span class="string">"text/plain"</span>.to_string())]),
+            headers: <span class="macro">vec!</span>[(<span class="string">"Content-Type"</span>.to_string(), <span class="string">"text/plain"</span>.to_string())],
             body: <span class="prelude-val">Some</span>(<span class="string">"Greetings World!"</span>.to_string()),
         };
 
@@ -1011,7 +1011,7 @@
             http_version: HttpVersion::one_point_one(),
             status_code: HttpStatusCode::new(<span class="number">200</span>),
             status_text: <span class="string">"OK"</span>.to_string(),
-            headers: HashMap::from([(<span class="string">"Content-Type"</span>.to_string(), <span class="string">"text/plain"</span>.to_string())]),
+            headers: <span class="macro">vec!</span>[(<span class="string">"Content-Type"</span>.to_string(), <span class="string">"text/plain"</span>.to_string())],
             body: <span class="prelude-val">Some</span>(<span class="string">"Hello World!"</span>.to_string()),
         };
 
@@ -1019,7 +1019,7 @@
             http_version: HttpVersion::one_point_one(),
             status_code: HttpStatusCode::new(<span class="number">200</span>),
             status_text: <span class="string">"OK"</span>.to_string(),
-            headers: HashMap::from([(<span class="string">"Content-Type"</span>.to_string(), <span class="string">"text/plain"</span>.to_string())]),
+            headers: <span class="macro">vec!</span>[(<span class="string">"Content-Type"</span>.to_string(), <span class="string">"text/plain"</span>.to_string())],
             body: <span class="prelude-val">None</span>,
         };
 

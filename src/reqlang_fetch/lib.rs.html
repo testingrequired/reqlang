@@ -206,6 +206,14 @@
 <a href="#204" id="204">204</a>
 <a href="#205" id="205">205</a>
 <a href="#206" id="206">206</a>
+<a href="#207" id="207">207</a>
+<a href="#208" id="208">208</a>
+<a href="#209" id="209">209</a>
+<a href="#210" id="210">210</a>
+<a href="#211" id="211">211</a>
+<a href="#212" id="212">212</a>
+<a href="#213" id="213">213</a>
+<a href="#214" id="214">214</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{collections::HashMap, future::Future};
 
 <span class="kw">use </span>parser::template;
@@ -252,13 +260,13 @@
         }
     }
 
-    <span class="kw">fn </span>map_response_headers(response: <span class="kw-2">&amp;</span>Response) -&gt; HashMap&lt;String, String&gt; {
-        <span class="kw">let </span><span class="kw-2">mut </span>headers = HashMap::new();
+    <span class="kw">fn </span>map_response_headers(response: <span class="kw-2">&amp;</span>Response) -&gt; Vec&lt;(String, String)&gt; {
+        <span class="kw">let </span><span class="kw-2">mut </span>headers = <span class="macro">vec!</span>[];
         <span class="kw">for </span>(key, value) <span class="kw">in </span>response.headers() {
-            headers.insert(
+            headers.push((
                 key.to_string(),
                 value.to_str().expect(<span class="string">"Shoud work"</span>).to_string(),
-            );
+            ));
         }
 
         headers
@@ -359,8 +367,12 @@
         <span class="macro">assert_eq!</span>(HttpStatusCode::new(<span class="number">200</span>), response.status_code);
 
         <span class="macro">assert_eq!</span>(
-            <span class="prelude-val">Some</span>(<span class="string">"text/html"</span>),
-            response.headers.get(<span class="string">"content-type"</span>).map(|x| x.as_str())
+            <span class="prelude-val">Some</span>((<span class="string">"content-type"</span>.to_string(), <span class="string">"text/html"</span>.to_string())),
+            response
+                .headers
+                .iter()
+                .find(|x| x.<span class="number">0 </span>== <span class="string">"content-type"</span>)
+                .cloned()
         );
 
         <span class="macro">assert_eq!</span>(<span class="string">"OK"</span>, response.status_text);
@@ -398,8 +410,12 @@ GET http://example.com HTTP/1.1
         <span class="macro">assert_eq!</span>(HttpStatusCode::new(<span class="number">200</span>), response.status_code);
 
         <span class="macro">assert_eq!</span>(
-            <span class="prelude-val">Some</span>(<span class="string">"text/html"</span>),
-            response.headers.get(<span class="string">"content-type"</span>).map(|x| x.as_str())
+            <span class="prelude-val">Some</span>((<span class="string">"content-type"</span>.to_string(), <span class="string">"text/html"</span>.to_string())),
+            response
+                .headers
+                .iter()
+                .find(|x| x.<span class="number">0 </span>== <span class="string">"content-type"</span>)
+                .cloned()
         );
 
         <span class="macro">assert_eq!</span>(<span class="string">"OK"</span>, response.status_text);

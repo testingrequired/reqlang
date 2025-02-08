@@ -620,7 +620,7 @@ HTTP/1.1 200 OK
                 http_version: <span class="string">"1.1"</span>.into(),
                 status_code: HttpStatusCode::new(<span class="number">200</span>),
                 status_text: <span class="string">"OK"</span>.to_string(),
-                headers: HashMap::new(),
+                headers: <span class="macro">vec!</span>[],
                 body: <span class="prelude-val">Some</span>(<span class="string">"expected_response_body_value\n\n\n"</span>.to_string())
             }),
         })

@@ -1477,7 +1477,6 @@
 </pre></div><pre class="rust"><code><span class="kw">use </span>errors::{ParseError, ReqlangError};
 <span class="kw">use </span>regex::Regex;
 <span class="kw">use </span>span::{Spanned, NO_SPAN};
-<span class="kw">use </span>std::{collections::HashMap, vec};
 <span class="kw">use </span>types::{
     http::{HttpRequest, HttpResponse},
     ParsedConfig, ParsedRequestFile, ReferenceType,
@@ -1816,16 +1815,16 @@
             httparse::Status::Complete(size_minus_body) =&gt; {
                 <span class="kw">let </span>body = <span class="kw-2">&amp;</span>response[size_minus_body..];
 
-                <span class="kw">let </span><span class="kw-2">mut </span>mapped_headers = HashMap::new();
+                <span class="kw">let </span><span class="kw-2">mut </span>mapped_headers: Vec&lt;(String, String)&gt; = <span class="macro">vec!</span>[];
 
                 res.headers
                     .iter_mut()
                     .filter(|x| !x.name.is_empty())
                     .for_each(|x| {
-                        mapped_headers.insert(
+                        mapped_headers.push((
                             x.name.to_string(),
                             std::str::from_utf8(x.value).unwrap().to_string(),
-                        );
+                        ));
                     });
 
                 <span class="prelude-val">Some</span>(<span class="prelude-val">Ok</span>((
@@ -2574,7 +2573,7 @@
                         http_version: HttpVersion::one_point_one(),
                         status_code: HttpStatusCode::new(<span class="number">200</span>),
                         status_text: <span class="string">"OK"</span>.to_owned(),
-                        headers: HashMap::default(),
+                        headers: <span class="macro">vec!</span>[],
                         body: <span class="prelude-val">Some</span>(<span class="string">""</span>.to_string())
                     },
                     <span class="number">50</span>..<span class="number">82
@@ -2689,7 +2688,7 @@
                         http_version: <span class="string">"1.1"</span>.into(),
                         status_code: HttpStatusCode::new(<span class="number">200</span>),
                         status_text: <span class="string">"OK"</span>.to_string(),
-                        headers: HashMap::new(),
+                        headers: <span class="macro">vec!</span>[],
                         body: <span class="prelude-val">Some</span>(<span class="string">"{{?expected_response_body}}\n\n\n"</span>.to_string())
                     },
                     <span class="number">336</span>..<span class="number">398
@@ -2769,6 +2768,7 @@
 
                 ```%response
                 HTTP/1.1 200 OK
+                content-type: application/json
 
                 ```
                 "
@@ -2799,10 +2799,10 @@
                         http_version: HttpVersion::one_point_one(),
                         status_code: HttpStatusCode::new(<span class="number">200</span>),
                         status_text: <span class="string">"OK"</span>.to_owned(),
-                        headers: HashMap::default(),
+                        headers: <span class="macro">vec!</span>[(<span class="string">"content-type"</span>.to_string(), <span class="string">"application/json"</span>.to_string())],
                         body: <span class="prelude-val">Some</span>(<span class="string">"\n"</span>.to_owned())
                     },
-                    <span class="number">575</span>..<span class="number">608
+                    <span class="number">575</span>..<span class="number">639
                 </span>)),
                 refs: <span class="macro">vec!</span>[
                     (ReferenceType::Prompt(String::from(<span class="string">"status_code"</span>)), <span class="number">434</span>..<span class="number">506</span>)

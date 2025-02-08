@@ -247,6 +247,7 @@
 <a href="#245" id="245">245</a>
 <a href="#246" id="246">246</a>
 <a href="#247" id="247">247</a>
+<a href="#248" id="248">248</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{fmt::Display, str::FromStr};
 
 <span class="kw">use </span>serde::{Deserialize, Serialize};
@@ -383,8 +384,6 @@
 
 <span class="attr">#[cfg(test)]
 </span><span class="kw">mod </span>test {
-    <span class="kw">use </span>std::collections::HashMap;
-
     <span class="kw">use </span>types::http::{HttpRequest, HttpResponse, HttpStatusCode, HttpVersion};
 
     <span class="kw">use crate</span>::{export, export_response};
@@ -474,7 +473,7 @@
             http_version: HttpVersion::one_point_one(),
             status_code: HttpStatusCode::new(<span class="number">200</span>),
             status_text: <span class="string">"OK"</span>.into(),
-            headers: HashMap::new(),
+            headers: <span class="macro">vec!</span>[],
             body: <span class="prelude-val">Some</span>(<span class="string">""</span>.to_owned())
         },
         <span class="kw">crate</span>::ResponseFormat::HttpMessage,
@@ -487,11 +486,14 @@
             http_version: HttpVersion::one_point_one(),
             status_code: HttpStatusCode::new(<span class="number">200</span>),
             status_text: <span class="string">"OK"</span>.into(),
-            headers: HashMap::from([(<span class="string">"content-type"</span>.to_string(), <span class="string">"application/json"</span>.to_string())]),
+            headers: <span class="macro">vec!</span>[
+                (<span class="string">"x-value"</span>.to_string(), <span class="string">"123"</span>.to_string()),
+                (<span class="string">"content-type"</span>.to_string(), <span class="string">"application/json"</span>.to_string())
+            ],
             body: <span class="prelude-val">Some</span>(<span class="string">""</span>.to_owned())
         },
         <span class="kw">crate</span>::ResponseFormat::HttpMessage,
-        <span class="string">"HTTP/1.1 200 OK\ncontent-type: application/json\n"
+        <span class="string">"HTTP/1.1 200 OK\nx-value: 123\ncontent-type: application/json\n"
     </span>);
 }
 </code></pre></div></section></main></body></html>
