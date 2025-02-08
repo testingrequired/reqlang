@@ -147,6 +147,7 @@ export function updateState(
 ): ReqfileState {
   const state = fn(getOrInitState(fileKey, context));
   context.workspaceState.update(fileKey, state);
+  updateStatusText(context);
   return state;
 }
 

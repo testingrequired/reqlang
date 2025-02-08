@@ -63,8 +63,8 @@ export const updateStatusText = (context: ExtensionContext) => {
 
       status.text = `${http}${env}`;
     },
-    (_err) => {
-      status.text = `http $(error) Error Parsing`;
+    (_) => {
+      status.text = `$(error) Unable to parse request file`;
     },
   );
 };
