@@ -1,8 +1,18 @@
 // A launch configuration that compiles the extension and then opens it inside a new window
 
 {
-    "version": "0.1.0",
-    "configurations": [{
+  "version": "0.1.0",
+  "configurations": [
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Launch CLI",
+      "program": "${workspaceFolder}/target/debug/reqlang",
+      "args": ["parse", "examples/invalid/undefined_in_env.reqlang"],
+      "cwd": "${workspaceFolder}",
+      "preLaunchTask": "Build"
+    },
+    {
       "name": "Launch Extension",
       "type": "extensionHost",
       "request": "launch",
@@ -13,5 +23,6 @@
         "!**/node_modules/**"
       ],
       "args": ["--extensionDevelopmentPath=${workspaceRoot}/vsc"]
-    }]
-  }
+    }
+  ]
+}
