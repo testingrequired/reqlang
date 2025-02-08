@@ -48,19 +48,22 @@ export const updateStatusText = (context: ExtensionContext) => {
     return;
   }
 
+  status.show();
+
   RsResult.ifOkOr(
     parseResult,
     (parseResult) => {
-      status.show();
+      const state = context.workspaceState.get<ReqfileState>(uri);
 
-      const state: ReqfileState | undefined = context.workspaceState.get(uri);
+      const http = `HTTP/${parseResult.request.http_version} ${parseResult.request.verb}`;
+      const env =
+        parseResult.envs.length > 0
+          ? ` $(globe) ${state?.env ?? "Select Environment"}`
+          : "";
 
-      const env = state?.env ?? "Select Environment";
-
-      status.text = `http ${parseResult.request.verb} $(globe) ${env}`;
+      status.text = `${http}${env}`;
     },
     (_err) => {
-      status.show();
       status.text = `http $(error) Error Parsing`;
     },
   );
