@@ -1,7 +1,6 @@
 use errors::{ParseError, ReqlangError};
 use regex::Regex;
 use span::{Spanned, NO_SPAN};
-use std::{collections::HashMap, vec};
 use types::{
     http::{HttpRequest, HttpResponse},
     ParsedConfig, ParsedRequestFile, ReferenceType,
@@ -340,16 +339,16 @@ pub fn parse_response(
             httparse::Status::Complete(size_minus_body) => {
                 let body = &response[size_minus_body..];
 
-                let mut mapped_headers = HashMap::new();
+                let mut mapped_headers: Vec<(String, String)> = vec![];
 
                 res.headers
                     .iter_mut()
                     .filter(|x| !x.name.is_empty())
                     .for_each(|x| {
-                        mapped_headers.insert(
+                        mapped_headers.push((
                             x.name.to_string(),
                             std::str::from_utf8(x.value).unwrap().to_string(),
-                        );
+                        ));
                     });
 
                 Some(Ok((
@@ -1098,7 +1097,7 @@ mod test {
                         http_version: HttpVersion::one_point_one(),
                         status_code: HttpStatusCode::new(200),
                         status_text: "OK".to_owned(),
-                        headers: HashMap::default(),
+                        headers: vec![],
                         body: Some("".to_string())
                     },
                     50..82
@@ -1213,7 +1212,7 @@ mod test {
                         http_version: "1.1".into(),
                         status_code: HttpStatusCode::new(200),
                         status_text: "OK".to_string(),
-                        headers: HashMap::new(),
+                        headers: vec![],
                         body: Some("{{?expected_response_body}}\n\n\n".to_string())
                     },
                     336..398
@@ -1293,6 +1292,7 @@ mod test {
 
                 ```%response
                 HTTP/1.1 200 OK
+                content-type: application/json
 
                 ```
                 "
@@ -1323,10 +1323,10 @@ mod test {
                         http_version: HttpVersion::one_point_one(),
                         status_code: HttpStatusCode::new(200),
                         status_text: "OK".to_owned(),
-                        headers: HashMap::default(),
+                        headers: vec![("content-type".to_string(), "application/json".to_string())],
                         body: Some("\n".to_owned())
                     },
-                    575..608
+                    575..639
                 )),
                 refs: vec![
                     (ReferenceType::Prompt(String::from("status_code")), 434..506)

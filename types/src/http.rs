@@ -1,7 +1,4 @@
-use std::{
-    collections::HashMap,
-    fmt::{self, Display},
-};
+use std::fmt::{self, Display};
 
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
@@ -235,7 +232,7 @@ pub struct HttpResponse {
     pub http_version: HttpVersion,
     pub status_code: HttpStatusCode,
     pub status_text: String,
-    pub headers: HashMap<String, String>,
+    pub headers: Vec<(String, String)>,
     pub body: Option<String>,
 }
 

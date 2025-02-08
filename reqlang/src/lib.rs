@@ -77,7 +77,7 @@ mod tests {
                         http_version: "1.1".into(),
                         status_code: HttpStatusCode::new(200),
                         status_text: "OK".to_string(),
-                        headers: HashMap::new(),
+                        headers: vec![],
                         body: Some("{{?expected_response_body}}\n\n\n".to_string())
                     },
                     310..372
@@ -188,7 +188,7 @@ mod tests {
                     http_version: "1.1".into(),
                     status_code: HttpStatusCode::new(200),
                     status_text: "OK".to_string(),
-                    headers: HashMap::new(),
+                    headers: vec![],
                     body: Some("expected_response_body_value\n\n\n".to_string())
                 }),
             }),

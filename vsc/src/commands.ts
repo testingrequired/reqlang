@@ -249,8 +249,8 @@ export const showResponse = async (response: HttpResponse | null) => {
           case "Show Body": {
             // Try to get content type of the response
             const contentType =
-              response.headers["content-type"] ??
-              response.headers["Content-Type"];
+              response.headers.find((x) => x[0] === "content-type")?.[1] ??
+              response.headers.find((x) => x[0] === "Content-Type")?.[1];
 
             // Try to determine the language of the response based on the
             // content type

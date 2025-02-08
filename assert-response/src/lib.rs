@@ -268,19 +268,21 @@ pub fn assert_response(
         });
     }
 
-    for key in expected.headers.keys() {
-        if !actual.headers.contains_key(key) {
-            differences.push(ResponseDiff::MissingHeader(key.to_string()));
-        } else {
-            let expected_header_value = expected.headers.get(key).unwrap();
-            let actual_header_value = actual.headers.get(key).unwrap();
+    for (expected_key, expected_value) in expected.headers.iter() {
+        let maybe_actual_header = actual.headers.iter().find(|x| x.0 == *expected_key);
 
-            if actual_header_value != expected_header_value {
-                differences.push(ResponseDiff::MismatchHeaderValue {
-                    header: key.to_string(),
-                    expected: expected_header_value.clone(),
-                    actual: actual_header_value.clone(),
-                });
+        match maybe_actual_header {
+            Some((_, actual_value)) => {
+                if actual_value != expected_value {
+                    differences.push(ResponseDiff::MismatchHeaderValue {
+                        header: expected_key.clone(),
+                        expected: expected_value.clone(),
+                        actual: actual_value.clone(),
+                    })
+                }
+            }
+            None => {
+                differences.push(ResponseDiff::MissingHeader(expected_key.clone()));
             }
         }
     }
@@ -301,8 +303,6 @@ pub fn assert_response(
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
-
     use types::http::{HttpStatusCode, HttpVersion};
 
     use super::*;
@@ -315,7 +315,7 @@ mod tests {
             http_version: HttpVersion::one_point_one(),
             status_code: HttpStatusCode::new(200),
             status_text: "OK".to_string(),
-            headers: HashMap::from([("Content-Type".to_string(), "application/json".to_string())]),
+            headers: vec![("Content-Type".to_string(), "application/json".to_string())],
             body: Some(r#"{"key": "value"}"#.to_string()),
         };
 
@@ -323,7 +323,7 @@ mod tests {
             http_version: HttpVersion::one_point_one(),
             status_code: HttpStatusCode::new(200),
             status_text: "OK".to_string(),
-            headers: HashMap::from([("Content-Type".to_string(), "application/json".to_string())]),
+            headers: vec![("Content-Type".to_string(), "application/json".to_string())],
             body: Some(r#"{"key": "value"}"#.to_string()),
         };
 
@@ -336,7 +336,7 @@ mod tests {
             http_version: HttpVersion::one_point_one(),
             status_code: HttpStatusCode::new(200),
             status_text: "OK".to_string(),
-            headers: HashMap::from([("Content-Type".to_string(), "application/json".to_string())]),
+            headers: vec![("Content-Type".to_string(), "application/json".to_string())],
             body: Some(r#"{"key": "value"}"#.to_string()),
         };
 
@@ -344,7 +344,7 @@ mod tests {
             http_version: HttpVersion::one_point_one(),
             status_code: HttpStatusCode::new(201),
             status_text: "CREATED".to_string(),
-            headers: HashMap::from([("Content-Type".to_string(), "application/json".to_string())]),
+            headers: vec![("Content-Type".to_string(), "application/json".to_string())],
             body: Some(r#"{"key": "value"}"#.to_string()),
         };
 
@@ -373,10 +373,10 @@ mod tests {
             http_version: HttpVersion::one_point_one(),
             status_code: HttpStatusCode::new(200),
             status_text: "OK".to_string(),
-            headers: HashMap::from([
+            headers: vec![
                 ("Content-Type".to_string(), "application/json".to_string()),
                 ("X-Custom-Header".to_string(), "custom-value".to_string()),
-            ]),
+            ],
             body: Some(r#"{"key": "value"}"#.to_string()),
         };
 
@@ -384,7 +384,7 @@ mod tests {
             http_version: HttpVersion::one_point_one(),
             status_code: HttpStatusCode::new(200),
             status_text: "OK".to_string(),
-            headers: HashMap::from([("Content-Type".to_string(), "application/json".to_string())]),
+            headers: vec![("Content-Type".to_string(), "application/json".to_string())],
             body: Some(r#"{"key": "value"}"#.to_string()),
         };
 
@@ -404,7 +404,7 @@ mod tests {
             http_version: HttpVersion::one_point_one(),
             status_code: HttpStatusCode::new(200),
             status_text: "OK".to_string(),
-            headers: HashMap::from([("Content-Type".to_string(), "application/json".to_string())]),
+            headers: vec![("Content-Type".to_string(), "application/json".to_string())],
             body: Some(r#"{"key": "value"}"#.to_string()),
         };
 
@@ -412,10 +412,10 @@ mod tests {
             http_version: HttpVersion::one_point_one(),
             status_code: HttpStatusCode::new(200),
             status_text: "OK".to_string(),
-            headers: HashMap::from([
+            headers: vec![
                 ("Content-Type".to_string(), "application/json".to_string()),
                 ("X-Custom-Header".to_string(), "custom-value".to_string()),
-            ]),
+            ],
             body: Some(r#"{"key": "value"}"#.to_string()),
         };
 
@@ -428,7 +428,7 @@ mod tests {
             http_version: HttpVersion::one_point_one(),
             status_code: HttpStatusCode::new(200),
             status_text: "OK".to_string(),
-            headers: HashMap::from([("Content-Type".to_string(), "application/json".to_string())]),
+            headers: vec![("Content-Type".to_string(), "application/json".to_string())],
             body: Some(r#"{"key": "value"}"#.to_string()),
         };
 
@@ -436,7 +436,7 @@ mod tests {
             http_version: HttpVersion::one_point_one(),
             status_code: HttpStatusCode::new(200),
             status_text: "OK".to_string(),
-            headers: HashMap::from([("Content-Type".to_string(), "text/plain".to_string())]),
+            headers: vec![("Content-Type".to_string(), "text/plain".to_string())],
             body: Some(r#"{"key": "value"}"#.to_string()),
         };
 
@@ -460,7 +460,7 @@ mod tests {
             http_version: HttpVersion::one_point_one(),
             status_code: HttpStatusCode::new(200),
             status_text: "OK".to_string(),
-            headers: HashMap::from([("Content-Type".to_string(), "text/plain".to_string())]),
+            headers: vec![("Content-Type".to_string(), "text/plain".to_string())],
             body: Some("Hello World!".to_string()),
         };
 
@@ -468,7 +468,7 @@ mod tests {
             http_version: HttpVersion::one_point_one(),
             status_code: HttpStatusCode::new(200),
             status_text: "OK".to_string(),
-            headers: HashMap::from([("Content-Type".to_string(), "text/plain".to_string())]),
+            headers: vec![("Content-Type".to_string(), "text/plain".to_string())],
             body: Some("Greetings World!".to_string()),
         };
 
@@ -491,7 +491,7 @@ mod tests {
             http_version: HttpVersion::one_point_one(),
             status_code: HttpStatusCode::new(200),
             status_text: "OK".to_string(),
-            headers: HashMap::from([("Content-Type".to_string(), "text/plain".to_string())]),
+            headers: vec![("Content-Type".to_string(), "text/plain".to_string())],
             body: Some("Hello World!".to_string()),
         };
 
@@ -499,7 +499,7 @@ mod tests {
             http_version: HttpVersion::one_point_one(),
             status_code: HttpStatusCode::new(200),
             status_text: "OK".to_string(),
-            headers: HashMap::from([("Content-Type".to_string(), "text/plain".to_string())]),
+            headers: vec![("Content-Type".to_string(), "text/plain".to_string())],
             body: None,
         };
 

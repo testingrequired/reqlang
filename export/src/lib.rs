@@ -134,8 +134,6 @@ pub fn export_response(response: &HttpResponse, format: ResponseFormat) -> Strin
 
 #[cfg(test)]
 mod test {
-    use std::collections::HashMap;
-
     use types::http::{HttpRequest, HttpResponse, HttpStatusCode, HttpVersion};
 
     use crate::{export, export_response};
@@ -225,7 +223,7 @@ mod test {
             http_version: HttpVersion::one_point_one(),
             status_code: HttpStatusCode::new(200),
             status_text: "OK".into(),
-            headers: HashMap::new(),
+            headers: vec![],
             body: Some("".to_owned())
         },
         crate::ResponseFormat::HttpMessage,
@@ -238,10 +236,13 @@ mod test {
             http_version: HttpVersion::one_point_one(),
             status_code: HttpStatusCode::new(200),
             status_text: "OK".into(),
-            headers: HashMap::from([("content-type".to_string(), "application/json".to_string())]),
+            headers: vec![
+                ("x-value".to_string(), "123".to_string()),
+                ("content-type".to_string(), "application/json".to_string())
+            ],
             body: Some("".to_owned())
         },
         crate::ResponseFormat::HttpMessage,
-        "HTTP/1.1 200 OK\ncontent-type: application/json\n"
+        "HTTP/1.1 200 OK\nx-value: 123\ncontent-type: application/json\n"
     );
 }

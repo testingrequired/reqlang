@@ -44,13 +44,13 @@ impl HttpRequestFetcher {
         }
     }
 
-    fn map_response_headers(response: &Response) -> HashMap<String, String> {
-        let mut headers = HashMap::new();
+    fn map_response_headers(response: &Response) -> Vec<(String, String)> {
+        let mut headers = vec![];
         for (key, value) in response.headers() {
-            headers.insert(
+            headers.push((
                 key.to_string(),
                 value.to_str().expect("Shoud work").to_string(),
-            );
+            ));
         }
 
         headers
@@ -151,8 +151,12 @@ mod test {
         assert_eq!(HttpStatusCode::new(200), response.status_code);
 
         assert_eq!(
-            Some("text/html"),
-            response.headers.get("content-type").map(|x| x.as_str())
+            Some(("content-type".to_string(), "text/html".to_string())),
+            response
+                .headers
+                .iter()
+                .find(|x| x.0 == "content-type")
+                .cloned()
         );
 
         assert_eq!("OK", response.status_text);
@@ -190,8 +194,12 @@ GET http://example.com HTTP/1.1
         assert_eq!(HttpStatusCode::new(200), response.status_code);
 
         assert_eq!(
-            Some("text/html"),
-            response.headers.get("content-type").map(|x| x.as_str())
+            Some(("content-type".to_string(), "text/html".to_string())),
+            response
+                .headers
+                .iter()
+                .find(|x| x.0 == "content-type")
+                .cloned()
         );
 
         assert_eq!("OK", response.status_text);
