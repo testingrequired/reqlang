@@ -54,6 +54,10 @@
 <a href="#52" id="52">52</a>
 <a href="#53" id="53">53</a>
 <a href="#54" id="54">54</a>
+<a href="#55" id="55">55</a>
+<a href="#56" id="56">56</a>
+<a href="#57" id="57">57</a>
+<a href="#58" id="58">58</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>serde::{Deserialize, Serialize};
 <span class="kw">use </span>thiserror::Error;
 <span class="kw">use </span>types::ReferenceType;
@@ -83,6 +87,10 @@
         <span class="string">"This request header is calculated at request time and can not be specified by user: {0}"
     </span>)]
     </span>ForbiddenRequestHeaderNameError(String),
+    <span class="attr">#[error(<span class="string">"Variable '{0}' is undefined in the environment '{1}'"</span>)]
+    </span>VariableUndefinedInEnvironment(String, String),
+    <span class="attr">#[error(<span class="string">"Variable '{0}' is not defined in any environment or no environments are defined"</span>)]
+    </span>VariableNotDefinedInAnyEnvironment(String),
 }
 
 <span class="attr">#[derive(Debug, Clone, Error, PartialEq, Serialize, Deserialize)]
