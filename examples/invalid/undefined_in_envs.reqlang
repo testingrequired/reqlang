@@ -1,0 +1,9 @@
+```%config
+vars = ["foo"]
+```
+
+
+```%request
+GET https://example.com/{{:foo}} HTTP/1.1
+
+```

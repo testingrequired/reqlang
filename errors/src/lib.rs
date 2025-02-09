@@ -27,6 +27,10 @@ pub enum ParseError {
         "This request header is calculated at request time and can not be specified by user: {0}"
     )]
     ForbiddenRequestHeaderNameError(String),
+    #[error("Variable '{0}' is undefined in the environment '{1}'")]
+    VariableUndefinedInEnvironment(String, String),
+    #[error("Variable '{0}' is not defined in any environment or no environments are defined")]
+    VariableNotDefinedInAnyEnvironment(String),
 }
 
 #[derive(Debug, Clone, Error, PartialEq, Serialize, Deserialize)]

@@ -517,4 +517,97 @@ mod tests {
             "]\n"
         ));
     }
+
+    #[test]
+    fn run_undefined_in_envs() {
+        let expected_stderr = textwrap::dedent(
+            r#"
+              [
+                {
+                  "range": {
+                    "start": {
+                      "line": 0,
+                      "character": 0
+                    },
+                    "end": {
+                      "line": 2,
+                      "character": 3
+                    }
+                  },
+                  "severity": 1,
+                  "message": "ParseError: Variable 'foo' is not defined in any environment or no environments are defined"
+                }
+              ]
+              "#,
+        )
+        .trim_start()
+        .to_string();
+
+        (assert_command!("reqlang run ../examples/invalid/undefined_in_envs.reqlang"))
+            .failure()
+            .code(1)
+            .stdout(expected_stderr);
+    }
+
+    #[test]
+    fn run_undefined_in_envs_b() {
+        let expected_stderr = textwrap::dedent(
+            r#"
+              [
+                {
+                  "range": {
+                    "start": {
+                      "line": 0,
+                      "character": 0
+                    },
+                    "end": {
+                      "line": 4,
+                      "character": 3
+                    }
+                  },
+                  "severity": 1,
+                  "message": "ParseError: Variable 'foo' is not defined in any environment or no environments are defined"
+                }
+              ]
+              "#,
+        )
+        .trim_start()
+        .to_string();
+
+        (assert_command!("reqlang run ../examples/invalid/undefined_in_envs_b.reqlang"))
+            .failure()
+            .code(1)
+            .stdout(expected_stderr);
+    }
+
+    #[test]
+    fn run_undefined_in_env() {
+        let expected_stderr = textwrap::dedent(
+            r#"
+              [
+                {
+                  "range": {
+                    "start": {
+                      "line": 0,
+                      "character": 0
+                    },
+                    "end": {
+                      "line": 7,
+                      "character": 3
+                    }
+                  },
+                  "severity": 1,
+                  "message": "ParseError: Variable 'foo' is undefined in the environment 'local'"
+                }
+              ]
+              "#,
+        )
+        .trim_start()
+        .to_string();
+
+        (assert_command!("reqlang run ../examples/invalid/undefined_in_env.reqlang"))
+            .failure()
+            .code(1)
+            .stdout(expected_stderr);
+    }
 }

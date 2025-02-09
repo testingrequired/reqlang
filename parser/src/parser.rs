@@ -80,6 +80,38 @@ pub fn parse(input: &str) -> Result<ParsedRequestFile, Vec<Spanned<ReqlangError>
             None => None,
         };
 
+        if let Some((config, config_span)) = &config {
+            let vars = config.vars();
+            let env_names = config.envs();
+
+            for var in vars.iter() {
+                if env_names.is_empty() {
+                    parse_errors.push((
+                        ParseError::VariableNotDefinedInAnyEnvironment(var.to_string()).into(),
+                        config_span.clone(),
+                    ));
+                }
+
+                for env_name in env_names.iter() {
+                    match &config.env(env_name) {
+                        Some(env) => {
+                            if !env.contains_key(var) {
+                                parse_errors.push((
+                                    ParseError::VariableUndefinedInEnvironment(
+                                        var.clone(),
+                                        env_name.clone(),
+                                    )
+                                    .into(),
+                                    config_span.clone(),
+                                ));
+                            }
+                        }
+                        None => todo!(),
+                    }
+                }
+            }
+        }
+
         // Validate template references are declared/defined vars, secrets, prompts, etc.
         for (ref_type, span) in refs.iter() {
             match ref_type {
@@ -208,19 +240,20 @@ pub fn parse(input: &str) -> Result<ParsedRequestFile, Vec<Spanned<ReqlangError>
 pub fn parse_config(
     config: &Option<Spanned<String>>,
 ) -> Option<Result<Spanned<ParsedConfig>, Vec<Spanned<ReqlangError>>>> {
-    config.as_ref().map(|(config, span)| {
-        let config: Result<ParsedConfig, _> = toml::from_str(config);
+    config.as_ref().map(
+        |(config, span)| match toml::from_str::<ParsedConfig>(config) {
+            Ok(parsed_config) => Ok((parsed_config, span.clone())),
+            Err(toml_err) => {
+                let toml_span = toml_err.span().unwrap_or(NO_SPAN);
+                let err = ReqlangError::ParseError(ParseError::InvalidConfigError {
+                    message: toml_err.message().to_string(),
+                });
+                let err_span = span.start + toml_span.start..span.start + toml_span.end;
 
-        config.map(|x| (x, span.clone())).map_err(|x| {
-            let toml_span = x.span().unwrap_or(NO_SPAN);
-            let err = ReqlangError::ParseError(ParseError::InvalidConfigError {
-                message: x.message().to_string(),
-            });
-            let err_span = span.start + toml_span.start..span.start + toml_span.end;
-
-            vec![(err, err_span)]
-        })
-    })
+                Err(vec![(err, err_span)])
+            }
+        },
+    )
 }
 
 /// Extract template references from a string
@@ -556,12 +589,17 @@ mod test {
                 ```
                 "
             ),
-            Err(vec![(
-                errors::ReqlangError::ParseError(ParseError::UnusedValueError(
-                    ReferenceType::Variable("base_url".to_string())
-                )),
-                1..35
-            )])
+            Err(vec![
+                (
+                    ParseError::VariableNotDefinedInAnyEnvironment("base_url".to_string()).into(),
+                    1..35
+                ),
+                (
+                    ParseError::UnusedValueError(ReferenceType::Variable("base_url".to_string()))
+                        .into(),
+                    1..35
+                )
+            ])
         );
 
         parser_test!(
