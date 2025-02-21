@@ -296,12 +296,12 @@ mod tests {
             "  {\n",
             "    \"range\": {\n",
             "      \"start\": {\n",
-            "        \"line\": 0,\n",
+            "        \"line\": 1,\n",
             "        \"character\": 0\n",
             "      },\n",
             "      \"end\": {\n",
             "        \"line\": 15,\n",
-            "        \"character\": 3\n",
+            "        \"character\": 0\n",
             "      }\n",
             "    },\n",
             "    \"severity\": 1,\n",
@@ -324,12 +324,12 @@ mod tests {
             "  {\n",
             "    \"range\": {\n",
             "      \"start\": {\n",
-            "        \"line\": 0,\n",
+            "        \"line\": 1,\n",
             "        \"character\": 0\n",
             "      },\n",
             "      \"end\": {\n",
             "        \"line\": 4,\n",
-            "        \"character\": 3\n",
+            "        \"character\": 0\n",
             "      }\n",
             "    },\n",
             "    \"severity\": 1,\n",
@@ -475,12 +475,12 @@ mod tests {
             "  {\n",
             "    \"range\": {\n",
             "      \"start\": {\n",
-            "        \"line\": 0,\n",
+            "        \"line\": 1,\n",
             "        \"character\": 0\n",
             "      },\n",
             "      \"end\": {\n",
             "        \"line\": 15,\n",
-            "        \"character\": 3\n",
+            "        \"character\": 0\n",
             "      }\n",
             "    },\n",
             "    \"severity\": 1,\n",
@@ -503,12 +503,12 @@ mod tests {
             "  {\n",
             "    \"range\": {\n",
             "      \"start\": {\n",
-            "        \"line\": 0,\n",
+            "        \"line\": 1,\n",
             "        \"character\": 0\n",
             "      },\n",
             "      \"end\": {\n",
             "        \"line\": 4,\n",
-            "        \"character\": 3\n",
+            "        \"character\": 0\n",
             "      }\n",
             "    },\n",
             "    \"severity\": 1,\n",
@@ -526,12 +526,12 @@ mod tests {
                 {
                   "range": {
                     "start": {
-                      "line": 0,
+                      "line": 1,
                       "character": 0
                     },
                     "end": {
                       "line": 2,
-                      "character": 3
+                      "character": 0
                     }
                   },
                   "severity": 1,
@@ -557,12 +557,12 @@ mod tests {
                 {
                   "range": {
                     "start": {
-                      "line": 0,
+                      "line": 1,
                       "character": 0
                     },
                     "end": {
                       "line": 4,
-                      "character": 3
+                      "character": 0
                     }
                   },
                   "severity": 1,
@@ -588,12 +588,12 @@ mod tests {
                 {
                   "range": {
                     "start": {
-                      "line": 0,
+                      "line": 1,
                       "character": 0
                     },
                     "end": {
                       "line": 7,
-                      "character": 3
+                      "character": 0
                     }
                   },
                   "severity": 1,

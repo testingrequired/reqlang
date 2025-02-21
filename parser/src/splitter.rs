@@ -2,7 +2,33 @@ use errors::{ParseError, ReqlangError};
 use extract_codeblocks::extract_codeblocks;
 use span::{Spanned, NO_SPAN};
 
-use crate::parser::RequestFileSplitUp;
+use crate::ast::AST;
+
+#[derive(Debug, PartialEq)]
+pub struct RequestFileSplitUp {
+    pub request: Spanned<String>,
+    pub response: Option<Spanned<String>>,
+    pub config: Option<Spanned<String>>,
+}
+
+impl TryFrom<AST> for RequestFileSplitUp {
+    type Error = Vec<Spanned<ReqlangError>>;
+
+    fn try_from(value: AST) -> Result<Self, Self::Error> {
+        let config: Option<Spanned<String>> = value.config().cloned();
+        let request: Option<Spanned<String>> = value.request().cloned();
+        let response: Option<Spanned<String>> = value.response().cloned();
+
+        match request {
+            Some(request) => Ok(RequestFileSplitUp {
+                request,
+                response,
+                config,
+            }),
+            None => Err(vec![(ParseError::MissingRequest.into(), 0..0)]),
+        }
+    }
+}
 
 /// Split string in to a [types::HttpRequest], and optional [types::HttpResponse], [types::ParsedConfig]
 pub fn split(input: &str) -> Result<RequestFileSplitUp, Vec<Spanned<ReqlangError>>> {
@@ -25,14 +51,9 @@ pub fn split(input: &str) -> Result<RequestFileSplitUp, Vec<Spanned<ReqlangError
         return Err(vec![(ParseError::MissingRequest.into(), 0..input.len())]);
     }
 
-    let (request, span) = requests.first().unwrap();
-
-    let request: Spanned<String> = (format!("{request}\n\n"), span.clone());
+    let request = requests.first().cloned().unwrap();
 
     let response = responses.first().cloned();
-
-    let response: Option<Spanned<String>> =
-        response.map(|(response, span)| (format!("{response}\n\n"), span));
 
     let config: Option<Spanned<String>> = configs.first().cloned();
 
