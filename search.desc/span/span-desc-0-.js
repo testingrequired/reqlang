@@ -1,0 +1,1 @@
+searchState.loadedDescShard("span", 0, "A span representing no location in the original source code\nA range representing a location in the original source code\nA pair of T and the span in the original source code\nThe upper bound of the range (exclusive).\nThe lower bound of the range (inclusive).")

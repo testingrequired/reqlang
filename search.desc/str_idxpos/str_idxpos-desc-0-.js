@@ -1,0 +1,1 @@
+searchState.loadedDescShard("str_idxpos", 0, "Map index to position (line, column)\nMap position (line, column) to index")
