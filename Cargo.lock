@@ -2882,6 +2882,7 @@ dependencies = [
  "poll-promise",
  "reqlang",
  "rfd",
+ "serde",
 ]
 
 [[package]]

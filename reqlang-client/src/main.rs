@@ -443,7 +443,6 @@ impl ExecutingRequestState {
 }
 
 #[derive(Debug, PartialEq, Copy, Clone)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 enum Method {
     Get,
     Head,
