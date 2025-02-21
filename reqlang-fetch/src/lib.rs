@@ -3,8 +3,8 @@ use std::{collections::HashMap, future::Future};
 use parser::template;
 use reqwest::{Client, Method, Response, Version};
 use types::{
-    http::{HttpRequest, HttpResponse, HttpStatusCode, HttpVersion},
     RequestParamsFromClient,
+    http::{HttpRequest, HttpResponse, HttpStatusCode, HttpVersion},
 };
 
 /// Implement a fetch that returns an [HttpResponse]. See [HttpRequestFetcher].

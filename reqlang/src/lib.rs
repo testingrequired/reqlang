@@ -17,8 +17,8 @@ mod tests {
     use pretty_assertions::assert_eq;
 
     use crate::{
-        parse, template, HttpRequest, HttpResponse, HttpStatusCode, ParsedConfig,
-        ParsedRequestFile, ReferenceType, TemplatedRequestFile,
+        HttpRequest, HttpResponse, HttpStatusCode, ParsedConfig, ParsedRequestFile, ReferenceType,
+        TemplatedRequestFile, parse, template,
     };
 
     #[test]

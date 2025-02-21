@@ -3,7 +3,7 @@ name = "errors"
 description = "Errors types when parsing, resolving, and templating request files"
 version = "0.1.0"
 edition = "2021"
-rust-version = "1.78"
+rust-version = "1.85"
 authors = ["Kylee Tilley <kyleetilley@gmail.com>"]
 publish = false
 
