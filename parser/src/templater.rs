@@ -5,8 +5,8 @@ use span::{Spanned, NO_SPAN};
 use types::{ParsedRequestFile, ReferenceType, TemplatedRequestFile};
 
 use crate::{
+    ast,
     parser::{parse, parse_request, parse_response},
-    splitter::split,
 };
 
 /// Template a request file string into a [TemplatedRequestFile].
@@ -118,17 +118,18 @@ pub fn template(
         input
     };
 
-    // Split the templated input to pull out the request and response parts
-    let reqfile_split = split(&templated_input).unwrap();
+    let ast = ast::ast(&templated_input).unwrap();
+    let request = ast.request().cloned().expect("should have a request");
+    let response = ast.response().cloned();
 
     // Parse the templated request
     let request = {
-        let (request, request_span) = reqfile_split.request;
+        let (request, request_span) = request;
         parse_request(&(request, request_span.clone())).unwrap().0
     };
 
     // Parse the templated response
-    let response = parse_response(&reqfile_split.response).map(|x| x.unwrap().0);
+    let response = parse_response(&response).map(|x| x.unwrap().0);
 
     Ok(TemplatedRequestFile { request, response })
 }

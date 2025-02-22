@@ -1,5 +1,5 @@
 #[cfg(test)]
-mod tests {
+mod cli_integration_tests {
     use std::fs;
 
     use assert_cmd::Command;

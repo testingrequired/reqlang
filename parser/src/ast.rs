@@ -35,17 +35,39 @@ impl AST {
             _ => None,
         })
     }
+
+    pub fn _comments(&self) -> Vec<Spanned<String>> {
+        let mut comments = vec![];
+
+        for node in self.nodes() {
+            if let Node::Comment(comment) = &node.0 {
+                comments.push((comment.clone(), node.1.clone()));
+            }
+        }
+
+        // self.nodes().find_map(|(node, _)| match &node {
+        //     Node::Comment(comment) => Some(response),
+        //     _ => None,
+        // })
+
+        comments
+    }
 }
 
 #[allow(clippy::enum_variant_names)]
 #[derive(Debug, PartialEq)]
 pub enum Node {
+    Comment(String),
     ConfigBlock(Spanned<String>),
     RequestBlock(Spanned<String>),
     ResponseBlock(Spanned<String>),
 }
 
 impl Node {
+    pub fn comment(text: impl AsRef<str>) -> Self {
+        Self::Comment(text.as_ref().to_string())
+    }
+
     pub fn config(text: impl AsRef<str>, span: Span) -> Self {
         let prefix = "```%config";
         let suffix = "```";
@@ -84,17 +106,40 @@ pub struct Comment(String);
 pub fn ast(input: impl AsRef<str>) -> Result<AST, Vec<Spanned<ReqlangError>>> {
     let mut ast = AST::default();
 
+    let mut code_block_spans: Vec<Span> = vec![];
+
     for (text, span) in extract_codeblocks(&input, "%config").iter() {
+        code_block_spans.push(span.clone());
         ast.push((Node::config(text, span.clone()), span.clone()));
     }
 
     for (text, span) in extract_codeblocks(&input, "%request").iter() {
+        code_block_spans.push(span.clone());
         ast.push((Node::request(text, span.clone()), span.clone()));
     }
 
     for (text, span) in extract_codeblocks(&input, "%response").iter() {
+        code_block_spans.push(span.clone());
         ast.push((Node::response(text, span.clone()), span.clone()));
     }
+
+    // Sort code_block_spans be start & end of the spans
+    code_block_spans.sort_by(|a, b| a.start.cmp(&b.start));
+
+    let mut index = 0usize;
+
+    for code_block_span in code_block_spans.iter() {
+        let start = code_block_span.start;
+
+        if index < start {
+            let new_span = index..start;
+            let comment = input.as_ref()[new_span.clone()].to_string();
+            ast.push((Node::comment(comment), new_span.clone()));
+            index = code_block_span.end;
+        }
+    }
+
+    ast.0.sort_by(|a, b| a.1.start.cmp(&b.1.start));
 
     Ok(ast)
 }
@@ -108,6 +153,8 @@ mod ast_tests {
     fn parse_request_file() {
         let source = textwrap::dedent(
             r#"
+            A
+
             ```%config
             vars = ["foo"]
 
@@ -115,9 +162,13 @@ mod ast_tests {
             foo = "bar"
             ```
 
+            B
+
             ```%request
             GET https://example.com HTTP/1.1
             ```
+
+            C
 
             ```%response
             HTTP/1.1 200 OK
@@ -125,12 +176,15 @@ mod ast_tests {
 
             <html></html>
             ```
+
+            D
             "#,
         );
 
         let ast_result = ast(source);
         assert_eq!(
             Ok(AST(vec![
+                (Node::comment("\nA\n\n"), 0..4),
                 (
                     Node::ConfigBlock((
                         textwrap::dedent(
@@ -143,14 +197,16 @@ mod ast_tests {
                         )
                         .trim()
                         .to_string(),
-                        12..47
+                        15..50
                     )),
-                    1..50
+                    4..53
                 ),
+                (Node::comment("\n\nB\n\n"), 53..58),
                 (
-                    Node::RequestBlock(("GET https://example.com HTTP/1.1".to_string(), 64..97)),
-                    52..100
+                    Node::RequestBlock(("GET https://example.com HTTP/1.1".to_string(), 70..103)),
+                    58..106
                 ),
+                (Node::comment("\n\nC\n\n"), 106..111),
                 (
                     Node::ResponseBlock((
                         textwrap::dedent(
@@ -163,9 +219,9 @@ mod ast_tests {
                         )
                         .trim()
                         .to_string(),
-                        115..177
+                        124..186
                     )),
-                    102..180
+                    111..189
                 ),
             ])),
             ast_result
