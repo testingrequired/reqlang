@@ -146,8 +146,99 @@ pub fn ast(input: impl AsRef<str>) -> Result<AST, Vec<Spanned<ReqlangError>>> {
 
 #[cfg(test)]
 mod ast_tests {
+    use crate::ast;
+
     use super::*;
     use pretty_assertions::assert_eq;
+
+    #[test]
+    fn test_empty_string() {
+        let output = ast::ast("");
+
+        assert_eq!(Ok(AST(vec![])), output);
+    }
+
+    #[test]
+    fn test_whitespace_string() {
+        let output = ast::ast(" \n ");
+
+        assert_eq!(Ok(AST(vec![])), output);
+    }
+
+    #[test]
+    fn test_request_without_response_or_config() {
+        let input = textwrap::dedent(
+            "
+        ```%request
+        REQUEST
+        ```
+        ",
+        );
+
+        let ast_result = ast(input);
+        assert_eq!(
+            Ok(AST(vec![
+                (Node::comment("\n"), 0..1),
+                (Node::request("REQUEST", 1..24), 1..24),
+            ])),
+            ast_result
+        );
+    }
+
+    #[test]
+    fn test_request_with_response_and_empty_config() {
+        let input = textwrap::dedent(
+            "
+        ```%request
+        REQUEST
+        ```
+        ```%response
+        RESPONSE
+        ```
+        ",
+        );
+
+        let ast_result = ast(input);
+        assert_eq!(
+            Ok(AST(vec![
+                (Node::comment("\n"), 0..1),
+                (Node::request("REQUEST", 1..24), 1..24),
+                (Node::comment("\n"), 24..25),
+                (Node::response("RESPONSE", 25..50), 25..50),
+            ])),
+            ast_result
+        );
+    }
+
+    #[test]
+    fn test_request_with_response_and_config() {
+        let input = textwrap::dedent(
+            "
+            ```%config
+            CONFIG
+            ```
+            ```%request
+            REQUEST
+            ```
+            ```%response
+            RESPONSE
+            ```
+            ",
+        );
+
+        let ast_result = ast(input);
+        assert_eq!(
+            Ok(AST(vec![
+                (Node::comment("\n"), 0..1),
+                (Node::config("CONFIG", 1..22), 1..22),
+                (Node::comment("\n"), 22..23),
+                (Node::request("REQUEST", 23..46), 23..46),
+                (Node::comment("\n"), 46..47),
+                (Node::response("RESPONSE", 47..72), 47..72),
+            ])),
+            ast_result
+        );
+    }
 
     #[test]
     fn parse_request_file() {
