@@ -1,4 +1,3 @@
-use errors::ReqlangError;
 use extract_codeblocks::extract_codeblocks;
 use span::{Span, Spanned};
 
@@ -7,18 +6,11 @@ pub struct Ast(Vec<Spanned<AstNode>>);
 
 impl Ast {
     /// Parse a string in to an abstract syntax tree
-    pub fn parse(input: impl AsRef<str>) -> Result<Self, Vec<Spanned<ReqlangError>>> {
+    pub fn new(input: impl AsRef<str>) -> Self {
         let mut ast = Self(vec![]);
 
         for (text, span) in extract_codeblocks(&input, "%request").iter() {
             ast.push(AstNode::request(text, span.clone()));
-        }
-
-        if ast.0.is_empty() {
-            return Err(vec![(
-                ReqlangError::ParseError(errors::ParseError::MissingRequest),
-                0..0,
-            )]);
         }
 
         for (text, span) in extract_codeblocks(&input, "%config").iter() {
@@ -49,7 +41,7 @@ impl Ast {
         // Sort AST nodes by their positions
         ast.0.sort_by(|a, b| a.1.start.cmp(&b.1.start));
 
-        Ok(ast)
+        ast
     }
 
     fn push(&mut self, node: Spanned<AstNode>) {
@@ -200,28 +192,16 @@ mod ast_tests {
 
     #[test]
     fn test_empty_string() {
-        let output = ast::Ast::parse("");
+        let output = ast::Ast::new("");
 
-        assert_eq!(
-            Err(vec![(
-                ReqlangError::ParseError(errors::ParseError::MissingRequest),
-                0..0
-            )]),
-            output
-        );
+        assert_eq!(Ast(vec![]), output);
     }
 
     #[test]
     fn test_whitespace_string() {
-        let output = ast::Ast::parse(" \n ");
+        let output = ast::Ast::new(" \n ");
 
-        assert_eq!(
-            Err(vec![(
-                ReqlangError::ParseError(errors::ParseError::MissingRequest),
-                0..0
-            )]),
-            output
-        );
+        assert_eq!(Ast(vec![]), output);
     }
 
     #[test]
@@ -234,12 +214,12 @@ mod ast_tests {
         ",
         );
 
-        let ast_result = ast::Ast::parse(input);
+        let ast_result = ast::Ast::new(input);
         assert_eq!(
-            Ok(Ast(vec![
+            Ast(vec![
                 AstNode::comment("\n", 0..1),
                 AstNode::request("REQUEST", 1..24)
-            ])),
+            ]),
             ast_result
         );
     }
@@ -257,14 +237,14 @@ mod ast_tests {
         ",
         );
 
-        let ast_result = ast::Ast::parse(input);
+        let ast_result = ast::Ast::new(input);
         assert_eq!(
-            Ok(Ast(vec![
+            Ast(vec![
                 AstNode::comment("\n", 0..1),
                 AstNode::request("REQUEST", 1..24),
                 AstNode::comment("\n", 24..25),
                 AstNode::response("RESPONSE", 25..50),
-            ])),
+            ]),
             ast_result
         );
     }
@@ -285,16 +265,16 @@ mod ast_tests {
             ",
         );
 
-        let ast_result = ast::Ast::parse(input);
+        let ast_result = ast::Ast::new(input);
         assert_eq!(
-            Ok(Ast(vec![
+            Ast(vec![
                 AstNode::comment("\n", 0..1),
                 AstNode::config("CONFIG", 1..22),
                 AstNode::comment("\n", 22..23),
                 AstNode::request("REQUEST", 23..46),
                 AstNode::comment("\n", 46..47),
                 AstNode::response("RESPONSE", 47..72),
-            ])),
+            ]),
             ast_result
         );
     }
@@ -331,9 +311,9 @@ mod ast_tests {
             "#,
         );
 
-        let ast_result = ast::Ast::parse(source);
+        let ast_result = ast::Ast::new(source);
         assert_eq!(
-            Ok(Ast(vec![
+            Ast(vec![
                 AstNode::comment("\nA\n\n", 0..4),
                 (
                     AstNode::ConfigBlock((
@@ -376,7 +356,7 @@ mod ast_tests {
                     )),
                     111..189
                 ),
-            ])),
+            ]),
             ast_result
         );
     }

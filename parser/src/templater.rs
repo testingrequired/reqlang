@@ -118,7 +118,7 @@ pub fn template(
         input
     };
 
-    let ast = ast::Ast::parse(&templated_input).unwrap();
+    let ast = ast::Ast::new(&templated_input);
     let request = ast.request().cloned().expect("should have a request");
     let response = ast.response().cloned();
 

@@ -32,237 +32,217 @@ static FORBIDDEN_REQUEST_HEADER_NAMES: &[&str] = &[
 
 /// Parse string into a [ParsedRequestFile]
 pub fn parse(input: &str) -> Result<ParsedRequestFile, Vec<Spanned<ReqlangError>>> {
-    match ast::Ast::parse(input) {
-        Ok(ast) => {
-            match ast.request() {
-                Some(request) => {
-                    let mut parse_errors: Vec<Spanned<ReqlangError>> = vec![];
+    let ast = ast::Ast::new(input);
 
-                    let response = ast.response().cloned();
-                    let config = ast.config().cloned();
+    match ast.request() {
+        Some(request) => {
+            let mut parse_errors: Vec<Spanned<ReqlangError>> = vec![];
 
-                    let request_refs = parse_references(request);
-                    let response_refs = parse_references(&response.clone().unwrap_or_default());
-                    let config_refs = parse_references(&config.clone().unwrap_or_default());
-                    let mut refs: Vec<(ReferenceType, std::ops::Range<usize>)> = vec![];
-                    refs.extend(request_refs);
-                    refs.extend(response_refs);
-                    refs.extend(config_refs);
+            let response = ast.response().cloned();
+            let config = ast.config().cloned();
 
-                    let request = match parse_request(request) {
-                        Ok((request, span)) => {
-                            for key in request.headers.iter().map(|x| &x.0) {
-                                if FORBIDDEN_REQUEST_HEADER_NAMES
-                                    .contains(&key.to_lowercase().as_str())
-                                {
+            let request_refs = parse_references(request);
+            let response_refs = parse_references(&response.clone().unwrap_or_default());
+            let config_refs = parse_references(&config.clone().unwrap_or_default());
+            let mut refs: Vec<(ReferenceType, std::ops::Range<usize>)> = vec![];
+            refs.extend(request_refs);
+            refs.extend(response_refs);
+            refs.extend(config_refs);
+
+            let request = match parse_request(request) {
+                Ok((request, span)) => {
+                    for key in request.headers.iter().map(|x| &x.0) {
+                        if FORBIDDEN_REQUEST_HEADER_NAMES.contains(&key.to_lowercase().as_str()) {
+                            parse_errors.push((
+                                ParseError::ForbiddenRequestHeaderNameError(key.to_lowercase())
+                                    .into(),
+                                span.clone(),
+                            ))
+                        }
+                    }
+
+                    Some((request, span))
+                }
+                Err(err) => {
+                    parse_errors.extend(err);
+                    None
+                }
+            };
+
+            let response = match parse_response(&response) {
+                Some(Ok(response)) => Some(response),
+                Some(Err(err)) => {
+                    parse_errors.extend(err);
+                    None
+                }
+                None => None,
+            };
+
+            let config = match parse_config(&config) {
+                Some(Ok((config, config_span))) => Some((config, config_span)),
+                Some(Err(err)) => {
+                    parse_errors.extend(err);
+                    None
+                }
+                None => None,
+            };
+
+            if let Some((config, config_span)) = &config {
+                let vars = config.vars();
+                let env_names = config.envs();
+
+                for var in vars.iter() {
+                    if env_names.is_empty() {
+                        parse_errors.push((
+                            ParseError::VariableNotDefinedInAnyEnvironment(var.to_string()).into(),
+                            config_span.clone(),
+                        ));
+                    }
+
+                    for env_name in env_names.iter() {
+                        match &config.env(env_name) {
+                            Some(env) => {
+                                if !env.contains_key(var) {
                                     parse_errors.push((
-                                        ParseError::ForbiddenRequestHeaderNameError(
-                                            key.to_lowercase(),
+                                        ParseError::VariableUndefinedInEnvironment(
+                                            var.clone(),
+                                            env_name.clone(),
                                         )
                                         .into(),
-                                        span.clone(),
-                                    ))
+                                        config_span.clone(),
+                                    ));
                                 }
                             }
-
-                            Some((request, span))
+                            None => todo!(),
                         }
-                        Err(err) => {
-                            parse_errors.extend(err);
-                            None
-                        }
-                    };
+                    }
+                }
+            }
 
-                    let response = match parse_response(&response) {
-                        Some(Ok(response)) => Some(response),
-                        Some(Err(err)) => {
-                            parse_errors.extend(err);
-                            None
-                        }
-                        None => None,
-                    };
-
-                    let config = match parse_config(&config) {
-                        Some(Ok((config, config_span))) => Some((config, config_span)),
-                        Some(Err(err)) => {
-                            parse_errors.extend(err);
-                            None
-                        }
-                        None => None,
-                    };
-
-                    if let Some((config, config_span)) = &config {
-                        let vars = config.vars();
-                        let env_names = config.envs();
-
-                        for var in vars.iter() {
-                            if env_names.is_empty() {
+            // Validate template references are declared/defined vars, secrets, prompts, etc.
+            for (ref_type, span) in refs.iter() {
+                match ref_type {
+                    ReferenceType::Variable(name) => {
+                        if let Some((config, _)) = &config {
+                            if !config.vars().contains(name) {
                                 parse_errors.push((
-                                    ParseError::VariableNotDefinedInAnyEnvironment(var.to_string())
-                                        .into(),
-                                    config_span.clone(),
+                                    ReqlangError::ParseError(ParseError::UndefinedReferenceError(
+                                        ReferenceType::Variable(name.to_string()),
+                                    )),
+                                    span.clone(),
                                 ));
                             }
-
-                            for env_name in env_names.iter() {
-                                match &config.env(env_name) {
-                                    Some(env) => {
-                                        if !env.contains_key(var) {
-                                            parse_errors.push((
-                                                ParseError::VariableUndefinedInEnvironment(
-                                                    var.clone(),
-                                                    env_name.clone(),
-                                                )
-                                                .into(),
-                                                config_span.clone(),
-                                            ));
-                                        }
-                                    }
-                                    None => todo!(),
-                                }
-                            }
+                        } else {
+                            parse_errors.push((
+                                ReqlangError::ParseError(ParseError::UndefinedReferenceError(
+                                    ReferenceType::Variable(name.to_string()),
+                                )),
+                                span.clone(),
+                            ));
                         }
                     }
-
-                    // Validate template references are declared/defined vars, secrets, prompts, etc.
-                    for (ref_type, span) in refs.iter() {
-                        match ref_type {
-                            ReferenceType::Variable(name) => {
-                                if let Some((config, _)) = &config {
-                                    if !config.vars().contains(name) {
-                                        parse_errors.push((
-                                            ReqlangError::ParseError(
-                                                ParseError::UndefinedReferenceError(
-                                                    ReferenceType::Variable(name.to_string()),
-                                                ),
-                                            ),
-                                            span.clone(),
-                                        ));
-                                    }
-                                } else {
-                                    parse_errors.push((
-                                        ReqlangError::ParseError(
-                                            ParseError::UndefinedReferenceError(
-                                                ReferenceType::Variable(name.to_string()),
-                                            ),
-                                        ),
-                                        span.clone(),
-                                    ));
-                                }
-                            }
-                            ReferenceType::Prompt(name) => {
-                                if let Some((config, _)) = &config {
-                                    if !config.prompts().contains(name) {
-                                        parse_errors.push((
-                                            ReqlangError::ParseError(
-                                                ParseError::UndefinedReferenceError(
-                                                    ReferenceType::Prompt(name.to_string()),
-                                                ),
-                                            ),
-                                            span.clone(),
-                                        ));
-                                    }
-                                } else {
-                                    parse_errors.push((
-                                        ReqlangError::ParseError(
-                                            ParseError::UndefinedReferenceError(
-                                                ReferenceType::Prompt(name.to_string()),
-                                            ),
-                                        ),
-                                        span.clone(),
-                                    ));
-                                }
-                            }
-                            ReferenceType::Secret(name) => {
-                                if let Some((config, _)) = &config {
-                                    if !config.secrets().contains(name) {
-                                        parse_errors.push((
-                                            ReqlangError::ParseError(
-                                                ParseError::UndefinedReferenceError(
-                                                    ReferenceType::Secret(name.to_string()),
-                                                ),
-                                            ),
-                                            span.clone(),
-                                        ));
-                                    }
-                                } else {
-                                    parse_errors.push((
-                                        ReqlangError::ParseError(
-                                            ParseError::UndefinedReferenceError(
-                                                ReferenceType::Secret(name.to_string()),
-                                            ),
-                                        ),
-                                        span.clone(),
-                                    ));
-                                }
-                            }
-                            ReferenceType::Provider(_name) => {}
-                            ReferenceType::Unknown(_name) => {}
-                        }
-                    }
-
-                    if let Some((ref config, ref span)) = config {
-                        let ref_names: Vec<String> = refs
-                            .clone()
-                            .into_iter()
-                            .map(|(x, _)| match x {
-                                ReferenceType::Variable(name) => name,
-                                ReferenceType::Prompt(name) => name,
-                                ReferenceType::Secret(name) => name,
-                                ReferenceType::Provider(name) => name,
-                                ReferenceType::Unknown(name) => name,
-                            })
-                            .collect();
-
-                        for var in &config.vars() {
-                            if !ref_names.contains(var) {
+                    ReferenceType::Prompt(name) => {
+                        if let Some((config, _)) = &config {
+                            if !config.prompts().contains(name) {
                                 parse_errors.push((
-                                    ReqlangError::ParseError(ParseError::UnusedValueError(
-                                        ReferenceType::Variable(var.clone()),
+                                    ReqlangError::ParseError(ParseError::UndefinedReferenceError(
+                                        ReferenceType::Prompt(name.to_string()),
                                     )),
                                     span.clone(),
-                                ))
+                                ));
                             }
-                        }
-
-                        for key in &config.prompts() {
-                            if !ref_names.contains(key) {
-                                parse_errors.push((
-                                    ReqlangError::ParseError(ParseError::UnusedValueError(
-                                        ReferenceType::Prompt(key.clone()),
-                                    )),
-                                    span.clone(),
-                                ))
-                            }
-                        }
-
-                        for secret in &config.secrets() {
-                            if !ref_names.contains(secret) {
-                                parse_errors.push((
-                                    ReqlangError::ParseError(ParseError::UnusedValueError(
-                                        ReferenceType::Secret(secret.clone()),
-                                    )),
-                                    span.clone(),
-                                ))
-                            }
+                        } else {
+                            parse_errors.push((
+                                ReqlangError::ParseError(ParseError::UndefinedReferenceError(
+                                    ReferenceType::Prompt(name.to_string()),
+                                )),
+                                span.clone(),
+                            ));
                         }
                     }
-
-                    if !parse_errors.is_empty() {
-                        return Err(parse_errors);
+                    ReferenceType::Secret(name) => {
+                        if let Some((config, _)) = &config {
+                            if !config.secrets().contains(name) {
+                                parse_errors.push((
+                                    ReqlangError::ParseError(ParseError::UndefinedReferenceError(
+                                        ReferenceType::Secret(name.to_string()),
+                                    )),
+                                    span.clone(),
+                                ));
+                            }
+                        } else {
+                            parse_errors.push((
+                                ReqlangError::ParseError(ParseError::UndefinedReferenceError(
+                                    ReferenceType::Secret(name.to_string()),
+                                )),
+                                span.clone(),
+                            ));
+                        }
                     }
-
-                    Ok(ParsedRequestFile {
-                        request: request.unwrap(),
-                        response,
-                        config,
-                        refs,
-                    })
+                    ReferenceType::Provider(_name) => {}
+                    ReferenceType::Unknown(_name) => {}
                 }
-                None => Err(vec![(ParseError::MissingRequest.into(), 0..0)]),
             }
+
+            if let Some((ref config, ref span)) = config {
+                let ref_names: Vec<String> = refs
+                    .clone()
+                    .into_iter()
+                    .map(|(x, _)| match x {
+                        ReferenceType::Variable(name) => name,
+                        ReferenceType::Prompt(name) => name,
+                        ReferenceType::Secret(name) => name,
+                        ReferenceType::Provider(name) => name,
+                        ReferenceType::Unknown(name) => name,
+                    })
+                    .collect();
+
+                for var in &config.vars() {
+                    if !ref_names.contains(var) {
+                        parse_errors.push((
+                            ReqlangError::ParseError(ParseError::UnusedValueError(
+                                ReferenceType::Variable(var.clone()),
+                            )),
+                            span.clone(),
+                        ))
+                    }
+                }
+
+                for key in &config.prompts() {
+                    if !ref_names.contains(key) {
+                        parse_errors.push((
+                            ReqlangError::ParseError(ParseError::UnusedValueError(
+                                ReferenceType::Prompt(key.clone()),
+                            )),
+                            span.clone(),
+                        ))
+                    }
+                }
+
+                for secret in &config.secrets() {
+                    if !ref_names.contains(secret) {
+                        parse_errors.push((
+                            ReqlangError::ParseError(ParseError::UnusedValueError(
+                                ReferenceType::Secret(secret.clone()),
+                            )),
+                            span.clone(),
+                        ))
+                    }
+                }
+            }
+
+            if !parse_errors.is_empty() {
+                return Err(parse_errors);
+            }
+
+            Ok(ParsedRequestFile {
+                request: request.unwrap(),
+                response,
+                config,
+                refs,
+            })
         }
-        Err(errs) => Err(errs),
+        None => Err(vec![(ParseError::MissingRequest.into(), 0..0)]),
     }
 }
 
