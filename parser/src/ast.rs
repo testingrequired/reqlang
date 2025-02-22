@@ -56,26 +56,30 @@ impl Ast {
         self.0.push(node);
     }
 
-    pub fn nodes(&self) -> impl Iterator<Item = &Spanned<AstNode>> {
+    /// Iterate over the [nodes](AstNode)
+    pub fn iter(&self) -> impl Iterator<Item = &Spanned<AstNode>> {
         self.0.iter()
     }
 
+    /// Get the [AstNode::ConfigBlock], if present
     pub fn config(&self) -> Option<&Spanned<String>> {
-        self.nodes().find_map(|(node, _)| match &node {
+        self.iter().find_map(|(node, _)| match &node {
             AstNode::ConfigBlock(config) => Some(config),
             _ => None,
         })
     }
 
+    /// Get the [AstNode::RequestBlock]
     pub fn request(&self) -> Option<&Spanned<String>> {
-        self.nodes().find_map(|(node, _)| match &node {
+        self.iter().find_map(|(node, _)| match &node {
             AstNode::RequestBlock(request) => Some(request),
             _ => None,
         })
     }
 
+    /// Get the [AstNode::ResponseBlock], if present
     pub fn response(&self) -> Option<&Spanned<String>> {
-        self.nodes().find_map(|(node, _)| match &node {
+        self.iter().find_map(|(node, _)| match &node {
             AstNode::ResponseBlock(response) => Some(response),
             _ => None,
         })
@@ -84,7 +88,7 @@ impl Ast {
     pub fn _comments(&self) -> Vec<Spanned<String>> {
         let mut comments = vec![];
 
-        for node in self.nodes() {
+        for node in self.iter() {
             if let AstNode::Comment(comment) = &node.0 {
                 comments.push((comment.clone(), node.1.clone()));
             }
@@ -99,20 +103,45 @@ impl Ast {
     }
 }
 
-#[allow(clippy::enum_variant_names)]
 #[derive(Debug, PartialEq, Clone)]
 pub enum AstNode {
+    /// Any text that isn't a [AstNode::RequestBlock], [AstNode::ResponseBlock], or [AstNode::ConfigBlock].
     Comment(String),
+    /// A code block delimited configuration
+    ///
+    /// ````
+    /// ```%config
+    /// config goes here...
+    /// ```
+    /// ````
     ConfigBlock(Spanned<String>),
+    /// A code block delimited request
+    ///
+    /// ````
+    /// ```%request
+    /// request goes here...
+    /// ```
+    /// ````
     RequestBlock(Spanned<String>),
+    /// A code block delimited response
+    ///
+    /// ````
+    /// ```%response
+    /// response goes here...
+    /// ```
+    /// ````
     ResponseBlock(Spanned<String>),
 }
 
 impl AstNode {
+    /// Utility function to create a [Spanned] [AstNode::Comment] from the given text and [Span].
     pub fn comment(text: impl AsRef<str>, span: Span) -> Spanned<Self> {
         (Self::Comment(text.as_ref().to_string()), span.clone())
     }
 
+    /// Utility function to create a [Spanned] [AstNode::ConfigBlock] from the given text and [Span].
+    ///
+    /// This automatically handles calculating the [Span] for the code block text
     pub fn config(text: impl AsRef<str>, span: Span) -> Spanned<Self> {
         let prefix = "```%config";
         let suffix = "```";
@@ -126,6 +155,9 @@ impl AstNode {
         )
     }
 
+    /// Utility function to create a [Spanned] [AstNode::RequestBlock] from the given text and [Span].
+    ///
+    /// This automatically handles calculating the [Span] for the code block text
     pub fn request(text: impl AsRef<str>, span: Span) -> Spanned<Self> {
         let prefix = "```%request";
         let suffix = "```";
@@ -139,6 +171,9 @@ impl AstNode {
         )
     }
 
+    /// Utility function to create a [Spanned] [AstNode::ResponseBlock] from the given text and [Span].
+    ///
+    /// This automatically handles calculating the [Span] for the code block text
     pub fn response(text: impl AsRef<str>, span: Span) -> Spanned<Self> {
         let prefix = "```%response";
         let suffix = "```";
