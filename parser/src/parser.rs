@@ -30,10 +30,8 @@ static FORBIDDEN_REQUEST_HEADER_NAMES: &[&str] = &[
     "via",
 ];
 
-/// Parse string into a [ParsedRequestFile]
-pub fn parse(input: &str) -> Result<ParsedRequestFile, Vec<Spanned<ReqlangError>>> {
-    let ast = ast::Ast::new(input);
-
+/// Parse [ast::Ast] into a [ParsedRequestFile]
+pub fn parse(ast: &ast::Ast) -> Result<ParsedRequestFile, Vec<Spanned<ReqlangError>>> {
     match ast.request() {
         Some(request) => {
             let mut parse_errors: Vec<Spanned<ReqlangError>> = vec![];
@@ -433,7 +431,9 @@ mod test {
         ($test_name:ident, $reqfile:expr, $result:expr) => {
             #[test]
             fn $test_name() {
-                pretty_assertions::assert_eq!($result, $crate::parse(&$reqfile));
+                let ast = $crate::ast::Ast::new($reqfile);
+                let result = $crate::parse(&ast);
+                pretty_assertions::assert_eq!($result, result);
             }
         };
     }
@@ -1387,7 +1387,8 @@ mod resolve_tests {
         ($test_name:ident, $reqfile:expr, $env:expr, $result:expr) => {
             #[test]
             fn $test_name() {
-                let resolved_reqfile = $crate::parse(&$reqfile).unwrap();
+                let ast = $crate::ast::Ast::new($reqfile);
+                let resolved_reqfile = $crate::parse(&ast).unwrap();
 
                 pretty_assertions::assert_eq!($result, resolved_reqfile.env($env));
             }

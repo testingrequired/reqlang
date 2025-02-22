@@ -3,6 +3,7 @@ pub use diagnostics;
 pub use errors;
 pub use errors::ReqlangError;
 pub use export::*;
+pub use parser::ast;
 pub use parser::parse;
 pub use parser::template;
 pub use reqlang_fetch::*;
@@ -14,6 +15,7 @@ pub use types::*;
 mod tests {
     use std::collections::HashMap;
 
+    use parser::ast;
     use pretty_assertions::assert_eq;
 
     use crate::{
@@ -23,7 +25,7 @@ mod tests {
 
     #[test]
     fn parse_full_request_file() {
-        let reqfile = parse(&textwrap::dedent(
+        let ast = ast::Ast::new(textwrap::dedent(
             "
             ```%config
             vars = [\"query_value\"]
@@ -56,6 +58,8 @@ mod tests {
             ```
             ",
         ));
+
+        let reqfile = parse(&ast);
 
         assert_eq!(
             Ok(ParsedRequestFile {

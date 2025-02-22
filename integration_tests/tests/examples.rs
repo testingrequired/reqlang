@@ -5,20 +5,22 @@ mod integration_tests {
     use std::fs;
     use std::path::PathBuf;
 
-    use reqlang::{Fetch, HttpRequestFetcher, HttpResponse, HttpStatusCode, HttpVersion};
+    use reqlang::{Fetch, HttpRequestFetcher, HttpResponse, HttpStatusCode, HttpVersion, ast};
 
     #[rstest::rstest]
     fn integration_valid(#[files("../examples/valid/*.reqlang")] path: PathBuf) {
         let source = fs::read_to_string(path).expect("text should have been read from file");
+        let ast = ast::Ast::new(&source);
 
-        assert!(reqlang::parse(&source).is_ok());
+        assert!(reqlang::parse(&ast).is_ok());
     }
 
     #[rstest::rstest]
     fn integration_invalid(#[files("../examples/invalid/*.reqlang")] path: PathBuf) {
         let source = fs::read_to_string(path).expect("text should have been read from file");
+        let ast = ast::Ast::new(&source);
 
-        assert!(reqlang::parse(&source).is_err());
+        assert!(reqlang::parse(&ast).is_err());
     }
 
     #[tokio::test]

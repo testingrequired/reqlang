@@ -17,7 +17,8 @@ pub fn template(
     secrets: &HashMap<String, String>,
     provider_values: &HashMap<String, String>,
 ) -> Result<TemplatedRequestFile, Vec<Spanned<ReqlangError>>> {
-    let parsed_reqfile = parse(reqfile_string)?;
+    let ast = ast::Ast::new(reqfile_string);
+    let parsed_reqfile = parse(&ast)?;
 
     if let Some(env) = env {
         match &parsed_reqfile.config {

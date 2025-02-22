@@ -109,7 +109,7 @@ impl AsDiagnostic for ReqlangError {
 
 #[cfg(test)]
 mod tests {
-    use parser::parse;
+    use parser::{ast, parse};
 
     use crate::{get_diagnostics, Diagnosis, DiagnosisPosition, DiagnosisRange, DiagnosisSeverity};
 
@@ -117,7 +117,9 @@ mod tests {
     fn it_works() {
         let source = String::from("");
 
-        let errs = parse(&source).unwrap_err();
+        let ast = ast::Ast::new(&source);
+
+        let errs = parse(&ast).unwrap_err();
 
         assert_eq!(
             vec![Diagnosis {

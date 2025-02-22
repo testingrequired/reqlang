@@ -4,6 +4,7 @@ use std::ops::Deref;
 use anyhow::{Context, Result};
 use reqlang::{
     assert_response::assert_response,
+    ast,
     diagnostics::{
         get_diagnostics, Diagnosis, DiagnosisPosition, DiagnosisRange, DiagnosisSeverity,
     },
@@ -95,7 +96,9 @@ impl LanguageServer for Backend {
         let mut file_texts = self.file_texts.lock().await;
         file_texts.insert(uri.clone(), source.clone());
 
-        let result: Result<ParseResult, _> = parse(&source).map(|reqfile| reqfile.into());
+        let ast = ast::Ast::new(&source);
+
+        let result: Result<ParseResult, _> = parse(&ast).map(|reqfile| reqfile.into());
 
         if let Err(errs) = &result {
             let diagnostics = get_diagnostics(errs, &source);
@@ -145,7 +148,9 @@ impl LanguageServer for Backend {
         let uri = params.text_document.uri;
         let source = &params.content_changes.first().unwrap().text;
 
-        let result: Result<ParseResult, _> = parse(source).map(|reqfile| reqfile.into());
+        let ast = ast::Ast::new(source);
+
+        let result: Result<ParseResult, _> = parse(&ast).map(|reqfile| reqfile.into());
 
         if let Err(errs) = &result {
             let diagnostics = get_diagnostics(errs, source);
@@ -198,7 +203,9 @@ impl LanguageServer for Backend {
         let mut file_texts = self.file_texts.lock().await;
         file_texts.insert(uri.clone(), source.clone());
 
-        let result: Result<ParseResult, _> = parse(&source).map(|reqfile| reqfile.into());
+        let ast = ast::Ast::new(&source);
+
+        let result: Result<ParseResult, _> = parse(&ast).map(|reqfile| reqfile.into());
 
         if let Err(errs) = &result {
             let diagnostics = get_diagnostics(errs, &source);

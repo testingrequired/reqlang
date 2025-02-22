@@ -3,7 +3,7 @@ mod cli_integration_tests {
     use std::fs;
 
     use assert_cmd::Command;
-    use reqlang::{parse, ParseResult};
+    use reqlang::{ast, parse, ParseResult};
 
     macro_rules! assert_command {
         ($command:expr) => {{
@@ -78,7 +78,8 @@ mod cli_integration_tests {
         let assert = assert_command!(cmd);
 
         let reqfile_source = fs::read_to_string(reqfile_path).unwrap();
-        let parsed_reqfile = parse(&reqfile_source).unwrap();
+        let ast = ast::Ast::new(&reqfile_source);
+        let parsed_reqfile = parse(&ast).unwrap();
         let mut parse_results: ParseResult = parsed_reqfile.into();
 
         let assert = assert.success();
