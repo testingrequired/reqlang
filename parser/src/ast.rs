@@ -143,12 +143,12 @@ mod ast_tests {
                         )
                         .trim()
                         .to_string(),
-                        11..47
+                        12..47
                     )),
                     1..50
                 ),
                 (
-                    Node::RequestBlock(("GET https://example.com HTTP/1.1".to_string(), 63..97)),
+                    Node::RequestBlock(("GET https://example.com HTTP/1.1".to_string(), 64..97)),
                     52..100
                 ),
                 (
@@ -163,7 +163,7 @@ mod ast_tests {
                         )
                         .trim()
                         .to_string(),
-                        114..177
+                        115..177
                     )),
                     102..180
                 ),

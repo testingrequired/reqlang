@@ -104,7 +104,7 @@ mod tests {
 
         assert_eq!(
             Ok(RequestFileSplitUp {
-                request: (String::from("REQUEST\n\n"), 1..24),
+                request: (String::from("REQUEST"), 1..24),
                 response: None,
                 config: None
             }),
@@ -130,8 +130,8 @@ mod tests {
 
         assert_eq!(
             Ok(RequestFileSplitUp {
-                request: (String::from("REQUEST\n\n"), 1..24),
-                response: Some((String::from("RESPONSE\n\n"), 26..51)),
+                request: (String::from("REQUEST"), 1..24),
+                response: Some((String::from("RESPONSE"), 26..51)),
                 config: None
             }),
             output
@@ -160,8 +160,8 @@ mod tests {
 
         assert_eq!(
             Ok(RequestFileSplitUp {
-                request: (String::from("REQUEST\n\n"), 24..47),
-                response: Some((String::from("RESPONSE\n\n"), 49..74)),
+                request: (String::from("REQUEST"), 24..47),
+                response: Some((String::from("RESPONSE"), 49..74)),
                 config: Some((String::from("CONFIG"), 1..22))
             }),
             output
