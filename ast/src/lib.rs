@@ -77,7 +77,8 @@ impl Ast {
         })
     }
 
-    pub fn _comments(&self) -> Vec<Spanned<String>> {
+    /// Get all [AstNode::Comment]
+    pub fn comments(&self) -> Vec<Spanned<String>> {
         let mut comments = vec![];
 
         for node in self.iter() {
@@ -85,11 +86,6 @@ impl Ast {
                 comments.push((comment.clone(), node.1.clone()));
             }
         }
-
-        // self.nodes().find_map(|(node, _)| match &node {
-        //     Node::Comment(comment) => Some(response),
-        //     _ => None,
-        // })
 
         comments
     }
@@ -185,21 +181,20 @@ pub struct Comment(String);
 
 #[cfg(test)]
 mod ast_tests {
-    use crate::ast;
 
     use super::*;
     use pretty_assertions::assert_eq;
 
     #[test]
     fn test_empty_string() {
-        let output = ast::Ast::new("");
+        let output = Ast::new("");
 
         assert_eq!(Ast(vec![]), output);
     }
 
     #[test]
     fn test_whitespace_string() {
-        let output = ast::Ast::new(" \n ");
+        let output = Ast::new(" \n ");
 
         assert_eq!(Ast(vec![]), output);
     }
@@ -214,7 +209,7 @@ mod ast_tests {
         ",
         );
 
-        let ast_result = ast::Ast::new(input);
+        let ast_result = Ast::new(input);
         assert_eq!(
             Ast(vec![
                 AstNode::comment("\n", 0..1),
@@ -237,7 +232,7 @@ mod ast_tests {
         ",
         );
 
-        let ast_result = ast::Ast::new(input);
+        let ast_result = Ast::new(input);
         assert_eq!(
             Ast(vec![
                 AstNode::comment("\n", 0..1),
@@ -265,7 +260,7 @@ mod ast_tests {
             ",
         );
 
-        let ast_result = ast::Ast::new(input);
+        let ast_result = Ast::new(input);
         assert_eq!(
             Ast(vec![
                 AstNode::comment("\n", 0..1),
@@ -311,7 +306,7 @@ mod ast_tests {
             "#,
         );
 
-        let ast_result = ast::Ast::new(source);
+        let ast_result = Ast::new(source);
         assert_eq!(
             Ast(vec![
                 AstNode::comment("\nA\n\n", 0..4),

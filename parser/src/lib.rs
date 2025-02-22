@@ -1,7 +1,6 @@
 pub use parser::parse;
 pub use templater::template;
 
-pub mod ast;
 mod parser;
 mod templater;
 

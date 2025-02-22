@@ -109,7 +109,7 @@ impl AsDiagnostic for ReqlangError {
 
 #[cfg(test)]
 mod tests {
-    use parser::{ast, parse};
+    use parser::parse;
 
     use crate::{get_diagnostics, Diagnosis, DiagnosisPosition, DiagnosisRange, DiagnosisSeverity};
 

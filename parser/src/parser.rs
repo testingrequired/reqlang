@@ -6,7 +6,7 @@ use types::{
     ParsedConfig, ParsedRequestFile, ReferenceType,
 };
 
-use crate::{ast, TEMPLATE_REFERENCE_PATTERN};
+use crate::TEMPLATE_REFERENCE_PATTERN;
 
 static FORBIDDEN_REQUEST_HEADER_NAMES: &[&str] = &[
     "host",
@@ -431,7 +431,7 @@ mod test {
         ($test_name:ident, $reqfile:expr, $result:expr) => {
             #[test]
             fn $test_name() {
-                let ast = $crate::ast::Ast::new($reqfile);
+                let ast = ::ast::Ast::new($reqfile);
                 let result = $crate::parse(&ast);
                 pretty_assertions::assert_eq!($result, result);
             }
@@ -1387,7 +1387,7 @@ mod resolve_tests {
         ($test_name:ident, $reqfile:expr, $env:expr, $result:expr) => {
             #[test]
             fn $test_name() {
-                let ast = $crate::ast::Ast::new($reqfile);
+                let ast = ::ast::Ast::new($reqfile);
                 let resolved_reqfile = $crate::parse(&ast).unwrap();
 
                 pretty_assertions::assert_eq!($result, resolved_reqfile.env($env));
