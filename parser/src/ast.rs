@@ -2,36 +2,81 @@ use errors::ReqlangError;
 use extract_codeblocks::extract_codeblocks;
 use span::{Span, Spanned};
 
-#[allow(clippy::upper_case_acronyms)]
-#[derive(Debug, PartialEq, Default)]
-pub struct AST(Vec<Spanned<Node>>);
+#[derive(Debug, PartialEq)]
+pub struct Ast(Vec<Spanned<AstNode>>);
 
-impl AST {
-    pub fn push(&mut self, node: Spanned<Node>) {
+impl Ast {
+    /// Parse a string in to an abstract syntax tree
+    pub fn parse(input: impl AsRef<str>) -> Result<Self, Vec<Spanned<ReqlangError>>> {
+        let mut ast = Self(vec![]);
+
+        for (text, span) in extract_codeblocks(&input, "%request").iter() {
+            ast.push((AstNode::request(text, span.clone()), span.clone()));
+        }
+
+        if ast.0.is_empty() {
+            return Err(vec![(
+                ReqlangError::ParseError(errors::ParseError::MissingRequest),
+                0..0,
+            )]);
+        }
+
+        for (text, span) in extract_codeblocks(&input, "%config").iter() {
+            ast.push((AstNode::config(text, span.clone()), span.clone()));
+        }
+
+        for (text, span) in extract_codeblocks(&input, "%response").iter() {
+            ast.push((AstNode::response(text, span.clone()), span.clone()));
+        }
+
+        // Sort AST nodes by their positions
+        ast.0.sort_by(|a, b| a.1.start.cmp(&b.1.start));
+
+        let mut index = 0usize;
+
+        // Find comment nodes
+        for (_, node_span) in ast.0.clone().iter() {
+            let start = node_span.start;
+
+            if index < start {
+                let new_span = index..start;
+                let comment = input.as_ref()[new_span.clone()].to_string();
+                ast.push((AstNode::comment(comment), new_span.clone()));
+                index = node_span.end;
+            }
+        }
+
+        // Sort AST nodes by their positions
+        ast.0.sort_by(|a, b| a.1.start.cmp(&b.1.start));
+
+        Ok(ast)
+    }
+
+    fn push(&mut self, node: Spanned<AstNode>) {
         self.0.push(node);
     }
 
-    pub fn nodes(&self) -> impl Iterator<Item = &Spanned<Node>> {
+    pub fn nodes(&self) -> impl Iterator<Item = &Spanned<AstNode>> {
         self.0.iter()
     }
 
     pub fn config(&self) -> Option<&Spanned<String>> {
         self.nodes().find_map(|(node, _)| match &node {
-            Node::ConfigBlock(config) => Some(config),
+            AstNode::ConfigBlock(config) => Some(config),
             _ => None,
         })
     }
 
     pub fn request(&self) -> Option<&Spanned<String>> {
         self.nodes().find_map(|(node, _)| match &node {
-            Node::RequestBlock(request) => Some(request),
+            AstNode::RequestBlock(request) => Some(request),
             _ => None,
         })
     }
 
     pub fn response(&self) -> Option<&Spanned<String>> {
         self.nodes().find_map(|(node, _)| match &node {
-            Node::ResponseBlock(response) => Some(response),
+            AstNode::ResponseBlock(response) => Some(response),
             _ => None,
         })
     }
@@ -40,7 +85,7 @@ impl AST {
         let mut comments = vec![];
 
         for node in self.nodes() {
-            if let Node::Comment(comment) = &node.0 {
+            if let AstNode::Comment(comment) = &node.0 {
                 comments.push((comment.clone(), node.1.clone()));
             }
         }
@@ -55,15 +100,15 @@ impl AST {
 }
 
 #[allow(clippy::enum_variant_names)]
-#[derive(Debug, PartialEq)]
-pub enum Node {
+#[derive(Debug, PartialEq, Clone)]
+pub enum AstNode {
     Comment(String),
     ConfigBlock(Spanned<String>),
     RequestBlock(Spanned<String>),
     ResponseBlock(Spanned<String>),
 }
 
-impl Node {
+impl AstNode {
     pub fn comment(text: impl AsRef<str>) -> Self {
         Self::Comment(text.as_ref().to_string())
     }
@@ -102,48 +147,6 @@ impl Node {
 #[derive(Debug, PartialEq)]
 pub struct Comment(String);
 
-/// Parse request file string in to AST.
-pub fn ast(input: impl AsRef<str>) -> Result<AST, Vec<Spanned<ReqlangError>>> {
-    let mut ast = AST::default();
-
-    let mut code_block_spans: Vec<Span> = vec![];
-
-    for (text, span) in extract_codeblocks(&input, "%config").iter() {
-        code_block_spans.push(span.clone());
-        ast.push((Node::config(text, span.clone()), span.clone()));
-    }
-
-    for (text, span) in extract_codeblocks(&input, "%request").iter() {
-        code_block_spans.push(span.clone());
-        ast.push((Node::request(text, span.clone()), span.clone()));
-    }
-
-    for (text, span) in extract_codeblocks(&input, "%response").iter() {
-        code_block_spans.push(span.clone());
-        ast.push((Node::response(text, span.clone()), span.clone()));
-    }
-
-    // Sort code_block_spans be start & end of the spans
-    code_block_spans.sort_by(|a, b| a.start.cmp(&b.start));
-
-    let mut index = 0usize;
-
-    for code_block_span in code_block_spans.iter() {
-        let start = code_block_span.start;
-
-        if index < start {
-            let new_span = index..start;
-            let comment = input.as_ref()[new_span.clone()].to_string();
-            ast.push((Node::comment(comment), new_span.clone()));
-            index = code_block_span.end;
-        }
-    }
-
-    ast.0.sort_by(|a, b| a.1.start.cmp(&b.1.start));
-
-    Ok(ast)
-}
-
 #[cfg(test)]
 mod ast_tests {
     use crate::ast;
@@ -153,16 +156,28 @@ mod ast_tests {
 
     #[test]
     fn test_empty_string() {
-        let output = ast::ast("");
+        let output = ast::Ast::parse("");
 
-        assert_eq!(Ok(AST(vec![])), output);
+        assert_eq!(
+            Err(vec![(
+                ReqlangError::ParseError(errors::ParseError::MissingRequest),
+                0..0
+            )]),
+            output
+        );
     }
 
     #[test]
     fn test_whitespace_string() {
-        let output = ast::ast(" \n ");
+        let output = ast::Ast::parse(" \n ");
 
-        assert_eq!(Ok(AST(vec![])), output);
+        assert_eq!(
+            Err(vec![(
+                ReqlangError::ParseError(errors::ParseError::MissingRequest),
+                0..0
+            )]),
+            output
+        );
     }
 
     #[test]
@@ -175,11 +190,11 @@ mod ast_tests {
         ",
         );
 
-        let ast_result = ast(input);
+        let ast_result = ast::Ast::parse(input);
         assert_eq!(
-            Ok(AST(vec![
-                (Node::comment("\n"), 0..1),
-                (Node::request("REQUEST", 1..24), 1..24),
+            Ok(Ast(vec![
+                (AstNode::comment("\n"), 0..1),
+                (AstNode::request("REQUEST", 1..24), 1..24),
             ])),
             ast_result
         );
@@ -198,13 +213,13 @@ mod ast_tests {
         ",
         );
 
-        let ast_result = ast(input);
+        let ast_result = ast::Ast::parse(input);
         assert_eq!(
-            Ok(AST(vec![
-                (Node::comment("\n"), 0..1),
-                (Node::request("REQUEST", 1..24), 1..24),
-                (Node::comment("\n"), 24..25),
-                (Node::response("RESPONSE", 25..50), 25..50),
+            Ok(Ast(vec![
+                (AstNode::comment("\n"), 0..1),
+                (AstNode::request("REQUEST", 1..24), 1..24),
+                (AstNode::comment("\n"), 24..25),
+                (AstNode::response("RESPONSE", 25..50), 25..50),
             ])),
             ast_result
         );
@@ -226,15 +241,15 @@ mod ast_tests {
             ",
         );
 
-        let ast_result = ast(input);
+        let ast_result = ast::Ast::parse(input);
         assert_eq!(
-            Ok(AST(vec![
-                (Node::comment("\n"), 0..1),
-                (Node::config("CONFIG", 1..22), 1..22),
-                (Node::comment("\n"), 22..23),
-                (Node::request("REQUEST", 23..46), 23..46),
-                (Node::comment("\n"), 46..47),
-                (Node::response("RESPONSE", 47..72), 47..72),
+            Ok(Ast(vec![
+                (AstNode::comment("\n"), 0..1),
+                (AstNode::config("CONFIG", 1..22), 1..22),
+                (AstNode::comment("\n"), 22..23),
+                (AstNode::request("REQUEST", 23..46), 23..46),
+                (AstNode::comment("\n"), 46..47),
+                (AstNode::response("RESPONSE", 47..72), 47..72),
             ])),
             ast_result
         );
@@ -272,12 +287,12 @@ mod ast_tests {
             "#,
         );
 
-        let ast_result = ast(source);
+        let ast_result = ast::Ast::parse(source);
         assert_eq!(
-            Ok(AST(vec![
-                (Node::comment("\nA\n\n"), 0..4),
+            Ok(Ast(vec![
+                (AstNode::comment("\nA\n\n"), 0..4),
                 (
-                    Node::ConfigBlock((
+                    AstNode::ConfigBlock((
                         textwrap::dedent(
                             r#"
                             vars = ["foo"]
@@ -292,14 +307,17 @@ mod ast_tests {
                     )),
                     4..53
                 ),
-                (Node::comment("\n\nB\n\n"), 53..58),
+                (AstNode::comment("\n\nB\n\n"), 53..58),
                 (
-                    Node::RequestBlock(("GET https://example.com HTTP/1.1".to_string(), 70..103)),
+                    AstNode::RequestBlock((
+                        "GET https://example.com HTTP/1.1".to_string(),
+                        70..103
+                    )),
                     58..106
                 ),
-                (Node::comment("\n\nC\n\n"), 106..111),
+                (AstNode::comment("\n\nC\n\n"), 106..111),
                 (
-                    Node::ResponseBlock((
+                    AstNode::ResponseBlock((
                         textwrap::dedent(
                             r#"
                             HTTP/1.1 200 OK

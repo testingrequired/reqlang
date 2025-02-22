@@ -32,7 +32,7 @@ static FORBIDDEN_REQUEST_HEADER_NAMES: &[&str] = &[
 
 /// Parse string into a [ParsedRequestFile]
 pub fn parse(input: &str) -> Result<ParsedRequestFile, Vec<Spanned<ReqlangError>>> {
-    match ast::ast(input) {
+    match ast::Ast::parse(input) {
         Ok(ast) => {
             match ast.request() {
                 Some(request) => {
