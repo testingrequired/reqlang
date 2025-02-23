@@ -8,7 +8,7 @@ use std::{
 
 use eframe::egui;
 use reqlang::{
-    ParsedRequestFile, RequestFormat, TemplatedRequestFile, ast, export, http::HttpRequest, parse,
+    Ast, ParsedRequestFile, RequestFormat, TemplatedRequestFile, export, http::HttpRequest, parse,
     template,
 };
 
@@ -50,7 +50,7 @@ impl LoadReqfileState {
             };
 
             client_ctx.reqfile = client_ctx.source.as_ref().map(|source| {
-                let ast = ast::Ast::new(source);
+                let ast = Ast::new(source);
                 Box::new(parse(&ast).unwrap())
             });
 

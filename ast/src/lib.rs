@@ -176,9 +176,6 @@ impl AstNode {
     }
 }
 
-#[derive(Debug, PartialEq)]
-pub struct Comment(String);
-
 #[cfg(test)]
 mod ast_tests {
 

@@ -1,8 +1,7 @@
 use clap::builder::PossibleValuesParser;
 use clap::{crate_authors, crate_description, crate_version, Arg, ArgMatches, Command};
-use reqlang::ast;
 use reqlang::{
-    assert_response::assert_response, export_response, parse, HttpRequestFetcher, ParseResult,
+    assert_response::assert_response, export_response, parse, Ast, HttpRequestFetcher, ParseResult,
     ResponseFormat,
 };
 use std::{collections::HashMap, fs, process::exit};
@@ -84,7 +83,7 @@ fn export_command(matches: &ArgMatches) {
 fn parse_command(matches: &ArgMatches) {
     let path = matches.get_one::<String>("path").unwrap();
     let contents = fs::read_to_string(path).expect("Should have been able to read the file");
-    let ast = ast::Ast::new(&contents);
+    let ast = Ast::new(&contents);
 
     match parse(&ast) {
         Ok(parsed_reqfile) => {

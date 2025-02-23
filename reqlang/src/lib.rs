@@ -1,5 +1,5 @@
 pub use assert_response;
-pub use ast;
+pub use ast::{self, Ast};
 pub use diagnostics;
 pub use errors;
 pub use errors::ReqlangError;
