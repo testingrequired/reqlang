@@ -650,7 +650,7 @@
 
 <span class="kw">use </span>eframe::egui;
 <span class="kw">use </span>reqlang::{
-    ParsedRequestFile, RequestFormat, TemplatedRequestFile, ast, export, http::HttpRequest, parse,
+    Ast, ParsedRequestFile, RequestFormat, TemplatedRequestFile, export, http::HttpRequest, parse,
     template,
 };
 
@@ -692,7 +692,7 @@
             </span>};
 
             client_ctx.reqfile = client_ctx.source.as_ref().map(|source| {
-                <span class="kw">let </span>ast = ast::Ast::new(source);
+                <span class="kw">let </span>ast = Ast::new(source);
                 Box::new(parse(<span class="kw-2">&amp;</span>ast).unwrap())
             });
 
