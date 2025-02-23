@@ -8,7 +8,7 @@ use std::{
 
 use eframe::egui;
 use reqlang::{
-    ParsedRequestFile, RequestFormat, TemplatedRequestFile, export, http::HttpRequest, parse,
+    ParsedRequestFile, RequestFormat, TemplatedRequestFile, ast, export, http::HttpRequest, parse,
     template,
 };
 
@@ -49,10 +49,10 @@ impl LoadReqfileState {
                 None
             };
 
-            client_ctx.reqfile = client_ctx
-                .source
-                .as_ref()
-                .map(|source| Box::new(parse(source).unwrap()));
+            client_ctx.reqfile = client_ctx.source.as_ref().map(|source| {
+                let ast = ast::Ast::new(source);
+                Box::new(parse(&ast).unwrap())
+            });
 
             if client_ctx.reqfile.is_some() {
                 next_state = StateTransition::New(ClientState::ViewReqfile(ViewReqfileState {}));

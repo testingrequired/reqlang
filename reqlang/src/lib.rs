@@ -1,4 +1,5 @@
 pub use assert_response;
+pub use ast;
 pub use diagnostics;
 pub use errors;
 pub use errors::ReqlangError;
@@ -23,7 +24,7 @@ mod tests {
 
     #[test]
     fn parse_full_request_file() {
-        let reqfile = parse(&textwrap::dedent(
+        let ast = ast::Ast::new(textwrap::dedent(
             "
             ```%config
             vars = [\"query_value\"]
@@ -57,6 +58,8 @@ mod tests {
             ",
         ));
 
+        let reqfile = parse(&ast);
+
         assert_eq!(
             Ok(ParsedRequestFile {
                 request: (
@@ -70,7 +73,7 @@ mod tests {
                         ],
                         body: Some("[1, 2, 3]\n\n".to_string())
                     },
-                    195..308
+                    207..305
                 ),
                 response: Some((
                     HttpResponse {
@@ -80,7 +83,7 @@ mod tests {
                         headers: vec![],
                         body: Some("{{?expected_response_body}}\n\n\n".to_string())
                     },
-                    310..372
+                    323..369
                 )),
                 config: Some((
                     ParsedConfig {
@@ -108,15 +111,15 @@ mod tests {
                         secrets: Some(vec!["api_key".to_string()]),
                         auth: None
                     },
-                    1..193
+                    12..190
                 )),
                 refs: vec![
-                    (ReferenceType::Variable("query_value".to_string()), 195..308),
-                    (ReferenceType::Prompt("test_value".to_string()), 195..308),
-                    (ReferenceType::Secret("api_key".to_string()), 195..308),
+                    (ReferenceType::Variable("query_value".to_string()), 207..305),
+                    (ReferenceType::Prompt("test_value".to_string()), 207..305),
+                    (ReferenceType::Secret("api_key".to_string()), 207..305),
                     (
                         ReferenceType::Prompt("expected_response_body".to_string()),
-                        310..372
+                        323..369
                     )
                 ],
             }),

@@ -4,6 +4,7 @@ use std::ops::Deref;
 use anyhow::{Context, Result};
 use reqlang::{
     assert_response::assert_response,
+    ast::Ast,
     diagnostics::{
         get_diagnostics, Diagnosis, DiagnosisPosition, DiagnosisRange, DiagnosisSeverity,
     },
@@ -35,6 +36,58 @@ impl Backend {
             client,
             file_texts: Mutex::new(HashMap::new()),
         }
+    }
+
+    async fn parse_file_for_client(&self, uri: &Url, source: &str) {
+        let ast = Ast::new(source);
+
+        let result = match parse(&ast) {
+            Ok(parsed_request_file) => {
+                // Clear diagnostics on the client
+                self.client
+                    .publish_diagnostics(uri.clone(), vec![], None)
+                    .await;
+
+                Ok(parsed_request_file.into())
+            }
+            Err(errs) => {
+                let diagnostics = get_diagnostics(&errs, source);
+
+                // Log error diagnostics to client
+                // This is mostly for debugging
+                self.client
+                    .log_message(
+                        MessageType::ERROR,
+                        format!(
+                            "{} errors parsing file '{uri}':\n{diagnostics:#?}",
+                            diagnostics.len()
+                        ),
+                    )
+                    .await;
+
+                // Send error diagnostics to client
+                self.client
+                    .publish_diagnostics(
+                        uri.clone(),
+                        diagnostics
+                            .iter()
+                            .map(|x| (LspDiagnosis((*x).clone())).into())
+                            .collect(),
+                        None,
+                    )
+                    .await;
+
+                Err(errs)
+            }
+        };
+
+        // Send a notification to the client with the results of the parse
+        self.client
+            .send_notification::<ParseNotification>(ParseNotificationParams::new(
+                uri.clone(),
+                result,
+            ))
+            .await;
     }
 }
 
@@ -92,156 +145,27 @@ impl LanguageServer for Backend {
         let uri = params.text_document.uri;
         let source = params.text_document.text;
 
+        self.parse_file_for_client(&uri, &source).await;
+
         let mut file_texts = self.file_texts.lock().await;
         file_texts.insert(uri.clone(), source.clone());
-
-        let result: Result<ParseResult, _> = parse(&source).map(|reqfile| reqfile.into());
-
-        if let Err(errs) = &result {
-            let diagnostics = get_diagnostics(errs, &source);
-
-            self.client
-                .log_message(
-                    MessageType::ERROR,
-                    format!(
-                        "{} errors parsing opened file '{uri}':\n{diagnostics:#?}",
-                        diagnostics.len()
-                    ),
-                )
-                .await;
-
-            self.client
-                .publish_diagnostics(
-                    uri.clone(),
-                    diagnostics
-                        .iter()
-                        .map(|x| (LspDiagnosis((*x).clone())).into())
-                        .collect(),
-                    Some(params.text_document.version),
-                )
-                .await;
-        } else {
-            self.client
-                .publish_diagnostics(uri.clone(), vec![], Some(params.text_document.version))
-                .await;
-        }
-
-        self.client
-            .log_message(
-                MessageType::INFO,
-                format!("Sending reqlang/parse notification for opened file '{uri}'"),
-            )
-            .await;
-
-        self.client
-            .send_notification::<ParseNotification>(ParseNotificationParams::new(
-                uri.clone(),
-                result,
-            ))
-            .await;
     }
 
     async fn did_change(&self, params: DidChangeTextDocumentParams) {
         let uri = params.text_document.uri;
         let source = &params.content_changes.first().unwrap().text;
 
-        let result: Result<ParseResult, _> = parse(source).map(|reqfile| reqfile.into());
-
-        if let Err(errs) = &result {
-            let diagnostics = get_diagnostics(errs, source);
-
-            self.client
-                .log_message(
-                    MessageType::ERROR,
-                    format!(
-                        "{} errors parsing changed file '{uri}':\n{diagnostics:#?}",
-                        diagnostics.len()
-                    ),
-                )
-                .await;
-
-            self.client
-                .publish_diagnostics(
-                    uri.clone(),
-                    diagnostics
-                        .iter()
-                        .map(|x| (LspDiagnosis((*x).clone())).into())
-                        .collect(),
-                    Some(params.text_document.version),
-                )
-                .await;
-        } else {
-            self.client
-                .publish_diagnostics(uri.clone(), vec![], Some(params.text_document.version))
-                .await;
-        }
-
-        self.client
-            .log_message(
-                MessageType::INFO,
-                format!("Sending reqlang/parse notification for changed file '{uri}'"),
-            )
-            .await;
-
-        self.client
-            .send_notification::<ParseNotification>(ParseNotificationParams::new(
-                uri.clone(),
-                result,
-            ))
-            .await;
+        self.parse_file_for_client(&uri, source).await;
     }
 
     async fn did_save(&self, params: DidSaveTextDocumentParams) {
         let uri = params.text_document.uri;
         let source = params.text.unwrap_or_default();
 
+        self.parse_file_for_client(&uri, &source).await;
+
         let mut file_texts = self.file_texts.lock().await;
         file_texts.insert(uri.clone(), source.clone());
-
-        let result: Result<ParseResult, _> = parse(&source).map(|reqfile| reqfile.into());
-
-        if let Err(errs) = &result {
-            let diagnostics = get_diagnostics(errs, &source);
-
-            self.client
-                .log_message(
-                    MessageType::ERROR,
-                    format!(
-                        "{} errors parsing saved file '{uri}':\n{diagnostics:#?}",
-                        diagnostics.len()
-                    ),
-                )
-                .await;
-
-            self.client
-                .publish_diagnostics(
-                    uri.clone(),
-                    diagnostics
-                        .iter()
-                        .map(|x| (LspDiagnosis((*x).clone())).into())
-                        .collect(),
-                    None,
-                )
-                .await;
-        } else {
-            self.client
-                .publish_diagnostics(uri.clone(), vec![], None)
-                .await;
-        }
-
-        self.client
-            .log_message(
-                MessageType::INFO,
-                format!("Sending reqlang/parse notification for saved file '{uri}'"),
-            )
-            .await;
-
-        self.client
-            .send_notification::<ParseNotification>(ParseNotificationParams::new(
-                uri.clone(),
-                result,
-            ))
-            .await;
     }
 
     async fn execute_command(&self, params: ExecuteCommandParams) -> RpcResult<Option<Value>> {

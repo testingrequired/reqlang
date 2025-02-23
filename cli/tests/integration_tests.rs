@@ -1,9 +1,9 @@
 #[cfg(test)]
-mod tests {
+mod cli_integration_tests {
     use std::fs;
 
     use assert_cmd::Command;
-    use reqlang::{parse, ParseResult};
+    use reqlang::{ast, parse, ParseResult};
 
     macro_rules! assert_command {
         ($command:expr) => {{
@@ -78,7 +78,8 @@ mod tests {
         let assert = assert_command!(cmd);
 
         let reqfile_source = fs::read_to_string(reqfile_path).unwrap();
-        let parsed_reqfile = parse(&reqfile_source).unwrap();
+        let ast = ast::Ast::new(&reqfile_source);
+        let parsed_reqfile = parse(&ast).unwrap();
         let mut parse_results: ParseResult = parsed_reqfile.into();
 
         let assert = assert.success();
@@ -296,12 +297,12 @@ mod tests {
             "  {\n",
             "    \"range\": {\n",
             "      \"start\": {\n",
-            "        \"line\": 0,\n",
+            "        \"line\": 1,\n",
             "        \"character\": 0\n",
             "      },\n",
             "      \"end\": {\n",
             "        \"line\": 15,\n",
-            "        \"character\": 3\n",
+            "        \"character\": 0\n",
             "      }\n",
             "    },\n",
             "    \"severity\": 1,\n",
@@ -324,12 +325,12 @@ mod tests {
             "  {\n",
             "    \"range\": {\n",
             "      \"start\": {\n",
-            "        \"line\": 0,\n",
+            "        \"line\": 1,\n",
             "        \"character\": 0\n",
             "      },\n",
             "      \"end\": {\n",
             "        \"line\": 4,\n",
-            "        \"character\": 3\n",
+            "        \"character\": 0\n",
             "      }\n",
             "    },\n",
             "    \"severity\": 1,\n",
@@ -475,12 +476,12 @@ mod tests {
             "  {\n",
             "    \"range\": {\n",
             "      \"start\": {\n",
-            "        \"line\": 0,\n",
+            "        \"line\": 1,\n",
             "        \"character\": 0\n",
             "      },\n",
             "      \"end\": {\n",
             "        \"line\": 15,\n",
-            "        \"character\": 3\n",
+            "        \"character\": 0\n",
             "      }\n",
             "    },\n",
             "    \"severity\": 1,\n",
@@ -503,12 +504,12 @@ mod tests {
             "  {\n",
             "    \"range\": {\n",
             "      \"start\": {\n",
-            "        \"line\": 0,\n",
+            "        \"line\": 1,\n",
             "        \"character\": 0\n",
             "      },\n",
             "      \"end\": {\n",
             "        \"line\": 4,\n",
-            "        \"character\": 3\n",
+            "        \"character\": 0\n",
             "      }\n",
             "    },\n",
             "    \"severity\": 1,\n",
@@ -526,12 +527,12 @@ mod tests {
                 {
                   "range": {
                     "start": {
-                      "line": 0,
+                      "line": 1,
                       "character": 0
                     },
                     "end": {
                       "line": 2,
-                      "character": 3
+                      "character": 0
                     }
                   },
                   "severity": 1,
@@ -557,12 +558,12 @@ mod tests {
                 {
                   "range": {
                     "start": {
-                      "line": 0,
+                      "line": 1,
                       "character": 0
                     },
                     "end": {
                       "line": 4,
-                      "character": 3
+                      "character": 0
                     }
                   },
                   "severity": 1,
@@ -588,12 +589,12 @@ mod tests {
                 {
                   "range": {
                     "start": {
-                      "line": 0,
+                      "line": 1,
                       "character": 0
                     },
                     "end": {
                       "line": 7,
-                      "character": 3
+                      "character": 0
                     }
                   },
                   "severity": 1,

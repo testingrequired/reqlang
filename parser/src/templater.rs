@@ -4,10 +4,7 @@ use errors::{ReqlangError, ResolverError};
 use span::{Spanned, NO_SPAN};
 use types::{ParsedRequestFile, ReferenceType, TemplatedRequestFile};
 
-use crate::{
-    parser::{parse, parse_request, parse_response},
-    splitter::split,
-};
+use crate::parser::{parse, parse_request, parse_response};
 
 /// Template a request file string into a [TemplatedRequestFile].
 pub fn template(
@@ -17,7 +14,8 @@ pub fn template(
     secrets: &HashMap<String, String>,
     provider_values: &HashMap<String, String>,
 ) -> Result<TemplatedRequestFile, Vec<Spanned<ReqlangError>>> {
-    let parsed_reqfile = parse(reqfile_string)?;
+    let ast = ast::Ast::new(reqfile_string);
+    let parsed_reqfile = parse(&ast)?;
 
     if let Some(env) = env {
         match &parsed_reqfile.config {
@@ -118,17 +116,18 @@ pub fn template(
         input
     };
 
-    // Split the templated input to pull out the request and response parts
-    let reqfile_split = split(&templated_input).unwrap();
+    let ast = ast::Ast::new(&templated_input);
+    let request = ast.request().cloned().expect("should have a request");
+    let response = ast.response().cloned();
 
     // Parse the templated request
     let request = {
-        let (request, request_span) = reqfile_split.request;
+        let (request, request_span) = request;
         parse_request(&(request, request_span.clone())).unwrap().0
     };
 
     // Parse the templated response
-    let response = parse_response(&reqfile_split.response).map(|x| x.unwrap().0);
+    let response = parse_response(&response).map(|x| x.unwrap().0);
 
     Ok(TemplatedRequestFile { request, response })
 }
@@ -337,7 +336,7 @@ HTTP/1.1 200 OK
         &HashMap::default(),
         Err(vec![(
             ResolverError::NoEnvironmentsDefined("dev".to_string()).into(),
-            1..15
+            12..12
         )])
     );
 
@@ -360,7 +359,7 @@ HTTP/1.1 200 OK
         &HashMap::default(),
         Err(vec![(
             ResolverError::NoEnvironmentsDefined("dev".to_string()).into(),
-            1..22
+            12..19
         )])
     );
 
@@ -387,7 +386,7 @@ HTTP/1.1 200 OK
         &HashMap::default(),
         Err(vec![(
             ResolverError::InvalidEnvError("dev".to_string()).into(),
-            1..62
+            12..59
         )])
     );
 }

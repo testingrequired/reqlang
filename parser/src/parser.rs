@@ -6,7 +6,7 @@ use types::{
     ParsedConfig, ParsedRequestFile, ReferenceType,
 };
 
-use crate::{splitter::split, TEMPLATE_REFERENCE_PATTERN};
+use crate::TEMPLATE_REFERENCE_PATTERN;
 
 static FORBIDDEN_REQUEST_HEADER_NAMES: &[&str] = &[
     "host",
@@ -30,94 +30,107 @@ static FORBIDDEN_REQUEST_HEADER_NAMES: &[&str] = &[
     "via",
 ];
 
-/// Parse string into a [ParsedRequestFile]
-pub fn parse(input: &str) -> Result<ParsedRequestFile, Vec<Spanned<ReqlangError>>> {
-    let mut parse_errors: Vec<Spanned<ReqlangError>> = vec![];
+/// Parse [ast::Ast] into a [ParsedRequestFile]
+pub fn parse(ast: &ast::Ast) -> Result<ParsedRequestFile, Vec<Spanned<ReqlangError>>> {
+    match ast.request() {
+        Some(request) => {
+            let mut parse_errors: Vec<Spanned<ReqlangError>> = vec![];
 
-    split(input).and_then(|reqfile| {
-        let request_refs = parse_references(&reqfile.request);
-        let response_refs = parse_references(&reqfile.response.clone().unwrap_or_default());
-        let config_refs = parse_references(&reqfile.config.clone().unwrap_or_default());
-        let mut refs: Vec<(ReferenceType, std::ops::Range<usize>)> = vec![];
-        refs.extend(request_refs);
-        refs.extend(response_refs);
-        refs.extend(config_refs);
+            let response = ast.response().cloned();
+            let config = ast.config().cloned();
 
-        let request = match parse_request(&reqfile.request) {
-            Ok((request, span)) => {
-                for key in request.headers.iter().map(|x| &x.0) {
-                    if FORBIDDEN_REQUEST_HEADER_NAMES.contains(&key.to_lowercase().as_str()) {
+            let request_refs = parse_references(request);
+            let response_refs = parse_references(&response.clone().unwrap_or_default());
+            let config_refs = parse_references(&config.clone().unwrap_or_default());
+            let mut refs: Vec<(ReferenceType, std::ops::Range<usize>)> = vec![];
+            refs.extend(request_refs);
+            refs.extend(response_refs);
+            refs.extend(config_refs);
+
+            let request = match parse_request(request) {
+                Ok((request, span)) => {
+                    for key in request.headers.iter().map(|x| &x.0) {
+                        if FORBIDDEN_REQUEST_HEADER_NAMES.contains(&key.to_lowercase().as_str()) {
+                            parse_errors.push((
+                                ParseError::ForbiddenRequestHeaderNameError(key.to_lowercase())
+                                    .into(),
+                                span.clone(),
+                            ))
+                        }
+                    }
+
+                    Some((request, span))
+                }
+                Err(err) => {
+                    parse_errors.extend(err);
+                    None
+                }
+            };
+
+            let response = match parse_response(&response) {
+                Some(Ok(response)) => Some(response),
+                Some(Err(err)) => {
+                    parse_errors.extend(err);
+                    None
+                }
+                None => None,
+            };
+
+            let config = match parse_config(&config) {
+                Some(Ok((config, config_span))) => Some((config, config_span)),
+                Some(Err(err)) => {
+                    parse_errors.extend(err);
+                    None
+                }
+                None => None,
+            };
+
+            if let Some((config, config_span)) = &config {
+                let vars = config.vars();
+                let env_names = config.envs();
+
+                for var in vars.iter() {
+                    if env_names.is_empty() {
                         parse_errors.push((
-                            ParseError::ForbiddenRequestHeaderNameError(key.to_lowercase()).into(),
-                            span.clone(),
-                        ))
+                            ParseError::VariableNotDefinedInAnyEnvironment(var.to_string()).into(),
+                            config_span.clone(),
+                        ));
+                    }
+
+                    for env_name in env_names.iter() {
+                        match &config.env(env_name) {
+                            Some(env) => {
+                                if !env.contains_key(var) {
+                                    parse_errors.push((
+                                        ParseError::VariableUndefinedInEnvironment(
+                                            var.clone(),
+                                            env_name.clone(),
+                                        )
+                                        .into(),
+                                        config_span.clone(),
+                                    ));
+                                }
+                            }
+                            None => todo!(),
+                        }
                     }
                 }
-
-                Some((request, span))
             }
-            Err(err) => {
-                parse_errors.extend(err);
-                None
-            }
-        };
 
-        let response = match parse_response(&reqfile.response) {
-            Some(Ok(response)) => Some(response),
-            Some(Err(err)) => {
-                parse_errors.extend(err);
-                None
-            }
-            None => None,
-        };
-
-        let config = match parse_config(&reqfile.config) {
-            Some(Ok((config, config_span))) => Some((config, config_span)),
-            Some(Err(err)) => {
-                parse_errors.extend(err);
-                None
-            }
-            None => None,
-        };
-
-        if let Some((config, config_span)) = &config {
-            let vars = config.vars();
-            let env_names = config.envs();
-
-            for var in vars.iter() {
-                if env_names.is_empty() {
-                    parse_errors.push((
-                        ParseError::VariableNotDefinedInAnyEnvironment(var.to_string()).into(),
-                        config_span.clone(),
-                    ));
-                }
-
-                for env_name in env_names.iter() {
-                    match &config.env(env_name) {
-                        Some(env) => {
-                            if !env.contains_key(var) {
+            // Validate template references are declared/defined vars, secrets, prompts, etc.
+            for (ref_type, span) in refs.iter() {
+                match ref_type {
+                    ReferenceType::Variable(name) => {
+                        if let Some((config, _)) = &config {
+                            if !config.vars().contains(name) {
                                 parse_errors.push((
-                                    ParseError::VariableUndefinedInEnvironment(
-                                        var.clone(),
-                                        env_name.clone(),
-                                    )
-                                    .into(),
-                                    config_span.clone(),
+                                    ReqlangError::ParseError(ParseError::UndefinedReferenceError(
+                                        ReferenceType::Variable(name.to_string()),
+                                    )),
+                                    span.clone(),
                                 ));
                             }
-                        }
-                        None => todo!(),
-                    }
-                }
-            }
-        }
-
-        // Validate template references are declared/defined vars, secrets, prompts, etc.
-        for (ref_type, span) in refs.iter() {
-            match ref_type {
-                ReferenceType::Variable(name) => {
-                    if let Some((config, _)) = &config {
-                        if !config.vars().contains(name) {
+                        } else {
                             parse_errors.push((
                                 ReqlangError::ParseError(ParseError::UndefinedReferenceError(
                                     ReferenceType::Variable(name.to_string()),
@@ -125,18 +138,18 @@ pub fn parse(input: &str) -> Result<ParsedRequestFile, Vec<Spanned<ReqlangError>
                                 span.clone(),
                             ));
                         }
-                    } else {
-                        parse_errors.push((
-                            ReqlangError::ParseError(ParseError::UndefinedReferenceError(
-                                ReferenceType::Variable(name.to_string()),
-                            )),
-                            span.clone(),
-                        ));
                     }
-                }
-                ReferenceType::Prompt(name) => {
-                    if let Some((config, _)) = &config {
-                        if !config.prompts().contains(name) {
+                    ReferenceType::Prompt(name) => {
+                        if let Some((config, _)) = &config {
+                            if !config.prompts().contains(name) {
+                                parse_errors.push((
+                                    ReqlangError::ParseError(ParseError::UndefinedReferenceError(
+                                        ReferenceType::Prompt(name.to_string()),
+                                    )),
+                                    span.clone(),
+                                ));
+                            }
+                        } else {
                             parse_errors.push((
                                 ReqlangError::ParseError(ParseError::UndefinedReferenceError(
                                     ReferenceType::Prompt(name.to_string()),
@@ -144,18 +157,18 @@ pub fn parse(input: &str) -> Result<ParsedRequestFile, Vec<Spanned<ReqlangError>
                                 span.clone(),
                             ));
                         }
-                    } else {
-                        parse_errors.push((
-                            ReqlangError::ParseError(ParseError::UndefinedReferenceError(
-                                ReferenceType::Prompt(name.to_string()),
-                            )),
-                            span.clone(),
-                        ));
                     }
-                }
-                ReferenceType::Secret(name) => {
-                    if let Some((config, _)) = &config {
-                        if !config.secrets().contains(name) {
+                    ReferenceType::Secret(name) => {
+                        if let Some((config, _)) = &config {
+                            if !config.secrets().contains(name) {
+                                parse_errors.push((
+                                    ReqlangError::ParseError(ParseError::UndefinedReferenceError(
+                                        ReferenceType::Secret(name.to_string()),
+                                    )),
+                                    span.clone(),
+                                ));
+                            }
+                        } else {
                             parse_errors.push((
                                 ReqlangError::ParseError(ParseError::UndefinedReferenceError(
                                     ReferenceType::Secret(name.to_string()),
@@ -163,78 +176,72 @@ pub fn parse(input: &str) -> Result<ParsedRequestFile, Vec<Spanned<ReqlangError>
                                 span.clone(),
                             ));
                         }
-                    } else {
+                    }
+                    ReferenceType::Provider(_name) => {}
+                    ReferenceType::Unknown(_name) => {}
+                }
+            }
+
+            if let Some((ref config, ref span)) = config {
+                let ref_names: Vec<String> = refs
+                    .clone()
+                    .into_iter()
+                    .map(|(x, _)| match x {
+                        ReferenceType::Variable(name) => name,
+                        ReferenceType::Prompt(name) => name,
+                        ReferenceType::Secret(name) => name,
+                        ReferenceType::Provider(name) => name,
+                        ReferenceType::Unknown(name) => name,
+                    })
+                    .collect();
+
+                for var in &config.vars() {
+                    if !ref_names.contains(var) {
                         parse_errors.push((
-                            ReqlangError::ParseError(ParseError::UndefinedReferenceError(
-                                ReferenceType::Secret(name.to_string()),
+                            ReqlangError::ParseError(ParseError::UnusedValueError(
+                                ReferenceType::Variable(var.clone()),
                             )),
                             span.clone(),
-                        ));
+                        ))
                     }
                 }
-                ReferenceType::Provider(_name) => {}
-                ReferenceType::Unknown(_name) => {}
-            }
-        }
 
-        if let Some((ref config, ref span)) = config {
-            let ref_names: Vec<String> = refs
-                .clone()
-                .into_iter()
-                .map(|(x, _)| match x {
-                    ReferenceType::Variable(name) => name,
-                    ReferenceType::Prompt(name) => name,
-                    ReferenceType::Secret(name) => name,
-                    ReferenceType::Provider(name) => name,
-                    ReferenceType::Unknown(name) => name,
-                })
-                .collect();
+                for key in &config.prompts() {
+                    if !ref_names.contains(key) {
+                        parse_errors.push((
+                            ReqlangError::ParseError(ParseError::UnusedValueError(
+                                ReferenceType::Prompt(key.clone()),
+                            )),
+                            span.clone(),
+                        ))
+                    }
+                }
 
-            for var in &config.vars() {
-                if !ref_names.contains(var) {
-                    parse_errors.push((
-                        ReqlangError::ParseError(ParseError::UnusedValueError(
-                            ReferenceType::Variable(var.clone()),
-                        )),
-                        span.clone(),
-                    ))
+                for secret in &config.secrets() {
+                    if !ref_names.contains(secret) {
+                        parse_errors.push((
+                            ReqlangError::ParseError(ParseError::UnusedValueError(
+                                ReferenceType::Secret(secret.clone()),
+                            )),
+                            span.clone(),
+                        ))
+                    }
                 }
             }
 
-            for key in &config.prompts() {
-                if !ref_names.contains(key) {
-                    parse_errors.push((
-                        ReqlangError::ParseError(ParseError::UnusedValueError(
-                            ReferenceType::Prompt(key.clone()),
-                        )),
-                        span.clone(),
-                    ))
-                }
+            if !parse_errors.is_empty() {
+                return Err(parse_errors);
             }
 
-            for secret in &config.secrets() {
-                if !ref_names.contains(secret) {
-                    parse_errors.push((
-                        ReqlangError::ParseError(ParseError::UnusedValueError(
-                            ReferenceType::Secret(secret.clone()),
-                        )),
-                        span.clone(),
-                    ))
-                }
-            }
+            Ok(ParsedRequestFile {
+                request: request.unwrap(),
+                response,
+                config,
+                refs,
+            })
         }
-
-        if !parse_errors.is_empty() {
-            return Err(parse_errors);
-        }
-
-        Ok(ParsedRequestFile {
-            request: request.unwrap(),
-            response,
-            config,
-            refs,
-        })
-    })
+        None => Err(vec![(ParseError::MissingRequest.into(), 0..0)]),
+    }
 }
 
 pub fn parse_config(
@@ -283,6 +290,7 @@ pub fn parse_request(
     let mut headers = [httparse::EMPTY_HEADER; 64];
     let mut req = httparse::Request::new(&mut headers);
 
+    let request = format!("{request}\n\n");
     let parse_result = req.parse(request.as_bytes());
 
     if let Err(error) = parse_result {
@@ -354,6 +362,8 @@ pub fn parse_response(
         None => return None,
     };
 
+    let response = format!("{response}\n\n");
+
     let parse_result = res.parse(response.as_bytes());
 
     match parse_result {
@@ -415,20 +425,15 @@ pub fn parse_response(
     }
 }
 
-#[derive(Debug, PartialEq)]
-pub struct RequestFileSplitUp {
-    pub request: Spanned<String>,
-    pub response: Option<Spanned<String>>,
-    pub config: Option<Spanned<String>>,
-}
-
 #[cfg(test)]
 mod test {
     macro_rules! parser_test {
         ($test_name:ident, $reqfile:expr, $result:expr) => {
             #[test]
             fn $test_name() {
-                pretty_assertions::assert_eq!($result, $crate::parse(&$reqfile));
+                let ast = ::ast::Ast::new($reqfile);
+                let result = $crate::parse(&ast);
+                pretty_assertions::assert_eq!($result, result);
             }
         };
     }
@@ -449,7 +454,7 @@ mod test {
         parser_test!(
             request_outside_of_code_fences,
             "GET http://example.com HTTP/1.1\n",
-            Err(vec![(ParseError::MissingRequest.into(), 0..32)])
+            Err(vec![(ParseError::MissingRequest.into(), 0..0)]) // TODO: Change to 0..0 instead of original 0..32?
         );
 
         // Undefined References
@@ -468,7 +473,7 @@ mod test {
                 errors::ReqlangError::ParseError(ParseError::UndefinedReferenceError(
                     ReferenceType::Variable("value".to_string())
                 )),
-                1..48
+                13..45
             )])
         );
 
@@ -486,7 +491,7 @@ mod test {
                 errors::ReqlangError::ParseError(ParseError::UndefinedReferenceError(
                     ReferenceType::Prompt("value".to_string())
                 )),
-                1..48
+                13..45
             )])
         );
 
@@ -504,7 +509,7 @@ mod test {
                 errors::ReqlangError::ParseError(ParseError::UndefinedReferenceError(
                     ReferenceType::Secret("value".to_string())
                 )),
-                1..48
+                13..45
             )])
         );
 
@@ -526,7 +531,7 @@ mod test {
                 errors::ReqlangError::ParseError(ParseError::UndefinedReferenceError(
                     ReferenceType::Variable("value".to_string())
                 )),
-                33..82
+                46..79
             )])
         );
 
@@ -548,7 +553,7 @@ mod test {
                 errors::ReqlangError::ParseError(ParseError::UndefinedReferenceError(
                     ReferenceType::Prompt("value".to_string())
                 )),
-                33..82
+                46..79
             )])
         );
 
@@ -570,7 +575,7 @@ mod test {
                 errors::ReqlangError::ParseError(ParseError::UndefinedReferenceError(
                     ReferenceType::Secret("value".to_string())
                 )),
-                33..82
+                46..79
             )])
         );
 
@@ -592,12 +597,12 @@ mod test {
             Err(vec![
                 (
                     ParseError::VariableNotDefinedInAnyEnvironment("base_url".to_string()).into(),
-                    1..35
+                    12..32
                 ),
                 (
                     ParseError::UnusedValueError(ReferenceType::Variable("base_url".to_string()))
                         .into(),
-                    1..35
+                    12..32
                 )
             ])
         );
@@ -620,7 +625,7 @@ mod test {
                 errors::ReqlangError::ParseError(ParseError::UnusedValueError(
                     ReferenceType::Prompt("base_url".to_string())
                 )),
-                1..39
+                12..36
             )])
         );
 
@@ -641,7 +646,7 @@ mod test {
                 errors::ReqlangError::ParseError(ParseError::UnusedValueError(
                     ReferenceType::Secret("base_url".to_string())
                 )),
-                1..38
+                12..35
             )])
         );
 
@@ -661,7 +666,7 @@ mod test {
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     "host".to_string()
                 )),
-                1..49
+                13..46
             )])
         );
 
@@ -679,7 +684,7 @@ mod test {
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     "host".to_string()
                 )),
-                1..49
+                13..46
             )])
         );
 
@@ -697,7 +702,7 @@ mod test {
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     "host".to_string()
                 )),
-                1..49
+                13..46
             )])
         );
 
@@ -715,7 +720,7 @@ mod test {
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     "accept-charset".to_string()
                 )),
-                1..72
+                13..69
             )])
         );
 
@@ -733,7 +738,7 @@ mod test {
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     "accept-encoding".to_string()
                 )),
-                1..73
+                13..70
             )])
         );
 
@@ -751,7 +756,7 @@ mod test {
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     "access-control-request-headers".to_string()
                 )),
-                1..88
+                13..85
             )])
         );
 
@@ -769,7 +774,7 @@ mod test {
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     "access-control-request-method".to_string()
                 )),
-                1..87
+                13..84
             )])
         );
 
@@ -787,7 +792,7 @@ mod test {
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     "connection".to_string()
                 )),
-                1..68
+                13..65
             )])
         );
 
@@ -805,7 +810,7 @@ mod test {
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     "content-length".to_string()
                 )),
-                1..72
+                13..69
             )])
         );
 
@@ -823,7 +828,7 @@ mod test {
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     "cookie".to_string()
                 )),
-                1..64
+                13..61
             )])
         );
 
@@ -841,7 +846,7 @@ mod test {
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     "date".to_string()
                 )),
-                1..62
+                13..59
             )])
         );
 
@@ -859,7 +864,7 @@ mod test {
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     "dnt".to_string()
                 )),
-                1..61
+                13..58
             )])
         );
 
@@ -877,7 +882,7 @@ mod test {
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     "expect".to_string()
                 )),
-                1..64
+                13..61
             )])
         );
 
@@ -895,7 +900,7 @@ mod test {
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     "keep-alive".to_string()
                 )),
-                1..68
+                13..65
             )])
         );
 
@@ -913,7 +918,7 @@ mod test {
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     "origin".to_string()
                 )),
-                1..64
+                13..61
             )])
         );
 
@@ -931,7 +936,7 @@ mod test {
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     "permission-policy".to_string()
                 )),
-                1..75
+                13..72
             )])
         );
 
@@ -949,7 +954,7 @@ mod test {
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     "te".to_string()
                 )),
-                1..60
+                13..57
             )])
         );
 
@@ -967,7 +972,7 @@ mod test {
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     "trailer".to_string()
                 )),
-                1..65
+                13..62
             )])
         );
 
@@ -985,7 +990,7 @@ mod test {
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     "transfer-encoding".to_string()
                 )),
-                1..75
+                13..72
             )])
         );
 
@@ -1003,7 +1008,7 @@ mod test {
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     "upgrade".to_string()
                 )),
-                1..65
+                13..62
             )])
         );
 
@@ -1021,7 +1026,7 @@ mod test {
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     "via".to_string()
                 )),
-                1..61
+                13..58
             )])
         );
 
@@ -1045,7 +1050,7 @@ mod test {
                 errors::ReqlangError::ParseError(ParseError::InvalidConfigError {
                     message: "invalid table header\nexpected `.`, `]`".to_string()
                 }),
-                32..33
+                43..44
             )])
         );
 
@@ -1066,7 +1071,7 @@ mod test {
                 errors::ReqlangError::ParseError(ParseError::InvalidConfigError {
                     message: "invalid key".to_string()
                 }),
-                1..2
+                12..13
             )])
         );
     }
@@ -1098,7 +1103,7 @@ mod test {
                         headers: vec![],
                         body: Some("".to_string())
                     },
-                    1..50
+                    13..47
                 ),
                 response: None,
                 refs: vec![]
@@ -1128,7 +1133,7 @@ mod test {
                         headers: vec![],
                         body: Some("".to_string())
                     },
-                    1..48
+                    13..45
                 ),
                 response: Some((
                     HttpResponse {
@@ -1138,7 +1143,7 @@ mod test {
                         headers: vec![],
                         body: Some("".to_string())
                     },
-                    50..82
+                    63..79
                 )),
                 refs: vec![],
             })
@@ -1174,7 +1179,7 @@ mod test {
                         secrets: None,
                         auth: None
                     },
-                    1..86
+                    12..83
                 )),
                 request: (
                     HttpRequest {
@@ -1184,12 +1189,12 @@ mod test {
                         headers: vec![],
                         body: Some("".to_string())
                     },
-                    88..150
+                    100..147
                 ),
                 response: None,
                 refs: vec![
-                    (ReferenceType::Variable("bar".to_string()), 88..150),
-                    (ReferenceType::Variable("foo".to_string()), 1..86),
+                    (ReferenceType::Variable("bar".to_string()), 100..147),
+                    (ReferenceType::Variable("foo".to_string()), 12..83),
                 ],
             })
         );
@@ -1243,7 +1248,7 @@ mod test {
                         ],
                         body: Some("[1, 2, 3]\n\n".to_string())
                     },
-                    195..334
+                    207..331
                 ),
                 response: Some((
                     HttpResponse {
@@ -1253,7 +1258,7 @@ mod test {
                         headers: vec![],
                         body: Some("{{?expected_response_body}}\n\n\n".to_string())
                     },
-                    336..398
+                    349..395
                 )),
                 config: Some((
                     ParsedConfig {
@@ -1281,16 +1286,16 @@ mod test {
                         secrets: Some(vec!["api_key".to_string()]),
                         auth: None
                     },
-                    1..193
+                    12..190
                 )),
                 refs: vec![
-                    (ReferenceType::Variable("query_value".to_string()), 195..334),
-                    (ReferenceType::Prompt("test_value".to_string()), 195..334),
-                    (ReferenceType::Secret("api_key".to_string()), 195..334),
-                    (ReferenceType::Provider("provider".to_string()), 195..334),
+                    (ReferenceType::Variable("query_value".to_string()), 207..331),
+                    (ReferenceType::Prompt("test_value".to_string()), 207..331),
+                    (ReferenceType::Secret("api_key".to_string()), 207..331),
+                    (ReferenceType::Provider("provider".to_string()), 207..331),
                     (
                         ReferenceType::Prompt("expected_response_body".to_string()),
-                        336..398
+                        349..395
                     )
                 ],
             })
@@ -1344,7 +1349,7 @@ mod test {
                         secrets: None,
                         auth: None
                     },
-                    288..368
+                    299..365
                 )),
                 request: (
                     HttpRequest {
@@ -1354,7 +1359,7 @@ mod test {
                         headers: vec![],
                         body: Some(String::default())
                     },
-                    434..506
+                    446..503
                 ),
                 response: Some((
                     HttpResponse {
@@ -1364,10 +1369,10 @@ mod test {
                         headers: vec![("content-type".to_string(), "application/json".to_string())],
                         body: Some("\n".to_owned())
                     },
-                    575..639
+                    588..636
                 )),
                 refs: vec![
-                    (ReferenceType::Prompt(String::from("status_code")), 434..506)
+                    (ReferenceType::Prompt(String::from("status_code")), 446..503)
                 ]
             })
         );
@@ -1382,7 +1387,8 @@ mod resolve_tests {
         ($test_name:ident, $reqfile:expr, $env:expr, $result:expr) => {
             #[test]
             fn $test_name() {
-                let resolved_reqfile = $crate::parse(&$reqfile).unwrap();
+                let ast = ::ast::Ast::new($reqfile);
+                let resolved_reqfile = $crate::parse(&ast).unwrap();
 
                 pretty_assertions::assert_eq!($result, resolved_reqfile.env($env));
             }

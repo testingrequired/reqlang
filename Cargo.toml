@@ -15,7 +15,7 @@ members = [
     "integration_tests",
     "reqlang-fetch",
     "assert-response",
-    "extract-codeblocks",
+    "extract-codeblocks", "ast",
 ]
 
 resolver = "2"
