@@ -1,6 +1,7 @@
 use extract_codeblocks::extract_codeblocks;
 use span::{Span, Spanned};
 
+/// Abstract syntax tree for a request file
 #[derive(Debug, PartialEq)]
 pub struct Ast(Vec<Spanned<AstNode>>);
 
@@ -96,28 +97,10 @@ pub enum AstNode {
     /// Any text that isn't a [AstNode::RequestBlock], [AstNode::ResponseBlock], or [AstNode::ConfigBlock].
     Comment(String),
     /// A code block delimited configuration
-    ///
-    /// ````
-    /// ```%config
-    /// config goes here...
-    /// ```
-    /// ````
     ConfigBlock(Spanned<String>),
     /// A code block delimited request
-    ///
-    /// ````
-    /// ```%request
-    /// request goes here...
-    /// ```
-    /// ````
     RequestBlock(Spanned<String>),
     /// A code block delimited response
-    ///
-    /// ````
-    /// ```%response
-    /// response goes here...
-    /// ```
-    /// ````
     ResponseBlock(Spanned<String>),
 }
 
