@@ -503,88 +503,13 @@
 <a href="#502" id="502">502</a>
 <a href="#503" id="503">503</a>
 <a href="#504" id="504">504</a>
-<a href="#505" id="505">505</a>
-<a href="#506" id="506">506</a>
-<a href="#507" id="507">507</a>
-<a href="#508" id="508">508</a>
-<a href="#509" id="509">509</a>
-<a href="#510" id="510">510</a>
-<a href="#511" id="511">511</a>
-<a href="#512" id="512">512</a>
-<a href="#513" id="513">513</a>
-<a href="#514" id="514">514</a>
-<a href="#515" id="515">515</a>
-<a href="#516" id="516">516</a>
-<a href="#517" id="517">517</a>
-<a href="#518" id="518">518</a>
-<a href="#519" id="519">519</a>
-<a href="#520" id="520">520</a>
-<a href="#521" id="521">521</a>
-<a href="#522" id="522">522</a>
-<a href="#523" id="523">523</a>
-<a href="#524" id="524">524</a>
-<a href="#525" id="525">525</a>
-<a href="#526" id="526">526</a>
-<a href="#527" id="527">527</a>
-<a href="#528" id="528">528</a>
-<a href="#529" id="529">529</a>
-<a href="#530" id="530">530</a>
-<a href="#531" id="531">531</a>
-<a href="#532" id="532">532</a>
-<a href="#533" id="533">533</a>
-<a href="#534" id="534">534</a>
-<a href="#535" id="535">535</a>
-<a href="#536" id="536">536</a>
-<a href="#537" id="537">537</a>
-<a href="#538" id="538">538</a>
-<a href="#539" id="539">539</a>
-<a href="#540" id="540">540</a>
-<a href="#541" id="541">541</a>
-<a href="#542" id="542">542</a>
-<a href="#543" id="543">543</a>
-<a href="#544" id="544">544</a>
-<a href="#545" id="545">545</a>
-<a href="#546" id="546">546</a>
-<a href="#547" id="547">547</a>
-<a href="#548" id="548">548</a>
-<a href="#549" id="549">549</a>
-<a href="#550" id="550">550</a>
-<a href="#551" id="551">551</a>
-<a href="#552" id="552">552</a>
-<a href="#553" id="553">553</a>
-<a href="#554" id="554">554</a>
-<a href="#555" id="555">555</a>
-<a href="#556" id="556">556</a>
-<a href="#557" id="557">557</a>
-<a href="#558" id="558">558</a>
-<a href="#559" id="559">559</a>
-<a href="#560" id="560">560</a>
-<a href="#561" id="561">561</a>
-<a href="#562" id="562">562</a>
-<a href="#563" id="563">563</a>
-<a href="#564" id="564">564</a>
-<a href="#565" id="565">565</a>
-<a href="#566" id="566">566</a>
-<a href="#567" id="567">567</a>
-<a href="#568" id="568">568</a>
-<a href="#569" id="569">569</a>
-<a href="#570" id="570">570</a>
-<a href="#571" id="571">571</a>
-<a href="#572" id="572">572</a>
-<a href="#573" id="573">573</a>
-<a href="#574" id="574">574</a>
-<a href="#575" id="575">575</a>
-<a href="#576" id="576">576</a>
-<a href="#577" id="577">577</a>
-<a href="#578" id="578">578</a>
-<a href="#579" id="579">579</a>
-<a href="#580" id="580">580</a>
-<a href="#581" id="581">581</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::collections::HashMap;
+<a href="#505" id="505">505</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::collections::HashMap;
 <span class="kw">use </span>std::ops::Deref;
 
 <span class="kw">use </span>anyhow::{Context, <span class="prelude-ty">Result</span>};
 <span class="kw">use </span>reqlang::{
     assert_response::assert_response,
+    ast::Ast,
     diagnostics::{
         get_diagnostics, Diagnosis, DiagnosisPosition, DiagnosisRange, DiagnosisSeverity,
     },
@@ -616,6 +541,58 @@
             client,
             file_texts: Mutex::new(HashMap::new()),
         }
+    }
+
+    <span class="kw">async fn </span>parse_file_for_client(<span class="kw-2">&amp;</span><span class="self">self</span>, uri: <span class="kw-2">&amp;</span>Url, source: <span class="kw-2">&amp;</span>str) {
+        <span class="kw">let </span>ast = Ast::new(source);
+
+        <span class="kw">let </span>result = <span class="kw">match </span>parse(<span class="kw-2">&amp;</span>ast) {
+            <span class="prelude-val">Ok</span>(parsed_request_file) =&gt; {
+                <span class="comment">// Clear diagnostics on the client
+                </span><span class="self">self</span>.client
+                    .publish_diagnostics(uri.clone(), <span class="macro">vec!</span>[], <span class="prelude-val">None</span>)
+                    .<span class="kw">await</span>;
+
+                <span class="prelude-val">Ok</span>(parsed_request_file.into())
+            }
+            <span class="prelude-val">Err</span>(errs) =&gt; {
+                <span class="kw">let </span>diagnostics = get_diagnostics(<span class="kw-2">&amp;</span>errs, source);
+
+                <span class="comment">// Log error diagnostics to client
+                // This is mostly for debugging
+                </span><span class="self">self</span>.client
+                    .log_message(
+                        MessageType::ERROR,
+                        <span class="macro">format!</span>(
+                            <span class="string">"{} errors parsing file '{uri}':\n{diagnostics:#?}"</span>,
+                            diagnostics.len()
+                        ),
+                    )
+                    .<span class="kw">await</span>;
+
+                <span class="comment">// Send error diagnostics to client
+                </span><span class="self">self</span>.client
+                    .publish_diagnostics(
+                        uri.clone(),
+                        diagnostics
+                            .iter()
+                            .map(|x| (LspDiagnosis((<span class="kw-2">*</span>x).clone())).into())
+                            .collect(),
+                        <span class="prelude-val">None</span>,
+                    )
+                    .<span class="kw">await</span>;
+
+                <span class="prelude-val">Err</span>(errs)
+            }
+        };
+
+        <span class="comment">// Send a notification to the client with the results of the parse
+        </span><span class="self">self</span>.client
+            .send_notification::&lt;ParseNotification&gt;(ParseNotificationParams::new(
+                uri.clone(),
+                result,
+            ))
+            .<span class="kw">await</span>;
     }
 }
 
@@ -673,156 +650,27 @@
         <span class="kw">let </span>uri = params.text_document.uri;
         <span class="kw">let </span>source = params.text_document.text;
 
+        <span class="self">self</span>.parse_file_for_client(<span class="kw-2">&amp;</span>uri, <span class="kw-2">&amp;</span>source).<span class="kw">await</span>;
+
         <span class="kw">let </span><span class="kw-2">mut </span>file_texts = <span class="self">self</span>.file_texts.lock().<span class="kw">await</span>;
         file_texts.insert(uri.clone(), source.clone());
-
-        <span class="kw">let </span>result: <span class="prelude-ty">Result</span>&lt;ParseResult, <span class="kw">_</span>&gt; = parse(<span class="kw-2">&amp;</span>source).map(|reqfile| reqfile.into());
-
-        <span class="kw">if let </span><span class="prelude-val">Err</span>(errs) = <span class="kw-2">&amp;</span>result {
-            <span class="kw">let </span>diagnostics = get_diagnostics(errs, <span class="kw-2">&amp;</span>source);
-
-            <span class="self">self</span>.client
-                .log_message(
-                    MessageType::ERROR,
-                    <span class="macro">format!</span>(
-                        <span class="string">"{} errors parsing opened file '{uri}':\n{diagnostics:#?}"</span>,
-                        diagnostics.len()
-                    ),
-                )
-                .<span class="kw">await</span>;
-
-            <span class="self">self</span>.client
-                .publish_diagnostics(
-                    uri.clone(),
-                    diagnostics
-                        .iter()
-                        .map(|x| (LspDiagnosis((<span class="kw-2">*</span>x).clone())).into())
-                        .collect(),
-                    <span class="prelude-val">Some</span>(params.text_document.version),
-                )
-                .<span class="kw">await</span>;
-        } <span class="kw">else </span>{
-            <span class="self">self</span>.client
-                .publish_diagnostics(uri.clone(), <span class="macro">vec!</span>[], <span class="prelude-val">Some</span>(params.text_document.version))
-                .<span class="kw">await</span>;
-        }
-
-        <span class="self">self</span>.client
-            .log_message(
-                MessageType::INFO,
-                <span class="macro">format!</span>(<span class="string">"Sending reqlang/parse notification for opened file '{uri}'"</span>),
-            )
-            .<span class="kw">await</span>;
-
-        <span class="self">self</span>.client
-            .send_notification::&lt;ParseNotification&gt;(ParseNotificationParams::new(
-                uri.clone(),
-                result,
-            ))
-            .<span class="kw">await</span>;
     }
 
     <span class="kw">async fn </span>did_change(<span class="kw-2">&amp;</span><span class="self">self</span>, params: DidChangeTextDocumentParams) {
         <span class="kw">let </span>uri = params.text_document.uri;
         <span class="kw">let </span>source = <span class="kw-2">&amp;</span>params.content_changes.first().unwrap().text;
 
-        <span class="kw">let </span>result: <span class="prelude-ty">Result</span>&lt;ParseResult, <span class="kw">_</span>&gt; = parse(source).map(|reqfile| reqfile.into());
-
-        <span class="kw">if let </span><span class="prelude-val">Err</span>(errs) = <span class="kw-2">&amp;</span>result {
-            <span class="kw">let </span>diagnostics = get_diagnostics(errs, source);
-
-            <span class="self">self</span>.client
-                .log_message(
-                    MessageType::ERROR,
-                    <span class="macro">format!</span>(
-                        <span class="string">"{} errors parsing changed file '{uri}':\n{diagnostics:#?}"</span>,
-                        diagnostics.len()
-                    ),
-                )
-                .<span class="kw">await</span>;
-
-            <span class="self">self</span>.client
-                .publish_diagnostics(
-                    uri.clone(),
-                    diagnostics
-                        .iter()
-                        .map(|x| (LspDiagnosis((<span class="kw-2">*</span>x).clone())).into())
-                        .collect(),
-                    <span class="prelude-val">Some</span>(params.text_document.version),
-                )
-                .<span class="kw">await</span>;
-        } <span class="kw">else </span>{
-            <span class="self">self</span>.client
-                .publish_diagnostics(uri.clone(), <span class="macro">vec!</span>[], <span class="prelude-val">Some</span>(params.text_document.version))
-                .<span class="kw">await</span>;
-        }
-
-        <span class="self">self</span>.client
-            .log_message(
-                MessageType::INFO,
-                <span class="macro">format!</span>(<span class="string">"Sending reqlang/parse notification for changed file '{uri}'"</span>),
-            )
-            .<span class="kw">await</span>;
-
-        <span class="self">self</span>.client
-            .send_notification::&lt;ParseNotification&gt;(ParseNotificationParams::new(
-                uri.clone(),
-                result,
-            ))
-            .<span class="kw">await</span>;
+        <span class="self">self</span>.parse_file_for_client(<span class="kw-2">&amp;</span>uri, source).<span class="kw">await</span>;
     }
 
     <span class="kw">async fn </span>did_save(<span class="kw-2">&amp;</span><span class="self">self</span>, params: DidSaveTextDocumentParams) {
         <span class="kw">let </span>uri = params.text_document.uri;
         <span class="kw">let </span>source = params.text.unwrap_or_default();
 
+        <span class="self">self</span>.parse_file_for_client(<span class="kw-2">&amp;</span>uri, <span class="kw-2">&amp;</span>source).<span class="kw">await</span>;
+
         <span class="kw">let </span><span class="kw-2">mut </span>file_texts = <span class="self">self</span>.file_texts.lock().<span class="kw">await</span>;
         file_texts.insert(uri.clone(), source.clone());
-
-        <span class="kw">let </span>result: <span class="prelude-ty">Result</span>&lt;ParseResult, <span class="kw">_</span>&gt; = parse(<span class="kw-2">&amp;</span>source).map(|reqfile| reqfile.into());
-
-        <span class="kw">if let </span><span class="prelude-val">Err</span>(errs) = <span class="kw-2">&amp;</span>result {
-            <span class="kw">let </span>diagnostics = get_diagnostics(errs, <span class="kw-2">&amp;</span>source);
-
-            <span class="self">self</span>.client
-                .log_message(
-                    MessageType::ERROR,
-                    <span class="macro">format!</span>(
-                        <span class="string">"{} errors parsing saved file '{uri}':\n{diagnostics:#?}"</span>,
-                        diagnostics.len()
-                    ),
-                )
-                .<span class="kw">await</span>;
-
-            <span class="self">self</span>.client
-                .publish_diagnostics(
-                    uri.clone(),
-                    diagnostics
-                        .iter()
-                        .map(|x| (LspDiagnosis((<span class="kw-2">*</span>x).clone())).into())
-                        .collect(),
-                    <span class="prelude-val">None</span>,
-                )
-                .<span class="kw">await</span>;
-        } <span class="kw">else </span>{
-            <span class="self">self</span>.client
-                .publish_diagnostics(uri.clone(), <span class="macro">vec!</span>[], <span class="prelude-val">None</span>)
-                .<span class="kw">await</span>;
-        }
-
-        <span class="self">self</span>.client
-            .log_message(
-                MessageType::INFO,
-                <span class="macro">format!</span>(<span class="string">"Sending reqlang/parse notification for saved file '{uri}'"</span>),
-            )
-            .<span class="kw">await</span>;
-
-        <span class="self">self</span>.client
-            .send_notification::&lt;ParseNotification&gt;(ParseNotificationParams::new(
-                uri.clone(),
-                result,
-            ))
-            .<span class="kw">await</span>;
     }
 
     <span class="kw">async fn </span>execute_command(<span class="kw-2">&amp;</span><span class="self">self</span>, params: ExecuteCommandParams) -&gt; RpcResult&lt;<span class="prelude-ty">Option</span>&lt;Value&gt;&gt; {

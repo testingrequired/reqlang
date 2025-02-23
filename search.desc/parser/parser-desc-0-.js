@@ -1,1 +1,1 @@
-searchState.loadedDescShard("parser", 0, "Parse string into a ParsedRequestFile\nTemplate a request file string into a TemplatedRequestFile.")
+searchState.loadedDescShard("parser", 0, "Parse ast::Ast into a ParsedRequestFile\nTemplate a request file string into a TemplatedRequestFile.")

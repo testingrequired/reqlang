@@ -1510,7 +1510,13 @@
 <a href="#1509" id="1509">1509</a>
 <a href="#1510" id="1510">1510</a>
 <a href="#1511" id="1511">1511</a>
-<a href="#1512" id="1512">1512</a></pre></div><pre class="rust"><code><span class="kw">use </span>errors::{ParseError, ReqlangError};
+<a href="#1512" id="1512">1512</a>
+<a href="#1513" id="1513">1513</a>
+<a href="#1514" id="1514">1514</a>
+<a href="#1515" id="1515">1515</a>
+<a href="#1516" id="1516">1516</a>
+<a href="#1517" id="1517">1517</a>
+<a href="#1518" id="1518">1518</a></pre></div><pre class="rust"><code><span class="kw">use </span>errors::{ParseError, ReqlangError};
 <span class="kw">use </span>regex::Regex;
 <span class="kw">use </span>span::{Spanned, NO_SPAN};
 <span class="kw">use </span>types::{
@@ -1518,7 +1524,7 @@
     ParsedConfig, ParsedRequestFile, ReferenceType,
 };
 
-<span class="kw">use crate</span>::{splitter::split, TEMPLATE_REFERENCE_PATTERN};
+<span class="kw">use </span><span class="kw">crate</span>::TEMPLATE_REFERENCE_PATTERN;
 
 <span class="kw">static </span>FORBIDDEN_REQUEST_HEADER_NAMES: <span class="kw-2">&amp;</span>[<span class="kw-2">&amp;</span>str] = <span class="kw-2">&amp;</span>[
     <span class="string">"host"</span>,
@@ -1542,94 +1548,107 @@
     <span class="string">"via"</span>,
 ];
 
-<span class="doccomment">/// Parse string into a [ParsedRequestFile]
-</span><span class="kw">pub fn </span>parse(input: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;ParsedRequestFile, Vec&lt;Spanned&lt;ReqlangError&gt;&gt;&gt; {
-    <span class="kw">let </span><span class="kw-2">mut </span>parse_errors: Vec&lt;Spanned&lt;ReqlangError&gt;&gt; = <span class="macro">vec!</span>[];
+<span class="doccomment">/// Parse [ast::Ast] into a [ParsedRequestFile]
+</span><span class="kw">pub fn </span>parse(ast: <span class="kw-2">&amp;</span>ast::Ast) -&gt; <span class="prelude-ty">Result</span>&lt;ParsedRequestFile, Vec&lt;Spanned&lt;ReqlangError&gt;&gt;&gt; {
+    <span class="kw">match </span>ast.request() {
+        <span class="prelude-val">Some</span>(request) =&gt; {
+            <span class="kw">let </span><span class="kw-2">mut </span>parse_errors: Vec&lt;Spanned&lt;ReqlangError&gt;&gt; = <span class="macro">vec!</span>[];
 
-    split(input).and_then(|reqfile| {
-        <span class="kw">let </span>request_refs = parse_references(<span class="kw-2">&amp;</span>reqfile.request);
-        <span class="kw">let </span>response_refs = parse_references(<span class="kw-2">&amp;</span>reqfile.response.clone().unwrap_or_default());
-        <span class="kw">let </span>config_refs = parse_references(<span class="kw-2">&amp;</span>reqfile.config.clone().unwrap_or_default());
-        <span class="kw">let </span><span class="kw-2">mut </span>refs: Vec&lt;(ReferenceType, std::ops::Range&lt;usize&gt;)&gt; = <span class="macro">vec!</span>[];
-        refs.extend(request_refs);
-        refs.extend(response_refs);
-        refs.extend(config_refs);
+            <span class="kw">let </span>response = ast.response().cloned();
+            <span class="kw">let </span>config = ast.config().cloned();
 
-        <span class="kw">let </span>request = <span class="kw">match </span>parse_request(<span class="kw-2">&amp;</span>reqfile.request) {
-            <span class="prelude-val">Ok</span>((request, span)) =&gt; {
-                <span class="kw">for </span>key <span class="kw">in </span>request.headers.iter().map(|x| <span class="kw-2">&amp;</span>x.<span class="number">0</span>) {
-                    <span class="kw">if </span>FORBIDDEN_REQUEST_HEADER_NAMES.contains(<span class="kw-2">&amp;</span>key.to_lowercase().as_str()) {
+            <span class="kw">let </span>request_refs = parse_references(request);
+            <span class="kw">let </span>response_refs = parse_references(<span class="kw-2">&amp;</span>response.clone().unwrap_or_default());
+            <span class="kw">let </span>config_refs = parse_references(<span class="kw-2">&amp;</span>config.clone().unwrap_or_default());
+            <span class="kw">let </span><span class="kw-2">mut </span>refs: Vec&lt;(ReferenceType, std::ops::Range&lt;usize&gt;)&gt; = <span class="macro">vec!</span>[];
+            refs.extend(request_refs);
+            refs.extend(response_refs);
+            refs.extend(config_refs);
+
+            <span class="kw">let </span>request = <span class="kw">match </span>parse_request(request) {
+                <span class="prelude-val">Ok</span>((request, span)) =&gt; {
+                    <span class="kw">for </span>key <span class="kw">in </span>request.headers.iter().map(|x| <span class="kw-2">&amp;</span>x.<span class="number">0</span>) {
+                        <span class="kw">if </span>FORBIDDEN_REQUEST_HEADER_NAMES.contains(<span class="kw-2">&amp;</span>key.to_lowercase().as_str()) {
+                            parse_errors.push((
+                                ParseError::ForbiddenRequestHeaderNameError(key.to_lowercase())
+                                    .into(),
+                                span.clone(),
+                            ))
+                        }
+                    }
+
+                    <span class="prelude-val">Some</span>((request, span))
+                }
+                <span class="prelude-val">Err</span>(err) =&gt; {
+                    parse_errors.extend(err);
+                    <span class="prelude-val">None
+                </span>}
+            };
+
+            <span class="kw">let </span>response = <span class="kw">match </span>parse_response(<span class="kw-2">&amp;</span>response) {
+                <span class="prelude-val">Some</span>(<span class="prelude-val">Ok</span>(response)) =&gt; <span class="prelude-val">Some</span>(response),
+                <span class="prelude-val">Some</span>(<span class="prelude-val">Err</span>(err)) =&gt; {
+                    parse_errors.extend(err);
+                    <span class="prelude-val">None
+                </span>}
+                <span class="prelude-val">None </span>=&gt; <span class="prelude-val">None</span>,
+            };
+
+            <span class="kw">let </span>config = <span class="kw">match </span>parse_config(<span class="kw-2">&amp;</span>config) {
+                <span class="prelude-val">Some</span>(<span class="prelude-val">Ok</span>((config, config_span))) =&gt; <span class="prelude-val">Some</span>((config, config_span)),
+                <span class="prelude-val">Some</span>(<span class="prelude-val">Err</span>(err)) =&gt; {
+                    parse_errors.extend(err);
+                    <span class="prelude-val">None
+                </span>}
+                <span class="prelude-val">None </span>=&gt; <span class="prelude-val">None</span>,
+            };
+
+            <span class="kw">if let </span><span class="prelude-val">Some</span>((config, config_span)) = <span class="kw-2">&amp;</span>config {
+                <span class="kw">let </span>vars = config.vars();
+                <span class="kw">let </span>env_names = config.envs();
+
+                <span class="kw">for </span>var <span class="kw">in </span>vars.iter() {
+                    <span class="kw">if </span>env_names.is_empty() {
                         parse_errors.push((
-                            ParseError::ForbiddenRequestHeaderNameError(key.to_lowercase()).into(),
-                            span.clone(),
-                        ))
+                            ParseError::VariableNotDefinedInAnyEnvironment(var.to_string()).into(),
+                            config_span.clone(),
+                        ));
+                    }
+
+                    <span class="kw">for </span>env_name <span class="kw">in </span>env_names.iter() {
+                        <span class="kw">match </span><span class="kw-2">&amp;</span>config.env(env_name) {
+                            <span class="prelude-val">Some</span>(env) =&gt; {
+                                <span class="kw">if </span>!env.contains_key(var) {
+                                    parse_errors.push((
+                                        ParseError::VariableUndefinedInEnvironment(
+                                            var.clone(),
+                                            env_name.clone(),
+                                        )
+                                        .into(),
+                                        config_span.clone(),
+                                    ));
+                                }
+                            }
+                            <span class="prelude-val">None </span>=&gt; <span class="macro">todo!</span>(),
+                        }
                     }
                 }
-
-                <span class="prelude-val">Some</span>((request, span))
             }
-            <span class="prelude-val">Err</span>(err) =&gt; {
-                parse_errors.extend(err);
-                <span class="prelude-val">None
-            </span>}
-        };
 
-        <span class="kw">let </span>response = <span class="kw">match </span>parse_response(<span class="kw-2">&amp;</span>reqfile.response) {
-            <span class="prelude-val">Some</span>(<span class="prelude-val">Ok</span>(response)) =&gt; <span class="prelude-val">Some</span>(response),
-            <span class="prelude-val">Some</span>(<span class="prelude-val">Err</span>(err)) =&gt; {
-                parse_errors.extend(err);
-                <span class="prelude-val">None
-            </span>}
-            <span class="prelude-val">None </span>=&gt; <span class="prelude-val">None</span>,
-        };
-
-        <span class="kw">let </span>config = <span class="kw">match </span>parse_config(<span class="kw-2">&amp;</span>reqfile.config) {
-            <span class="prelude-val">Some</span>(<span class="prelude-val">Ok</span>((config, config_span))) =&gt; <span class="prelude-val">Some</span>((config, config_span)),
-            <span class="prelude-val">Some</span>(<span class="prelude-val">Err</span>(err)) =&gt; {
-                parse_errors.extend(err);
-                <span class="prelude-val">None
-            </span>}
-            <span class="prelude-val">None </span>=&gt; <span class="prelude-val">None</span>,
-        };
-
-        <span class="kw">if let </span><span class="prelude-val">Some</span>((config, config_span)) = <span class="kw-2">&amp;</span>config {
-            <span class="kw">let </span>vars = config.vars();
-            <span class="kw">let </span>env_names = config.envs();
-
-            <span class="kw">for </span>var <span class="kw">in </span>vars.iter() {
-                <span class="kw">if </span>env_names.is_empty() {
-                    parse_errors.push((
-                        ParseError::VariableNotDefinedInAnyEnvironment(var.to_string()).into(),
-                        config_span.clone(),
-                    ));
-                }
-
-                <span class="kw">for </span>env_name <span class="kw">in </span>env_names.iter() {
-                    <span class="kw">match </span><span class="kw-2">&amp;</span>config.env(env_name) {
-                        <span class="prelude-val">Some</span>(env) =&gt; {
-                            <span class="kw">if </span>!env.contains_key(var) {
+            <span class="comment">// Validate template references are declared/defined vars, secrets, prompts, etc.
+            </span><span class="kw">for </span>(ref_type, span) <span class="kw">in </span>refs.iter() {
+                <span class="kw">match </span>ref_type {
+                    ReferenceType::Variable(name) =&gt; {
+                        <span class="kw">if let </span><span class="prelude-val">Some</span>((config, <span class="kw">_</span>)) = <span class="kw-2">&amp;</span>config {
+                            <span class="kw">if </span>!config.vars().contains(name) {
                                 parse_errors.push((
-                                    ParseError::VariableUndefinedInEnvironment(
-                                        var.clone(),
-                                        env_name.clone(),
-                                    )
-                                    .into(),
-                                    config_span.clone(),
+                                    ReqlangError::ParseError(ParseError::UndefinedReferenceError(
+                                        ReferenceType::Variable(name.to_string()),
+                                    )),
+                                    span.clone(),
                                 ));
                             }
-                        }
-                        <span class="prelude-val">None </span>=&gt; <span class="macro">todo!</span>(),
-                    }
-                }
-            }
-        }
-
-        <span class="comment">// Validate template references are declared/defined vars, secrets, prompts, etc.
-        </span><span class="kw">for </span>(ref_type, span) <span class="kw">in </span>refs.iter() {
-            <span class="kw">match </span>ref_type {
-                ReferenceType::Variable(name) =&gt; {
-                    <span class="kw">if let </span><span class="prelude-val">Some</span>((config, <span class="kw">_</span>)) = <span class="kw-2">&amp;</span>config {
-                        <span class="kw">if </span>!config.vars().contains(name) {
+                        } <span class="kw">else </span>{
                             parse_errors.push((
                                 ReqlangError::ParseError(ParseError::UndefinedReferenceError(
                                     ReferenceType::Variable(name.to_string()),
@@ -1637,18 +1656,18 @@
                                 span.clone(),
                             ));
                         }
-                    } <span class="kw">else </span>{
-                        parse_errors.push((
-                            ReqlangError::ParseError(ParseError::UndefinedReferenceError(
-                                ReferenceType::Variable(name.to_string()),
-                            )),
-                            span.clone(),
-                        ));
                     }
-                }
-                ReferenceType::Prompt(name) =&gt; {
-                    <span class="kw">if let </span><span class="prelude-val">Some</span>((config, <span class="kw">_</span>)) = <span class="kw-2">&amp;</span>config {
-                        <span class="kw">if </span>!config.prompts().contains(name) {
+                    ReferenceType::Prompt(name) =&gt; {
+                        <span class="kw">if let </span><span class="prelude-val">Some</span>((config, <span class="kw">_</span>)) = <span class="kw-2">&amp;</span>config {
+                            <span class="kw">if </span>!config.prompts().contains(name) {
+                                parse_errors.push((
+                                    ReqlangError::ParseError(ParseError::UndefinedReferenceError(
+                                        ReferenceType::Prompt(name.to_string()),
+                                    )),
+                                    span.clone(),
+                                ));
+                            }
+                        } <span class="kw">else </span>{
                             parse_errors.push((
                                 ReqlangError::ParseError(ParseError::UndefinedReferenceError(
                                     ReferenceType::Prompt(name.to_string()),
@@ -1656,18 +1675,18 @@
                                 span.clone(),
                             ));
                         }
-                    } <span class="kw">else </span>{
-                        parse_errors.push((
-                            ReqlangError::ParseError(ParseError::UndefinedReferenceError(
-                                ReferenceType::Prompt(name.to_string()),
-                            )),
-                            span.clone(),
-                        ));
                     }
-                }
-                ReferenceType::Secret(name) =&gt; {
-                    <span class="kw">if let </span><span class="prelude-val">Some</span>((config, <span class="kw">_</span>)) = <span class="kw-2">&amp;</span>config {
-                        <span class="kw">if </span>!config.secrets().contains(name) {
+                    ReferenceType::Secret(name) =&gt; {
+                        <span class="kw">if let </span><span class="prelude-val">Some</span>((config, <span class="kw">_</span>)) = <span class="kw-2">&amp;</span>config {
+                            <span class="kw">if </span>!config.secrets().contains(name) {
+                                parse_errors.push((
+                                    ReqlangError::ParseError(ParseError::UndefinedReferenceError(
+                                        ReferenceType::Secret(name.to_string()),
+                                    )),
+                                    span.clone(),
+                                ));
+                            }
+                        } <span class="kw">else </span>{
                             parse_errors.push((
                                 ReqlangError::ParseError(ParseError::UndefinedReferenceError(
                                     ReferenceType::Secret(name.to_string()),
@@ -1675,78 +1694,72 @@
                                 span.clone(),
                             ));
                         }
-                    } <span class="kw">else </span>{
+                    }
+                    ReferenceType::Provider(_name) =&gt; {}
+                    ReferenceType::Unknown(_name) =&gt; {}
+                }
+            }
+
+            <span class="kw">if let </span><span class="prelude-val">Some</span>((<span class="kw-2">ref </span>config, <span class="kw-2">ref </span>span)) = config {
+                <span class="kw">let </span>ref_names: Vec&lt;String&gt; = refs
+                    .clone()
+                    .into_iter()
+                    .map(|(x, <span class="kw">_</span>)| <span class="kw">match </span>x {
+                        ReferenceType::Variable(name) =&gt; name,
+                        ReferenceType::Prompt(name) =&gt; name,
+                        ReferenceType::Secret(name) =&gt; name,
+                        ReferenceType::Provider(name) =&gt; name,
+                        ReferenceType::Unknown(name) =&gt; name,
+                    })
+                    .collect();
+
+                <span class="kw">for </span>var <span class="kw">in </span><span class="kw-2">&amp;</span>config.vars() {
+                    <span class="kw">if </span>!ref_names.contains(var) {
                         parse_errors.push((
-                            ReqlangError::ParseError(ParseError::UndefinedReferenceError(
-                                ReferenceType::Secret(name.to_string()),
+                            ReqlangError::ParseError(ParseError::UnusedValueError(
+                                ReferenceType::Variable(var.clone()),
                             )),
                             span.clone(),
-                        ));
+                        ))
                     }
                 }
-                ReferenceType::Provider(_name) =&gt; {}
-                ReferenceType::Unknown(_name) =&gt; {}
-            }
-        }
 
-        <span class="kw">if let </span><span class="prelude-val">Some</span>((<span class="kw-2">ref </span>config, <span class="kw-2">ref </span>span)) = config {
-            <span class="kw">let </span>ref_names: Vec&lt;String&gt; = refs
-                .clone()
-                .into_iter()
-                .map(|(x, <span class="kw">_</span>)| <span class="kw">match </span>x {
-                    ReferenceType::Variable(name) =&gt; name,
-                    ReferenceType::Prompt(name) =&gt; name,
-                    ReferenceType::Secret(name) =&gt; name,
-                    ReferenceType::Provider(name) =&gt; name,
-                    ReferenceType::Unknown(name) =&gt; name,
-                })
-                .collect();
+                <span class="kw">for </span>key <span class="kw">in </span><span class="kw-2">&amp;</span>config.prompts() {
+                    <span class="kw">if </span>!ref_names.contains(key) {
+                        parse_errors.push((
+                            ReqlangError::ParseError(ParseError::UnusedValueError(
+                                ReferenceType::Prompt(key.clone()),
+                            )),
+                            span.clone(),
+                        ))
+                    }
+                }
 
-            <span class="kw">for </span>var <span class="kw">in </span><span class="kw-2">&amp;</span>config.vars() {
-                <span class="kw">if </span>!ref_names.contains(var) {
-                    parse_errors.push((
-                        ReqlangError::ParseError(ParseError::UnusedValueError(
-                            ReferenceType::Variable(var.clone()),
-                        )),
-                        span.clone(),
-                    ))
+                <span class="kw">for </span>secret <span class="kw">in </span><span class="kw-2">&amp;</span>config.secrets() {
+                    <span class="kw">if </span>!ref_names.contains(secret) {
+                        parse_errors.push((
+                            ReqlangError::ParseError(ParseError::UnusedValueError(
+                                ReferenceType::Secret(secret.clone()),
+                            )),
+                            span.clone(),
+                        ))
+                    }
                 }
             }
 
-            <span class="kw">for </span>key <span class="kw">in </span><span class="kw-2">&amp;</span>config.prompts() {
-                <span class="kw">if </span>!ref_names.contains(key) {
-                    parse_errors.push((
-                        ReqlangError::ParseError(ParseError::UnusedValueError(
-                            ReferenceType::Prompt(key.clone()),
-                        )),
-                        span.clone(),
-                    ))
-                }
+            <span class="kw">if </span>!parse_errors.is_empty() {
+                <span class="kw">return </span><span class="prelude-val">Err</span>(parse_errors);
             }
 
-            <span class="kw">for </span>secret <span class="kw">in </span><span class="kw-2">&amp;</span>config.secrets() {
-                <span class="kw">if </span>!ref_names.contains(secret) {
-                    parse_errors.push((
-                        ReqlangError::ParseError(ParseError::UnusedValueError(
-                            ReferenceType::Secret(secret.clone()),
-                        )),
-                        span.clone(),
-                    ))
-                }
-            }
+            <span class="prelude-val">Ok</span>(ParsedRequestFile {
+                request: request.unwrap(),
+                response,
+                config,
+                refs,
+            })
         }
-
-        <span class="kw">if </span>!parse_errors.is_empty() {
-            <span class="kw">return </span><span class="prelude-val">Err</span>(parse_errors);
-        }
-
-        <span class="prelude-val">Ok</span>(ParsedRequestFile {
-            request: request.unwrap(),
-            response,
-            config,
-            refs,
-        })
-    })
+        <span class="prelude-val">None </span>=&gt; <span class="prelude-val">Err</span>(<span class="macro">vec!</span>[(ParseError::MissingRequest.into(), <span class="number">0</span>..<span class="number">0</span>)]),
+    }
 }
 
 <span class="kw">pub fn </span>parse_config(
@@ -1795,6 +1808,7 @@
     <span class="kw">let </span><span class="kw-2">mut </span>headers = [httparse::EMPTY_HEADER; <span class="number">64</span>];
     <span class="kw">let </span><span class="kw-2">mut </span>req = httparse::Request::new(<span class="kw-2">&amp;mut </span>headers);
 
+    <span class="kw">let </span>request = <span class="macro">format!</span>(<span class="string">"{request}\n\n"</span>);
     <span class="kw">let </span>parse_result = req.parse(request.as_bytes());
 
     <span class="kw">if let </span><span class="prelude-val">Err</span>(error) = parse_result {
@@ -1866,6 +1880,8 @@
         <span class="prelude-val">None </span>=&gt; <span class="kw">return </span><span class="prelude-val">None</span>,
     };
 
+    <span class="kw">let </span>response = <span class="macro">format!</span>(<span class="string">"{response}\n\n"</span>);
+
     <span class="kw">let </span>parse_result = res.parse(response.as_bytes());
 
     <span class="kw">match </span>parse_result {
@@ -1927,20 +1943,15 @@
     }
 }
 
-<span class="attr">#[derive(Debug, PartialEq)]
-</span><span class="kw">pub struct </span>RequestFileSplitUp {
-    <span class="kw">pub </span>request: Spanned&lt;String&gt;,
-    <span class="kw">pub </span>response: <span class="prelude-ty">Option</span>&lt;Spanned&lt;String&gt;&gt;,
-    <span class="kw">pub </span>config: <span class="prelude-ty">Option</span>&lt;Spanned&lt;String&gt;&gt;,
-}
-
 <span class="attr">#[cfg(test)]
 </span><span class="kw">mod </span>test {
     <span class="macro">macro_rules!</span> parser_test {
         (<span class="macro-nonterminal">$test_name</span>:ident, <span class="macro-nonterminal">$reqfile</span>:expr, <span class="macro-nonterminal">$result</span>:expr) =&gt; {
             <span class="attr">#[test]
             </span><span class="kw">fn </span><span class="macro-nonterminal">$test_name</span>() {
-                <span class="macro">pretty_assertions::assert_eq!</span>(<span class="macro-nonterminal">$result</span>, <span class="macro-nonterminal">$crate::parse</span>(<span class="kw-2">&amp;</span><span class="macro-nonterminal">$reqfile</span>));
+                <span class="kw">let </span>ast = ::ast::Ast::new(<span class="macro-nonterminal">$reqfile</span>);
+                <span class="kw">let </span>result = <span class="macro-nonterminal">$crate::parse</span>(<span class="kw-2">&amp;</span>ast);
+                <span class="macro">pretty_assertions::assert_eq!</span>(<span class="macro-nonterminal">$result</span>, result);
             }
         };
     }
@@ -1961,8 +1972,8 @@
         <span class="macro">parser_test!</span>(
             request_outside_of_code_fences,
             <span class="string">"GET http://example.com HTTP/1.1\n"</span>,
-            <span class="prelude-val">Err</span>(<span class="macro">vec!</span>[(ParseError::MissingRequest.into(), <span class="number">0</span>..<span class="number">32</span>)])
-        );
+            <span class="prelude-val">Err</span>(<span class="macro">vec!</span>[(ParseError::MissingRequest.into(), <span class="number">0</span>..<span class="number">0</span>)]) <span class="comment">// TODO: Change to 0..0 instead of original 0..32?
+        </span>);
 
         <span class="comment">// Undefined References
 
@@ -1980,7 +1991,7 @@
                 errors::ReqlangError::ParseError(ParseError::UndefinedReferenceError(
                     ReferenceType::Variable(<span class="string">"value"</span>.to_string())
                 )),
-                <span class="number">1</span>..<span class="number">48
+                <span class="number">13</span>..<span class="number">45
             </span>)])
         );
 
@@ -1998,7 +2009,7 @@
                 errors::ReqlangError::ParseError(ParseError::UndefinedReferenceError(
                     ReferenceType::Prompt(<span class="string">"value"</span>.to_string())
                 )),
-                <span class="number">1</span>..<span class="number">48
+                <span class="number">13</span>..<span class="number">45
             </span>)])
         );
 
@@ -2016,7 +2027,7 @@
                 errors::ReqlangError::ParseError(ParseError::UndefinedReferenceError(
                     ReferenceType::Secret(<span class="string">"value"</span>.to_string())
                 )),
-                <span class="number">1</span>..<span class="number">48
+                <span class="number">13</span>..<span class="number">45
             </span>)])
         );
 
@@ -2038,7 +2049,7 @@
                 errors::ReqlangError::ParseError(ParseError::UndefinedReferenceError(
                     ReferenceType::Variable(<span class="string">"value"</span>.to_string())
                 )),
-                <span class="number">33</span>..<span class="number">82
+                <span class="number">46</span>..<span class="number">79
             </span>)])
         );
 
@@ -2060,7 +2071,7 @@
                 errors::ReqlangError::ParseError(ParseError::UndefinedReferenceError(
                     ReferenceType::Prompt(<span class="string">"value"</span>.to_string())
                 )),
-                <span class="number">33</span>..<span class="number">82
+                <span class="number">46</span>..<span class="number">79
             </span>)])
         );
 
@@ -2082,7 +2093,7 @@
                 errors::ReqlangError::ParseError(ParseError::UndefinedReferenceError(
                     ReferenceType::Secret(<span class="string">"value"</span>.to_string())
                 )),
-                <span class="number">33</span>..<span class="number">82
+                <span class="number">46</span>..<span class="number">79
             </span>)])
         );
 
@@ -2104,12 +2115,12 @@
             <span class="prelude-val">Err</span>(<span class="macro">vec!</span>[
                 (
                     ParseError::VariableNotDefinedInAnyEnvironment(<span class="string">"base_url"</span>.to_string()).into(),
-                    <span class="number">1</span>..<span class="number">35
+                    <span class="number">12</span>..<span class="number">32
                 </span>),
                 (
                     ParseError::UnusedValueError(ReferenceType::Variable(<span class="string">"base_url"</span>.to_string()))
                         .into(),
-                    <span class="number">1</span>..<span class="number">35
+                    <span class="number">12</span>..<span class="number">32
                 </span>)
             ])
         );
@@ -2132,7 +2143,7 @@
                 errors::ReqlangError::ParseError(ParseError::UnusedValueError(
                     ReferenceType::Prompt(<span class="string">"base_url"</span>.to_string())
                 )),
-                <span class="number">1</span>..<span class="number">39
+                <span class="number">12</span>..<span class="number">36
             </span>)])
         );
 
@@ -2153,7 +2164,7 @@
                 errors::ReqlangError::ParseError(ParseError::UnusedValueError(
                     ReferenceType::Secret(<span class="string">"base_url"</span>.to_string())
                 )),
-                <span class="number">1</span>..<span class="number">38
+                <span class="number">12</span>..<span class="number">35
             </span>)])
         );
 
@@ -2173,7 +2184,7 @@
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     <span class="string">"host"</span>.to_string()
                 )),
-                <span class="number">1</span>..<span class="number">49
+                <span class="number">13</span>..<span class="number">46
             </span>)])
         );
 
@@ -2191,7 +2202,7 @@
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     <span class="string">"host"</span>.to_string()
                 )),
-                <span class="number">1</span>..<span class="number">49
+                <span class="number">13</span>..<span class="number">46
             </span>)])
         );
 
@@ -2209,7 +2220,7 @@
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     <span class="string">"host"</span>.to_string()
                 )),
-                <span class="number">1</span>..<span class="number">49
+                <span class="number">13</span>..<span class="number">46
             </span>)])
         );
 
@@ -2227,7 +2238,7 @@
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     <span class="string">"accept-charset"</span>.to_string()
                 )),
-                <span class="number">1</span>..<span class="number">72
+                <span class="number">13</span>..<span class="number">69
             </span>)])
         );
 
@@ -2245,7 +2256,7 @@
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     <span class="string">"accept-encoding"</span>.to_string()
                 )),
-                <span class="number">1</span>..<span class="number">73
+                <span class="number">13</span>..<span class="number">70
             </span>)])
         );
 
@@ -2263,7 +2274,7 @@
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     <span class="string">"access-control-request-headers"</span>.to_string()
                 )),
-                <span class="number">1</span>..<span class="number">88
+                <span class="number">13</span>..<span class="number">85
             </span>)])
         );
 
@@ -2281,7 +2292,7 @@
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     <span class="string">"access-control-request-method"</span>.to_string()
                 )),
-                <span class="number">1</span>..<span class="number">87
+                <span class="number">13</span>..<span class="number">84
             </span>)])
         );
 
@@ -2299,7 +2310,7 @@
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     <span class="string">"connection"</span>.to_string()
                 )),
-                <span class="number">1</span>..<span class="number">68
+                <span class="number">13</span>..<span class="number">65
             </span>)])
         );
 
@@ -2317,7 +2328,7 @@
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     <span class="string">"content-length"</span>.to_string()
                 )),
-                <span class="number">1</span>..<span class="number">72
+                <span class="number">13</span>..<span class="number">69
             </span>)])
         );
 
@@ -2335,7 +2346,7 @@
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     <span class="string">"cookie"</span>.to_string()
                 )),
-                <span class="number">1</span>..<span class="number">64
+                <span class="number">13</span>..<span class="number">61
             </span>)])
         );
 
@@ -2353,7 +2364,7 @@
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     <span class="string">"date"</span>.to_string()
                 )),
-                <span class="number">1</span>..<span class="number">62
+                <span class="number">13</span>..<span class="number">59
             </span>)])
         );
 
@@ -2371,7 +2382,7 @@
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     <span class="string">"dnt"</span>.to_string()
                 )),
-                <span class="number">1</span>..<span class="number">61
+                <span class="number">13</span>..<span class="number">58
             </span>)])
         );
 
@@ -2389,7 +2400,7 @@
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     <span class="string">"expect"</span>.to_string()
                 )),
-                <span class="number">1</span>..<span class="number">64
+                <span class="number">13</span>..<span class="number">61
             </span>)])
         );
 
@@ -2407,7 +2418,7 @@
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     <span class="string">"keep-alive"</span>.to_string()
                 )),
-                <span class="number">1</span>..<span class="number">68
+                <span class="number">13</span>..<span class="number">65
             </span>)])
         );
 
@@ -2425,7 +2436,7 @@
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     <span class="string">"origin"</span>.to_string()
                 )),
-                <span class="number">1</span>..<span class="number">64
+                <span class="number">13</span>..<span class="number">61
             </span>)])
         );
 
@@ -2443,7 +2454,7 @@
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     <span class="string">"permission-policy"</span>.to_string()
                 )),
-                <span class="number">1</span>..<span class="number">75
+                <span class="number">13</span>..<span class="number">72
             </span>)])
         );
 
@@ -2461,7 +2472,7 @@
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     <span class="string">"te"</span>.to_string()
                 )),
-                <span class="number">1</span>..<span class="number">60
+                <span class="number">13</span>..<span class="number">57
             </span>)])
         );
 
@@ -2479,7 +2490,7 @@
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     <span class="string">"trailer"</span>.to_string()
                 )),
-                <span class="number">1</span>..<span class="number">65
+                <span class="number">13</span>..<span class="number">62
             </span>)])
         );
 
@@ -2497,7 +2508,7 @@
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     <span class="string">"transfer-encoding"</span>.to_string()
                 )),
-                <span class="number">1</span>..<span class="number">75
+                <span class="number">13</span>..<span class="number">72
             </span>)])
         );
 
@@ -2515,7 +2526,7 @@
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     <span class="string">"upgrade"</span>.to_string()
                 )),
-                <span class="number">1</span>..<span class="number">65
+                <span class="number">13</span>..<span class="number">62
             </span>)])
         );
 
@@ -2533,7 +2544,7 @@
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     <span class="string">"via"</span>.to_string()
                 )),
-                <span class="number">1</span>..<span class="number">61
+                <span class="number">13</span>..<span class="number">58
             </span>)])
         );
 
@@ -2557,7 +2568,7 @@
                 errors::ReqlangError::ParseError(ParseError::InvalidConfigError {
                     message: <span class="string">"invalid table header\nexpected `.`, `]`"</span>.to_string()
                 }),
-                <span class="number">32</span>..<span class="number">33
+                <span class="number">43</span>..<span class="number">44
             </span>)])
         );
 
@@ -2578,7 +2589,7 @@
                 errors::ReqlangError::ParseError(ParseError::InvalidConfigError {
                     message: <span class="string">"invalid key"</span>.to_string()
                 }),
-                <span class="number">1</span>..<span class="number">2
+                <span class="number">12</span>..<span class="number">13
             </span>)])
         );
     }
@@ -2610,7 +2621,7 @@
                         headers: <span class="macro">vec!</span>[],
                         body: <span class="prelude-val">Some</span>(<span class="string">""</span>.to_string())
                     },
-                    <span class="number">1</span>..<span class="number">50
+                    <span class="number">13</span>..<span class="number">47
                 </span>),
                 response: <span class="prelude-val">None</span>,
                 refs: <span class="macro">vec!</span>[]
@@ -2640,7 +2651,7 @@
                         headers: <span class="macro">vec!</span>[],
                         body: <span class="prelude-val">Some</span>(<span class="string">""</span>.to_string())
                     },
-                    <span class="number">1</span>..<span class="number">48
+                    <span class="number">13</span>..<span class="number">45
                 </span>),
                 response: <span class="prelude-val">Some</span>((
                     HttpResponse {
@@ -2650,7 +2661,7 @@
                         headers: <span class="macro">vec!</span>[],
                         body: <span class="prelude-val">Some</span>(<span class="string">""</span>.to_string())
                     },
-                    <span class="number">50</span>..<span class="number">82
+                    <span class="number">63</span>..<span class="number">79
                 </span>)),
                 refs: <span class="macro">vec!</span>[],
             })
@@ -2686,7 +2697,7 @@
                         secrets: <span class="prelude-val">None</span>,
                         auth: <span class="prelude-val">None
                     </span>},
-                    <span class="number">1</span>..<span class="number">86
+                    <span class="number">12</span>..<span class="number">83
                 </span>)),
                 request: (
                     HttpRequest {
@@ -2696,12 +2707,12 @@
                         headers: <span class="macro">vec!</span>[],
                         body: <span class="prelude-val">Some</span>(<span class="string">""</span>.to_string())
                     },
-                    <span class="number">88</span>..<span class="number">150
+                    <span class="number">100</span>..<span class="number">147
                 </span>),
                 response: <span class="prelude-val">None</span>,
                 refs: <span class="macro">vec!</span>[
-                    (ReferenceType::Variable(<span class="string">"bar"</span>.to_string()), <span class="number">88</span>..<span class="number">150</span>),
-                    (ReferenceType::Variable(<span class="string">"foo"</span>.to_string()), <span class="number">1</span>..<span class="number">86</span>),
+                    (ReferenceType::Variable(<span class="string">"bar"</span>.to_string()), <span class="number">100</span>..<span class="number">147</span>),
+                    (ReferenceType::Variable(<span class="string">"foo"</span>.to_string()), <span class="number">12</span>..<span class="number">83</span>),
                 ],
             })
         );
@@ -2755,7 +2766,7 @@
                         ],
                         body: <span class="prelude-val">Some</span>(<span class="string">"[1, 2, 3]\n\n"</span>.to_string())
                     },
-                    <span class="number">195</span>..<span class="number">334
+                    <span class="number">207</span>..<span class="number">331
                 </span>),
                 response: <span class="prelude-val">Some</span>((
                     HttpResponse {
@@ -2765,7 +2776,7 @@
                         headers: <span class="macro">vec!</span>[],
                         body: <span class="prelude-val">Some</span>(<span class="string">"{{?expected_response_body}}\n\n\n"</span>.to_string())
                     },
-                    <span class="number">336</span>..<span class="number">398
+                    <span class="number">349</span>..<span class="number">395
                 </span>)),
                 config: <span class="prelude-val">Some</span>((
                     ParsedConfig {
@@ -2793,16 +2804,16 @@
                         secrets: <span class="prelude-val">Some</span>(<span class="macro">vec!</span>[<span class="string">"api_key"</span>.to_string()]),
                         auth: <span class="prelude-val">None
                     </span>},
-                    <span class="number">1</span>..<span class="number">193
+                    <span class="number">12</span>..<span class="number">190
                 </span>)),
                 refs: <span class="macro">vec!</span>[
-                    (ReferenceType::Variable(<span class="string">"query_value"</span>.to_string()), <span class="number">195</span>..<span class="number">334</span>),
-                    (ReferenceType::Prompt(<span class="string">"test_value"</span>.to_string()), <span class="number">195</span>..<span class="number">334</span>),
-                    (ReferenceType::Secret(<span class="string">"api_key"</span>.to_string()), <span class="number">195</span>..<span class="number">334</span>),
-                    (ReferenceType::Provider(<span class="string">"provider"</span>.to_string()), <span class="number">195</span>..<span class="number">334</span>),
+                    (ReferenceType::Variable(<span class="string">"query_value"</span>.to_string()), <span class="number">207</span>..<span class="number">331</span>),
+                    (ReferenceType::Prompt(<span class="string">"test_value"</span>.to_string()), <span class="number">207</span>..<span class="number">331</span>),
+                    (ReferenceType::Secret(<span class="string">"api_key"</span>.to_string()), <span class="number">207</span>..<span class="number">331</span>),
+                    (ReferenceType::Provider(<span class="string">"provider"</span>.to_string()), <span class="number">207</span>..<span class="number">331</span>),
                     (
                         ReferenceType::Prompt(<span class="string">"expected_response_body"</span>.to_string()),
-                        <span class="number">336</span>..<span class="number">398
+                        <span class="number">349</span>..<span class="number">395
                     </span>)
                 ],
             })
@@ -2856,7 +2867,7 @@
                         secrets: <span class="prelude-val">None</span>,
                         auth: <span class="prelude-val">None
                     </span>},
-                    <span class="number">288</span>..<span class="number">368
+                    <span class="number">299</span>..<span class="number">365
                 </span>)),
                 request: (
                     HttpRequest {
@@ -2866,7 +2877,7 @@
                         headers: <span class="macro">vec!</span>[],
                         body: <span class="prelude-val">Some</span>(String::default())
                     },
-                    <span class="number">434</span>..<span class="number">506
+                    <span class="number">446</span>..<span class="number">503
                 </span>),
                 response: <span class="prelude-val">Some</span>((
                     HttpResponse {
@@ -2876,10 +2887,10 @@
                         headers: <span class="macro">vec!</span>[(<span class="string">"content-type"</span>.to_string(), <span class="string">"application/json"</span>.to_string())],
                         body: <span class="prelude-val">Some</span>(<span class="string">"\n"</span>.to_owned())
                     },
-                    <span class="number">575</span>..<span class="number">639
+                    <span class="number">588</span>..<span class="number">636
                 </span>)),
                 refs: <span class="macro">vec!</span>[
-                    (ReferenceType::Prompt(String::from(<span class="string">"status_code"</span>)), <span class="number">434</span>..<span class="number">506</span>)
+                    (ReferenceType::Prompt(String::from(<span class="string">"status_code"</span>)), <span class="number">446</span>..<span class="number">503</span>)
                 ]
             })
         );
@@ -2894,7 +2905,8 @@
         (<span class="macro-nonterminal">$test_name</span>:ident, <span class="macro-nonterminal">$reqfile</span>:expr, <span class="macro-nonterminal">$env</span>:expr, <span class="macro-nonterminal">$result</span>:expr) =&gt; {
             <span class="attr">#[test]
             </span><span class="kw">fn </span><span class="macro-nonterminal">$test_name</span>() {
-                <span class="kw">let </span>resolved_reqfile = <span class="macro-nonterminal">$crate::parse</span>(<span class="kw-2">&amp;</span><span class="macro-nonterminal">$reqfile</span>).unwrap();
+                <span class="kw">let </span>ast = ::ast::Ast::new(<span class="macro-nonterminal">$reqfile</span>);
+                <span class="kw">let </span>resolved_reqfile = <span class="macro-nonterminal">$crate::parse</span>(<span class="kw-2">&amp;</span>ast).unwrap();
 
                 <span class="macro">pretty_assertions::assert_eq!</span>(<span class="macro-nonterminal">$result</span>, resolved_reqfile.env(<span class="macro-nonterminal">$env</span>));
             }

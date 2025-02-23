@@ -390,17 +390,13 @@
 <a href="#389" id="389">389</a>
 <a href="#390" id="390">390</a>
 <a href="#391" id="391">391</a>
-<a href="#392" id="392">392</a>
-<a href="#393" id="393">393</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::collections::HashMap;
+<a href="#392" id="392">392</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::collections::HashMap;
 
 <span class="kw">use </span>errors::{ReqlangError, ResolverError};
 <span class="kw">use </span>span::{Spanned, NO_SPAN};
 <span class="kw">use </span>types::{ParsedRequestFile, ReferenceType, TemplatedRequestFile};
 
-<span class="kw">use crate</span>::{
-    parser::{parse, parse_request, parse_response},
-    splitter::split,
-};
+<span class="kw">use </span><span class="kw">crate</span>::parser::{parse, parse_request, parse_response};
 
 <span class="doccomment">/// Template a request file string into a [TemplatedRequestFile].
 </span><span class="kw">pub fn </span>template(
@@ -410,7 +406,8 @@
     secrets: <span class="kw-2">&amp;</span>HashMap&lt;String, String&gt;,
     provider_values: <span class="kw-2">&amp;</span>HashMap&lt;String, String&gt;,
 ) -&gt; <span class="prelude-ty">Result</span>&lt;TemplatedRequestFile, Vec&lt;Spanned&lt;ReqlangError&gt;&gt;&gt; {
-    <span class="kw">let </span>parsed_reqfile = parse(reqfile_string)<span class="question-mark">?</span>;
+    <span class="kw">let </span>ast = ast::Ast::new(reqfile_string);
+    <span class="kw">let </span>parsed_reqfile = parse(<span class="kw-2">&amp;</span>ast)<span class="question-mark">?</span>;
 
     <span class="kw">if let </span><span class="prelude-val">Some</span>(env) = env {
         <span class="kw">match </span><span class="kw-2">&amp;</span>parsed_reqfile.config {
@@ -511,17 +508,18 @@
         input
     };
 
-    <span class="comment">// Split the templated input to pull out the request and response parts
-    </span><span class="kw">let </span>reqfile_split = split(<span class="kw-2">&amp;</span>templated_input).unwrap();
+    <span class="kw">let </span>ast = ast::Ast::new(<span class="kw-2">&amp;</span>templated_input);
+    <span class="kw">let </span>request = ast.request().cloned().expect(<span class="string">"should have a request"</span>);
+    <span class="kw">let </span>response = ast.response().cloned();
 
     <span class="comment">// Parse the templated request
     </span><span class="kw">let </span>request = {
-        <span class="kw">let </span>(request, request_span) = reqfile_split.request;
+        <span class="kw">let </span>(request, request_span) = request;
         parse_request(<span class="kw-2">&amp;</span>(request, request_span.clone())).unwrap().<span class="number">0
     </span>};
 
     <span class="comment">// Parse the templated response
-    </span><span class="kw">let </span>response = parse_response(<span class="kw-2">&amp;</span>reqfile_split.response).map(|x| x.unwrap().<span class="number">0</span>);
+    </span><span class="kw">let </span>response = parse_response(<span class="kw-2">&amp;</span>response).map(|x| x.unwrap().<span class="number">0</span>);
 
     <span class="prelude-val">Ok</span>(TemplatedRequestFile { request, response })
 }
@@ -730,7 +728,7 @@ HTTP/1.1 200 OK
         <span class="kw-2">&amp;</span>HashMap::default(),
         <span class="prelude-val">Err</span>(<span class="macro">vec!</span>[(
             ResolverError::NoEnvironmentsDefined(<span class="string">"dev"</span>.to_string()).into(),
-            <span class="number">1</span>..<span class="number">15
+            <span class="number">12</span>..<span class="number">12
         </span>)])
     );
 
@@ -753,7 +751,7 @@ HTTP/1.1 200 OK
         <span class="kw-2">&amp;</span>HashMap::default(),
         <span class="prelude-val">Err</span>(<span class="macro">vec!</span>[(
             ResolverError::NoEnvironmentsDefined(<span class="string">"dev"</span>.to_string()).into(),
-            <span class="number">1</span>..<span class="number">22
+            <span class="number">12</span>..<span class="number">19
         </span>)])
     );
 
@@ -780,7 +778,7 @@ HTTP/1.1 200 OK
         <span class="kw-2">&amp;</span>HashMap::default(),
         <span class="prelude-val">Err</span>(<span class="macro">vec!</span>[(
             ResolverError::InvalidEnvError(<span class="string">"dev"</span>.to_string()).into(),
-            <span class="number">1</span>..<span class="number">62
+            <span class="number">12</span>..<span class="number">59
         </span>)])
     );
 }

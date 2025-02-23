@@ -138,7 +138,9 @@
 <a href="#137" id="137">137</a>
 <a href="#138" id="138">138</a>
 <a href="#139" id="139">139</a>
-<a href="#140" id="140">140</a></pre></div><pre class="rust"><code><span class="kw">use </span>codespan_reporting::diagnostic::{Diagnostic, Label};
+<a href="#140" id="140">140</a>
+<a href="#141" id="141">141</a>
+<a href="#142" id="142">142</a></pre></div><pre class="rust"><code><span class="kw">use </span>codespan_reporting::diagnostic::{Diagnostic, Label};
 <span class="kw">use </span>errors::{ParseError, ReqlangError, ResolverError};
 <span class="kw">use </span>serde::{Deserialize, Serialize};
 <span class="kw">use </span>span::{Span, Spanned};
@@ -257,7 +259,9 @@
     </span><span class="kw">fn </span>it_works() {
         <span class="kw">let </span>source = String::from(<span class="string">""</span>);
 
-        <span class="kw">let </span>errs = parse(<span class="kw-2">&amp;</span>source).unwrap_err();
+        <span class="kw">let </span>ast = ast::Ast::new(<span class="kw-2">&amp;</span>source);
+
+        <span class="kw">let </span>errs = parse(<span class="kw-2">&amp;</span>ast).unwrap_err();
 
         <span class="macro">assert_eq!</span>(
             <span class="macro">vec!</span>[Diagnosis {
