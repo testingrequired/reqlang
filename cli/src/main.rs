@@ -80,6 +80,16 @@ fn export_command(matches: &ArgMatches) {
     };
 }
 
+fn ast_command(matches: &ArgMatches) {
+    let path = matches.get_one::<String>("path").unwrap();
+    let contents = fs::read_to_string(path).expect("Should have been able to read the file");
+    let ast = Ast::new(&contents);
+
+    let json = serde_json::to_string_pretty(&ast).unwrap();
+
+    println!("{json}");
+}
+
 fn parse_command(matches: &ArgMatches) {
     let path = matches.get_one::<String>("path").unwrap();
     let contents = fs::read_to_string(path).expect("Should have been able to read the file");
@@ -230,6 +240,11 @@ async fn main() {
                 ),
         )
         .subcommand(
+            Command::new("ast")
+                .about("Produce an AST for a request file")
+                .arg(path_arg.clone()),
+        )
+        .subcommand(
             Command::new("parse")
                 .about("Parse a request file")
                 .arg(path_arg.clone()),
@@ -279,6 +294,7 @@ async fn main() {
 
     match matches.subcommand() {
         Some(("export", sub_matches)) => export_command(sub_matches),
+        Some(("ast", sub_matches)) => ast_command(sub_matches),
         Some(("parse", sub_matches)) => parse_command(sub_matches),
         Some(("run", sub_matches)) => run_command(sub_matches).await,
         _ => eprintln!("Invalid subcommand. Use --help for more information."),

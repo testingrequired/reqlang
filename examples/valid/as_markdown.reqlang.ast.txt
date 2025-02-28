@@ -1,0 +1,50 @@
+[
+  [
+    {
+      "Comment": "# Request Files Are Markdown Files\n\nAnything outside of the config, request, or response code blocks is treated as markdown. This lets you document your request files in a way that is easy to read and understand.\n\n## Config\n\nPrompt the user for the `status_code` to return.\n\n"
+    },
+    {
+      "start": 0,
+      "end": 275
+    }
+  ],
+  [
+    {
+      "ConfigBlock": [
+        "[prompts]\n# Status code the response will return\nstatus_code = \"\"",
+        {
+          "start": 286,
+          "end": 352
+        }
+      ]
+    },
+    {
+      "start": 275,
+      "end": 355
+    }
+  ],
+  [
+    {
+      "Comment": "\n\n## Request\n\nThis will respond with the prompted `status_code`.\n\n"
+    },
+    {
+      "start": 355,
+      "end": 421
+    }
+  ],
+  [
+    {
+      "RequestBlock": [
+        "GET https://httpbin.org/status/{{?status_code}} HTTP/1.1",
+        {
+          "start": 433,
+          "end": 490
+        }
+      ]
+    },
+    {
+      "start": 421,
+      "end": 493
+    }
+  ]
+]

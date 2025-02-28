@@ -251,6 +251,7 @@ Usage: reqlang [COMMAND]
 
 Commands:
   export  Export request to specified format
+  ast     Produce an AST for a request file
   parse   Parse a request file
   run     Run a request file
   help    Print this message or the help of the given subcommand(s)
@@ -574,6 +575,110 @@ reqlang parse examples/invalid/empty.reqlang
     "severity": 1,
     "message": "ParseError: Request file is an empty file"
   }
+]
+```
+
+#### AST
+
+Produce an AST for a request file.
+
+```
+Usage: reqlang ast <path>
+
+Arguments:
+  <path>  Path to request file
+
+Options:
+  -h, --help  Print help
+```
+
+##### Examples
+
+```shell
+reqlang ast examples/valid/as_markdown.reqlang
+```
+
+```json
+[
+  [
+    {
+      "Comment": "# Request Files Are Markdown Files\n\nAnything outside of the config, request, or response code blocks is treated as markdown. This lets you document your request files in a way that is easy to read and understand.\n\n## Config\n\nPrompt the user for the `status_code` to return.\n\n"
+    },
+    {
+      "start": 0,
+      "end": 275
+    }
+  ],
+  [
+    {
+      "ConfigBlock": [
+        "[prompts]\n# Status code the response will return\nstatus_code = \"\"",
+        {
+          "start": 286,
+          "end": 352
+        }
+      ]
+    },
+    {
+      "start": 275,
+      "end": 355
+    }
+  ],
+  [
+    {
+      "Comment": "\n\n## Request\n\nThis will respond with the prompted `status_code`.\n\n"
+    },
+    {
+      "start": 355,
+      "end": 421
+    }
+  ],
+  [
+    {
+      "RequestBlock": [
+        "GET https://httpbin.org/status/{{?status_code}} HTTP/1.1",
+        {
+          "start": 433,
+          "end": 490
+        }
+      ]
+    },
+    {
+      "start": 421,
+      "end": 493
+    }
+  ]
+]
+```
+
+##### Filtering
+
+###### Comments
+
+```shell
+reqlang ast examples/valid/as_markdown.reqlang | jq 'map(select(.[0] | has("Comment")))'
+```
+
+```json
+[
+  [
+    {
+      "Comment": "# Request Files Are Markdown Files\n\nAnything outside of the config, request, or response code blocks is treated as markdown. This lets you document your request files in a way that is easy to read and understand.\n\n## Config\n\nPrompt the user for the `status_code` to return.\n\n"
+    },
+    {
+      "start": 0,
+      "end": 275
+    }
+  ],
+  [
+    {
+      "Comment": "\n\n## Request\n\nThis will respond with the prompted `status_code`.\n\n"
+    },
+    {
+      "start": 355,
+      "end": 421
+    }
+  ]
 ]
 ```
 

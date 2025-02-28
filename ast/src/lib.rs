@@ -1,11 +1,16 @@
 use extract_codeblocks::extract_codeblocks;
+use serde::{Deserialize, Serialize};
 use span::{Span, Spanned};
 
 /// Abstract syntax tree for a request file
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct Ast(Vec<Spanned<AstNode>>);
 
 impl Ast {
+    pub fn from(nodes: Vec<Spanned<AstNode>>) -> Self {
+        Self(nodes)
+    }
+
     /// Parse a string in to an abstract syntax tree
     pub fn new(input: impl AsRef<str>) -> Self {
         let mut ast = Self(vec![]);
@@ -92,7 +97,7 @@ impl Ast {
     }
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub enum AstNode {
     /// Any text that isn't a [AstNode::RequestBlock], [AstNode::ResponseBlock], or [AstNode::ConfigBlock].
     Comment(String),
