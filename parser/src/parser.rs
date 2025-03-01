@@ -37,7 +37,7 @@ pub fn parse(ast: &ast::Ast) -> Result<ParsedRequestFile, Vec<Spanned<ReqlangErr
             let mut parse_errors: Vec<Spanned<ReqlangError>> = vec![];
 
             let response = ast.response().cloned();
-            let config = ast.config().cloned();
+            let config = ast.config_text();
 
             let request_refs = parse_references(request);
             let response_refs = parse_references(&response.clone().unwrap_or_default());

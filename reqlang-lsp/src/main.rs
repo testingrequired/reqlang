@@ -10,18 +10,22 @@ use reqlang::{
     export, parse, template, Ast, Fetch, HttpRequestFetcher, ParseResult, ReqlangError,
     RequestFormat, RequestParamsFromClient, Spanned,
 };
+use reqlang_lsp::{generate_semantic_tokens, LEGEND_TYPE};
 use reqwest::Url;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tokio::sync::Mutex;
-use tower_lsp::jsonrpc::Result as RpcResult;
-use tower_lsp::lsp_types::notification::Notification;
+use tower_lsp::lsp_types::{
+    notification::Notification, SemanticTokens, SemanticTokensFullOptions, SemanticTokensLegend,
+    SemanticTokensOptions, SemanticTokensParams, SemanticTokensResult, WorkDoneProgressOptions,
+};
 use tower_lsp::lsp_types::{
     Diagnostic, DiagnosticSeverity, DidChangeTextDocumentParams, DidOpenTextDocumentParams,
     DidSaveTextDocumentParams, ExecuteCommandOptions, ExecuteCommandParams, InitializeParams,
     InitializeResult, MessageType, Position, Range, SaveOptions, ServerCapabilities, ServerInfo,
     TextDocumentSyncKind, TextDocumentSyncOptions,
 };
+use tower_lsp::{jsonrpc::Result as RpcResult, lsp_types::SemanticTokensServerCapabilities};
 use tower_lsp::{Client, LanguageServer, LspService, Server};
 
 struct Backend {
@@ -112,6 +116,21 @@ impl LanguageServer for Backend {
                     ],
                     work_done_progress_options: Default::default(),
                 }),
+                semantic_tokens_provider: Some(
+                    SemanticTokensServerCapabilities::SemanticTokensOptions(
+                        SemanticTokensOptions {
+                            work_done_progress_options: WorkDoneProgressOptions {
+                                work_done_progress: Some(true),
+                            },
+                            legend: SemanticTokensLegend {
+                                token_types: LEGEND_TYPE.into(),
+                                token_modifiers: vec![],
+                            },
+                            range: Some(true),
+                            full: Some(SemanticTokensFullOptions::Delta { delta: Some(true) }),
+                        },
+                    ),
+                ),
                 text_document_sync: Some(
                     tower_lsp::lsp_types::TextDocumentSyncCapability::Options(
                         TextDocumentSyncOptions {
@@ -165,6 +184,31 @@ impl LanguageServer for Backend {
 
         let mut file_texts = self.file_texts.lock().await;
         file_texts.insert(uri.clone(), source.clone());
+    }
+
+    async fn semantic_tokens_full(
+        &self,
+        params: SemanticTokensParams,
+    ) -> RpcResult<Option<SemanticTokensResult>> {
+        let uri = params.text_document.uri;
+
+        let file_texts = self.file_texts.lock().await;
+        let source = file_texts.get(&uri).expect("Should be present");
+        let ast = Ast::new(source);
+
+        let semantic_tokens = generate_semantic_tokens(&ast, source);
+
+        self.client
+            .log_message(
+                MessageType::INFO,
+                format!("SEMANTIC TOKENS: {:#?}", semantic_tokens),
+            )
+            .await;
+
+        Ok(Some(SemanticTokensResult::Tokens(SemanticTokens {
+            result_id: None,
+            data: semantic_tokens,
+        })))
     }
 
     async fn execute_command(&self, params: ExecuteCommandParams) -> RpcResult<Option<Value>> {

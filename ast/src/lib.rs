@@ -16,15 +16,18 @@ impl Ast {
         let mut ast = Self(vec![]);
 
         for (text, span) in extract_codeblocks(&input, "%request").iter() {
-            ast.push(AstNode::request(text, span.clone()));
+            let block_span = span.start..span.end;
+            ast.push(AstNode::request(text, block_span));
         }
 
         for (text, span) in extract_codeblocks(&input, "%config").iter() {
-            ast.push(AstNode::config(text, span.clone()));
+            let block_span = span.start..span.end;
+            ast.push((AstNode::config(text), block_span));
         }
 
         for (text, span) in extract_codeblocks(&input, "%response").iter() {
-            ast.push(AstNode::response(text, span.clone()));
+            let block_span = span.start..span.end;
+            ast.push(AstNode::response(text, block_span));
         }
 
         // Sort AST nodes by their positions
@@ -34,18 +37,23 @@ impl Ast {
 
         // Find comment nodes
         for (_, node_span) in ast.0.clone().iter() {
-            let start = node_span.start;
-
-            if index < start {
-                let new_span = index..start;
+            if index < node_span.start {
+                let new_span = index..node_span.start;
                 let comment = input.as_ref()[new_span.clone()].to_string();
                 ast.push(AstNode::comment(comment, new_span.clone()));
-                index = node_span.end;
+                index = node_span.end + 1;
             }
         }
 
         // Sort AST nodes by their positions
         ast.0.sort_by(|a, b| a.1.start.cmp(&b.1.start));
+
+        if index < input.as_ref().len() {
+            let last_comment = input.as_ref()[index..].to_string();
+            if !last_comment.trim().is_empty() {
+                ast.push(AstNode::comment(last_comment, index..input.as_ref().len()));
+            }
+        }
 
         ast
     }
@@ -60,9 +68,21 @@ impl Ast {
     }
 
     /// Get the [AstNode::ConfigBlock], if present
-    pub fn config(&self) -> Option<&Spanned<String>> {
-        self.iter().find_map(|(node, _)| match &node {
-            AstNode::ConfigBlock(config) => Some(config),
+    pub fn config(&self) -> Option<&Spanned<AstNode>> {
+        self.iter()
+            .find(|(node, _)| matches!(node, AstNode::ConfigBlock(_)))
+    }
+
+    /// Get the [AstNode::ConfigBlock], if present
+    pub fn config_text(&self) -> Option<Spanned<String>> {
+        self.config().iter().find_map(|(node, span)| match node {
+            AstNode::ConfigBlock(text) => {
+                let relative_span = node.relative_span();
+                let absolute_span =
+                    span.start + relative_span.start..span.start + relative_span.end;
+
+                Some((text.clone(), absolute_span))
+            }
             _ => None,
         })
     }
@@ -102,7 +122,7 @@ pub enum AstNode {
     /// Any text that isn't a [AstNode::RequestBlock], [AstNode::ResponseBlock], or [AstNode::ConfigBlock].
     Comment(String),
     /// A code block delimited configuration
-    ConfigBlock(Spanned<String>),
+    ConfigBlock(String),
     /// A code block delimited request
     RequestBlock(Spanned<String>),
     /// A code block delimited response
@@ -110,25 +130,38 @@ pub enum AstNode {
 }
 
 impl AstNode {
+    pub fn relative_span(&self) -> Span {
+        match &self {
+            AstNode::Comment(text) => 0..text.len(),
+            AstNode::ConfigBlock(text) => {
+                let prefix = "```%config\n";
+                let suffix = "```\n";
+
+                let start = prefix.len();
+                let end = start + text.len() + suffix.len();
+
+                start..end
+            }
+            AstNode::RequestBlock(_) => todo!(),
+            AstNode::ResponseBlock(_) => todo!(),
+        }
+    }
+
+    pub fn absolute_span(&self, span: &Span) -> Span {
+        let relative_span = self.relative_span();
+        let absolute_span = span.start + relative_span.start..span.start + relative_span.end;
+
+        absolute_span
+    }
+
     /// Utility function to create a [Spanned] [AstNode::Comment] from the given text and [Span].
     pub fn comment(text: impl AsRef<str>, span: Span) -> Spanned<Self> {
         (Self::Comment(text.as_ref().to_string()), span.clone())
     }
 
-    /// Utility function to create a [Spanned] [AstNode::ConfigBlock] from the given text and [Span].
-    ///
-    /// This automatically handles calculating the [Span] for the code block text
-    pub fn config(text: impl AsRef<str>, span: Span) -> Spanned<Self> {
-        let prefix = "```%config";
-        let suffix = "```";
-
-        let start = span.start + prefix.len() + 1;
-        let end = span.end - suffix.len();
-
-        (
-            Self::ConfigBlock((text.as_ref().to_string(), start..end)),
-            span.clone(),
-        )
+    /// Utility function to create a [AstNode::ConfigBlock] from the given text.
+    pub fn config(text: impl AsRef<str>) -> Self {
+        Self::ConfigBlock(text.as_ref().to_string())
     }
 
     /// Utility function to create a [Spanned] [AstNode::RequestBlock] from the given text and [Span].
@@ -139,7 +172,7 @@ impl AstNode {
         let suffix = "```";
 
         let start = span.start + prefix.len() + 1;
-        let end = span.end - suffix.len();
+        let end = span.end - suffix.len() + 1;
 
         (
             Self::RequestBlock((text.as_ref().to_string(), start..end)),
@@ -155,7 +188,7 @@ impl AstNode {
         let suffix = "```";
 
         let start = span.start + prefix.len() + 1;
-        let end = span.end - suffix.len();
+        let end = span.end - suffix.len() + 1;
 
         (
             Self::ResponseBlock((text.as_ref().to_string(), start..end)),
@@ -185,6 +218,21 @@ mod ast_tests {
     }
 
     #[test]
+    fn test_a() {
+        let input = "Foo\n```%request\nREQUEST\n```\nBar".to_string();
+
+        let ast_result = Ast::new(input);
+        assert_eq!(
+            Ast(vec![
+                AstNode::comment("Foo\n", 0..4),
+                AstNode::request("REQUEST", 4..28),
+                AstNode::comment("Bar", 28..31),
+            ]),
+            ast_result
+        );
+    }
+
+    #[test]
     fn test_request_without_response_or_config() {
         let input = textwrap::dedent(
             "
@@ -198,7 +246,7 @@ mod ast_tests {
         assert_eq!(
             Ast(vec![
                 AstNode::comment("\n", 0..1),
-                AstNode::request("REQUEST", 1..24)
+                AstNode::request("REQUEST", 1..25)
             ]),
             ast_result
         );
@@ -211,6 +259,7 @@ mod ast_tests {
         ```%request
         REQUEST
         ```
+
         ```%response
         RESPONSE
         ```
@@ -221,9 +270,9 @@ mod ast_tests {
         assert_eq!(
             Ast(vec![
                 AstNode::comment("\n", 0..1),
-                AstNode::request("REQUEST", 1..24),
-                AstNode::comment("\n", 24..25),
-                AstNode::response("RESPONSE", 25..50),
+                AstNode::request("REQUEST", 1..25),
+                AstNode::comment("\n", 25..26),
+                AstNode::response("RESPONSE", 26..52),
             ]),
             ast_result
         );
@@ -236,9 +285,11 @@ mod ast_tests {
             ```%config
             CONFIG
             ```
+
             ```%request
             REQUEST
             ```
+
             ```%response
             RESPONSE
             ```
@@ -249,11 +300,40 @@ mod ast_tests {
         assert_eq!(
             Ast(vec![
                 AstNode::comment("\n", 0..1),
-                AstNode::config("CONFIG", 1..22),
-                AstNode::comment("\n", 22..23),
-                AstNode::request("REQUEST", 23..46),
-                AstNode::comment("\n", 46..47),
-                AstNode::response("RESPONSE", 47..72),
+                AstNode::config("CONFIG", 1..23),
+                AstNode::comment("\n", 23..24),
+                AstNode::request("REQUEST", 24..48),
+                AstNode::comment("\n", 48..49),
+                AstNode::response("RESPONSE", 49..75),
+            ]),
+            ast_result
+        );
+    }
+
+    #[test]
+    fn test_request_with_response_and_config_no_newlines_between() {
+        let input = textwrap::dedent(
+            "
+            ```%config
+            CONFIG
+            ```
+            ```%request
+            REQUEST
+            ```
+            ```%response
+            RESPONSE
+            ```
+            ",
+        )
+        .trim()
+        .to_string();
+
+        let ast_result = Ast::new(input);
+        assert_eq!(
+            Ast(vec![
+                AstNode::config("CONFIG", 0..22),
+                AstNode::request("REQUEST", 23..47),
+                AstNode::response("RESPONSE", 47..73)
             ]),
             ast_result
         );
@@ -296,7 +376,7 @@ mod ast_tests {
             Ast(vec![
                 AstNode::comment("\nA\n\n", 0..4),
                 (
-                    AstNode::ConfigBlock((
+                    AstNode::ConfigBlock(
                         textwrap::dedent(
                             r#"
                             vars = ["foo"]
@@ -306,20 +386,19 @@ mod ast_tests {
                             "#
                         )
                         .trim()
-                        .to_string(),
-                        15..50
-                    )),
-                    4..53
+                        .to_string()
+                    ),
+                    4..54
                 ),
-                AstNode::comment("\n\nB\n\n", 53..58),
+                AstNode::comment("\nB\n\n", 54..58),
                 (
                     AstNode::RequestBlock((
                         "GET https://example.com HTTP/1.1".to_string(),
-                        70..103
+                        70..104
                     )),
-                    58..106
+                    58..107
                 ),
-                AstNode::comment("\n\nC\n\n", 106..111),
+                AstNode::comment("\nC\n\n", 107..111),
                 (
                     AstNode::ResponseBlock((
                         textwrap::dedent(
@@ -332,12 +411,28 @@ mod ast_tests {
                         )
                         .trim()
                         .to_string(),
-                        124..186
+                        124..187
                     )),
-                    111..189
+                    111..190
                 ),
+                AstNode::comment("\nD\n", 190..193),
             ]),
             ast_result
+        );
+    }
+}
+
+#[cfg(test)]
+mod ast_node_tests {
+    use super::*;
+
+    use pretty_assertions::assert_eq;
+
+    #[test]
+    fn config_block_no_span() {
+        assert_eq!(
+            AstNode::ConfigBlock("CONFIG TEXT".to_string()),
+            AstNode::config_relative_span("CONFIG TEXT")
         );
     }
 }

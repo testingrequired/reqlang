@@ -1,10 +1,11 @@
+# Mismatch Response Assertion
+
 This request file is to test a failing response assertion.
 
 ```%request
 GET https://httpbin.org/json HTTP/1.1
 content-type: application/json
 ```
-
 
 The status code in the response assertion doesn't match the status code specified in the request.
 

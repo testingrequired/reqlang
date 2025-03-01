@@ -1,3 +1,7 @@
+# HTML
+
+An example request file to retrieve HTML.
+
 ```%request
 GET https://httpbin.org/html HTTP/1.1
 ```

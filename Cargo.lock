@@ -2924,6 +2924,7 @@ dependencies = [
  "serde",
  "serde_json",
  "str-idxpos",
+ "textwrap",
  "tokio",
  "tower-lsp",
 ]
