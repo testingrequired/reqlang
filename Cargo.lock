@@ -2918,12 +2918,10 @@ name = "reqlang-lsp"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "pretty_assertions",
  "reqlang",
  "reqwest",
  "serde",
  "serde_json",
- "str-idxpos",
  "tokio",
  "tower-lsp",
 ]
