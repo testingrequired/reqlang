@@ -293,64 +293,9 @@
 <a href="#292" id="292">292</a>
 <a href="#293" id="293">293</a>
 <a href="#294" id="294">294</a>
-<a href="#295" id="295">295</a>
-<a href="#296" id="296">296</a>
-<a href="#297" id="297">297</a>
-<a href="#298" id="298">298</a>
-<a href="#299" id="299">299</a>
-<a href="#300" id="300">300</a>
-<a href="#301" id="301">301</a>
-<a href="#302" id="302">302</a>
-<a href="#303" id="303">303</a>
-<a href="#304" id="304">304</a>
-<a href="#305" id="305">305</a>
-<a href="#306" id="306">306</a>
-<a href="#307" id="307">307</a>
-<a href="#308" id="308">308</a>
-<a href="#309" id="309">309</a>
-<a href="#310" id="310">310</a>
-<a href="#311" id="311">311</a>
-<a href="#312" id="312">312</a>
-<a href="#313" id="313">313</a>
-<a href="#314" id="314">314</a>
-<a href="#315" id="315">315</a>
-<a href="#316" id="316">316</a>
-<a href="#317" id="317">317</a>
-<a href="#318" id="318">318</a>
-<a href="#319" id="319">319</a>
-<a href="#320" id="320">320</a>
-<a href="#321" id="321">321</a>
-<a href="#322" id="322">322</a>
-<a href="#323" id="323">323</a>
-<a href="#324" id="324">324</a>
-<a href="#325" id="325">325</a>
-<a href="#326" id="326">326</a>
-<a href="#327" id="327">327</a>
-<a href="#328" id="328">328</a>
-<a href="#329" id="329">329</a>
-<a href="#330" id="330">330</a>
-<a href="#331" id="331">331</a>
-<a href="#332" id="332">332</a>
-<a href="#333" id="333">333</a>
-<a href="#334" id="334">334</a>
-<a href="#335" id="335">335</a>
-<a href="#336" id="336">336</a>
-<a href="#337" id="337">337</a>
-<a href="#338" id="338">338</a>
-<a href="#339" id="339">339</a>
-<a href="#340" id="340">340</a>
-<a href="#341" id="341">341</a>
-<a href="#342" id="342">342</a>
-<a href="#343" id="343">343</a>
-<a href="#344" id="344">344</a>
-<a href="#345" id="345">345</a>
-<a href="#346" id="346">346</a>
-<a href="#347" id="347">347</a>
-<a href="#348" id="348">348</a>
-<a href="#349" id="349">349</a>
-<a href="#350" id="350">350</a></pre></div><pre class="rust"><code><span class="kw">use </span>extract_codeblocks::extract_codeblocks;
+<a href="#295" id="295">295</a></pre></div><pre class="rust"><code><span class="kw">use </span>extract_codeblocks::extract_codeblocks;
 <span class="kw">use </span>serde::{Deserialize, Serialize};
-<span class="kw">use </span>span::{Span, Spanned};
+<span class="kw">use </span>span::Spanned;
 
 <span class="doccomment">/// Abstract syntax tree for a request file
 </span><span class="attr">#[derive(Debug, PartialEq, Serialize, Deserialize)]
@@ -389,7 +334,7 @@
             <span class="kw">if </span>index &lt; start {
                 <span class="kw">let </span>new_span = index..start;
                 <span class="kw">let </span>comment = input.as_ref()[new_span.clone()].to_string();
-                ast.push(AstNode::comment(comment, new_span.clone()));
+                ast.push((AstNode::Comment(comment), new_span.clone()));
                 index = node_span.end;
             }
         }
@@ -459,61 +404,6 @@
     </span>ResponseBlock(Spanned&lt;String&gt;),
 }
 
-<span class="kw">impl </span>AstNode {
-    <span class="doccomment">/// Utility function to create a [Spanned] [AstNode::Comment] from the given text and [Span].
-    </span><span class="kw">pub fn </span>comment(text: <span class="kw">impl </span>AsRef&lt;str&gt;, span: Span) -&gt; Spanned&lt;<span class="self">Self</span>&gt; {
-        (<span class="self">Self</span>::Comment(text.as_ref().to_string()), span.clone())
-    }
-
-    <span class="doccomment">/// Utility function to create a [Spanned] [AstNode::ConfigBlock] from the given text and [Span].
-    ///
-    /// This automatically handles calculating the [Span] for the code block text
-    </span><span class="kw">pub fn </span>config(text: <span class="kw">impl </span>AsRef&lt;str&gt;, span: Span) -&gt; Spanned&lt;<span class="self">Self</span>&gt; {
-        <span class="kw">let </span>prefix = <span class="string">"```%config"</span>;
-        <span class="kw">let </span>suffix = <span class="string">"```"</span>;
-
-        <span class="kw">let </span>start = span.start + prefix.len() + <span class="number">1</span>;
-        <span class="kw">let </span>end = span.end - suffix.len() + <span class="number">1</span>;
-
-        (
-            <span class="self">Self</span>::ConfigBlock((text.as_ref().to_string(), start..end)),
-            span.clone(),
-        )
-    }
-
-    <span class="doccomment">/// Utility function to create a [Spanned] [AstNode::RequestBlock] from the given text and [Span].
-    ///
-    /// This automatically handles calculating the [Span] for the code block text
-    </span><span class="kw">pub fn </span>request(text: <span class="kw">impl </span>AsRef&lt;str&gt;, span: Span) -&gt; Spanned&lt;<span class="self">Self</span>&gt; {
-        <span class="kw">let </span>prefix = <span class="string">"```%request"</span>;
-        <span class="kw">let </span>suffix = <span class="string">"```"</span>;
-
-        <span class="kw">let </span>start = span.start + prefix.len() + <span class="number">1</span>;
-        <span class="kw">let </span>end = span.end - suffix.len();
-
-        (
-            <span class="self">Self</span>::RequestBlock((text.as_ref().to_string(), start..end)),
-            span.clone(),
-        )
-    }
-
-    <span class="doccomment">/// Utility function to create a [Spanned] [AstNode::ResponseBlock] from the given text and [Span].
-    ///
-    /// This automatically handles calculating the [Span] for the code block text
-    </span><span class="kw">pub fn </span>response(text: <span class="kw">impl </span>AsRef&lt;str&gt;, span: Span) -&gt; Spanned&lt;<span class="self">Self</span>&gt; {
-        <span class="kw">let </span>prefix = <span class="string">"```%response"</span>;
-        <span class="kw">let </span>suffix = <span class="string">"```"</span>;
-
-        <span class="kw">let </span>start = span.start + prefix.len() + <span class="number">1</span>;
-        <span class="kw">let </span>end = span.end - suffix.len();
-
-        (
-            <span class="self">Self</span>::ResponseBlock((text.as_ref().to_string(), start..end)),
-            span.clone(),
-        )
-    }
-}
-
 <span class="attr">#[cfg(test)]
 </span><span class="kw">mod </span>ast_tests {
 
@@ -573,12 +463,12 @@ RESPONSE
         <span class="kw">let </span>ast_result = Ast::new(input);
         <span class="macro">assert_eq!</span>(
             Ast(<span class="macro">vec!</span>[
-                AstNode::comment(<span class="string">"\n"</span>, <span class="number">0</span>..<span class="number">1</span>),
+                (AstNode::Comment(<span class="string">"\n"</span>.to_string()), <span class="number">0</span>..<span class="number">1</span>),
                 (
                     AstNode::RequestBlock((<span class="string">"REQUEST"</span>.to_string(), <span class="number">13</span>..<span class="number">20</span>)),
                     <span class="number">1</span>..<span class="number">24
                 </span>),
-                AstNode::comment(<span class="string">"\n"</span>, <span class="number">24</span>..<span class="number">25</span>),
+                (AstNode::Comment(<span class="string">"\n"</span>.to_string()), <span class="number">24</span>..<span class="number">25</span>),
                 (
                     AstNode::ResponseBlock((<span class="string">"RESPONSE"</span>.to_string(), <span class="number">38</span>..<span class="number">46</span>)),
                     <span class="number">25</span>..<span class="number">50
@@ -607,14 +497,14 @@ RESPONSE
         <span class="kw">let </span>ast_result = Ast::new(input);
         <span class="macro">assert_eq!</span>(
             Ast(<span class="macro">vec!</span>[
-                AstNode::comment(<span class="string">"\n"</span>, <span class="number">0</span>..<span class="number">1</span>),
+                (AstNode::Comment(<span class="string">"\n"</span>.to_string()), <span class="number">0</span>..<span class="number">1</span>),
                 (AstNode::ConfigBlock((<span class="string">"CONFIG"</span>.to_string(), <span class="number">12</span>..<span class="number">18</span>)), <span class="number">1</span>..<span class="number">22</span>),
-                AstNode::comment(<span class="string">"\n"</span>, <span class="number">22</span>..<span class="number">23</span>),
+                (AstNode::Comment(<span class="string">"\n"</span>.to_string()), <span class="number">22</span>..<span class="number">23</span>),
                 (
                     AstNode::RequestBlock((<span class="string">"REQUEST"</span>.to_string(), <span class="number">35</span>..<span class="number">42</span>)),
                     <span class="number">23</span>..<span class="number">46
                 </span>),
-                AstNode::comment(<span class="string">"\n"</span>, <span class="number">46</span>..<span class="number">47</span>),
+                (AstNode::Comment(<span class="string">"\n"</span>.to_string()), <span class="number">46</span>..<span class="number">47</span>),
                 (
                     AstNode::ResponseBlock((<span class="string">"RESPONSE"</span>.to_string(), <span class="number">60</span>..<span class="number">68</span>)),
                     <span class="number">47</span>..<span class="number">72
@@ -659,7 +549,7 @@ D
         <span class="kw">let </span>ast_result = Ast::new(source);
         <span class="macro">assert_eq!</span>(
             Ast(<span class="macro">vec!</span>[
-                AstNode::comment(<span class="string">"\nA\n\n"</span>, <span class="number">0</span>..<span class="number">4</span>),
+                (AstNode::Comment(<span class="string">"\nA\n\n"</span>.to_string()), <span class="number">0</span>..<span class="number">4</span>),
                 (
                     AstNode::ConfigBlock((
                         <span class="macro">concat!</span>(<span class="string">"vars = [\"foo\"]\n"</span>, <span class="string">"\n"</span>, <span class="string">"[envs]\n"</span>, <span class="string">"foo = \"bar\""</span>,)
@@ -668,7 +558,7 @@ D
                     </span>)),
                     <span class="number">4</span>..<span class="number">53
                 </span>),
-                AstNode::comment(<span class="string">"\n\nB\n\n"</span>, <span class="number">53</span>..<span class="number">58</span>),
+                (AstNode::Comment(<span class="string">"\n\nB\n\n"</span>.to_string()), <span class="number">53</span>..<span class="number">58</span>),
                 (
                     AstNode::RequestBlock((
                         <span class="string">"GET https://example.com HTTP/1.1"</span>.to_string(),
@@ -676,7 +566,7 @@ D
                     </span>)),
                     <span class="number">58</span>..<span class="number">106
                 </span>),
-                AstNode::comment(<span class="string">"\n\nC\n\n"</span>, <span class="number">106</span>..<span class="number">111</span>),
+                (AstNode::Comment(<span class="string">"\n\nC\n\n"</span>.to_string()), <span class="number">106</span>..<span class="number">111</span>),
                 (
                     AstNode::ResponseBlock((
                         textwrap::dedent(
