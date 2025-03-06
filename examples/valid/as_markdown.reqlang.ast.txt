@@ -14,7 +14,7 @@
         "[prompts]\n# Status code the response will return\nstatus_code = \"\"",
         {
           "start": 286,
-          "end": 352
+          "end": 351
         }
       ]
     },
@@ -38,7 +38,7 @@
         "GET https://httpbin.org/status/{{?status_code}} HTTP/1.1",
         {
           "start": 433,
-          "end": 490
+          "end": 489
         }
       ]
     },

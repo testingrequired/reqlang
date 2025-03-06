@@ -16,15 +16,15 @@ impl Ast {
         let mut ast = Self(vec![]);
 
         for (text, span) in extract_codeblocks(&input, "%request").iter() {
-            ast.push(AstNode::request(text, span.clone()));
+            ast.push((AstNode::RequestBlock(text.clone()), span.clone()));
         }
 
         for (text, span) in extract_codeblocks(&input, "%config").iter() {
-            ast.push(AstNode::config(text, span.clone()));
+            ast.push((AstNode::ConfigBlock(text.clone()), span.clone()));
         }
 
         for (text, span) in extract_codeblocks(&input, "%response").iter() {
-            ast.push(AstNode::response(text, span.clone()));
+            ast.push((AstNode::ResponseBlock(text.clone()), span.clone()));
         }
 
         // Sort AST nodes by their positions
@@ -123,7 +123,7 @@ impl AstNode {
         let suffix = "```";
 
         let start = span.start + prefix.len() + 1;
-        let end = span.end - suffix.len();
+        let end = span.end - suffix.len() + 1;
 
         (
             Self::ConfigBlock((text.as_ref().to_string(), start..end)),
@@ -188,17 +188,20 @@ mod ast_tests {
     fn test_request_without_response_or_config() {
         let input = textwrap::dedent(
             "
-        ```%request
-        REQUEST
-        ```
+```%request
+REQUEST
+```
         ",
         );
 
         let ast_result = Ast::new(input);
         assert_eq!(
             Ast(vec![
-                AstNode::comment("\n", 0..1),
-                AstNode::request("REQUEST", 1..24)
+                (AstNode::Comment("\n".to_string()), 0..1),
+                (
+                    AstNode::RequestBlock(("REQUEST".to_string(), 13..20)),
+                    1..24
+                )
             ]),
             ast_result
         );
@@ -208,12 +211,12 @@ mod ast_tests {
     fn test_request_with_response_and_empty_config() {
         let input = textwrap::dedent(
             "
-        ```%request
-        REQUEST
-        ```
-        ```%response
-        RESPONSE
-        ```
+```%request
+REQUEST
+```
+```%response
+RESPONSE
+```
         ",
         );
 
@@ -221,9 +224,15 @@ mod ast_tests {
         assert_eq!(
             Ast(vec![
                 AstNode::comment("\n", 0..1),
-                AstNode::request("REQUEST", 1..24),
+                (
+                    AstNode::RequestBlock(("REQUEST".to_string(), 13..20)),
+                    1..24
+                ),
                 AstNode::comment("\n", 24..25),
-                AstNode::response("RESPONSE", 25..50),
+                (
+                    AstNode::ResponseBlock(("RESPONSE".to_string(), 38..46)),
+                    25..50
+                ),
             ]),
             ast_result
         );
@@ -233,15 +242,15 @@ mod ast_tests {
     fn test_request_with_response_and_config() {
         let input = textwrap::dedent(
             "
-            ```%config
-            CONFIG
-            ```
-            ```%request
-            REQUEST
-            ```
-            ```%response
-            RESPONSE
-            ```
+```%config
+CONFIG
+```
+```%request
+REQUEST
+```
+```%response
+RESPONSE
+```
             ",
         );
 
@@ -249,11 +258,17 @@ mod ast_tests {
         assert_eq!(
             Ast(vec![
                 AstNode::comment("\n", 0..1),
-                AstNode::config("CONFIG", 1..22),
+                (AstNode::ConfigBlock(("CONFIG".to_string(), 12..18)), 1..22),
                 AstNode::comment("\n", 22..23),
-                AstNode::request("REQUEST", 23..46),
+                (
+                    AstNode::RequestBlock(("REQUEST".to_string(), 35..42)),
+                    23..46
+                ),
                 AstNode::comment("\n", 46..47),
-                AstNode::response("RESPONSE", 47..72),
+                (
+                    AstNode::ResponseBlock(("RESPONSE".to_string(), 60..68)),
+                    47..72
+                ),
             ]),
             ast_result
         );
@@ -263,31 +278,31 @@ mod ast_tests {
     fn parse_request_file() {
         let source = textwrap::dedent(
             r#"
-            A
+A
 
-            ```%config
-            vars = ["foo"]
+```%config
+vars = ["foo"]
 
-            [envs]
-            foo = "bar"
-            ```
+[envs]
+foo = "bar"
+```
 
-            B
+B
 
-            ```%request
-            GET https://example.com HTTP/1.1
-            ```
+```%request
+GET https://example.com HTTP/1.1
+```
 
-            C
+C
 
-            ```%response
-            HTTP/1.1 200 OK
-            content-type: application/html
+```%response
+HTTP/1.1 200 OK
+content-type: application/html
 
-            <html></html>
-            ```
+<html></html>
+```
 
-            D
+D
             "#,
         );
 
@@ -297,17 +312,9 @@ mod ast_tests {
                 AstNode::comment("\nA\n\n", 0..4),
                 (
                     AstNode::ConfigBlock((
-                        textwrap::dedent(
-                            r#"
-                            vars = ["foo"]
-
-                            [envs]
-                            foo = "bar"
-                            "#
-                        )
-                        .trim()
-                        .to_string(),
-                        15..50
+                        concat!("vars = [\"foo\"]\n", "\n", "[envs]\n", "foo = \"bar\"",)
+                            .to_string(),
+                        15..49
                     )),
                     4..53
                 ),
@@ -315,7 +322,7 @@ mod ast_tests {
                 (
                     AstNode::RequestBlock((
                         "GET https://example.com HTTP/1.1".to_string(),
-                        70..103
+                        70..102
                     )),
                     58..106
                 ),
@@ -332,7 +339,7 @@ mod ast_tests {
                         )
                         .trim()
                         .to_string(),
-                        124..186
+                        124..185
                     )),
                     111..189
                 ),

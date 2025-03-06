@@ -73,7 +73,7 @@ mod tests {
                         ],
                         body: Some("[1, 2, 3]\n\n".to_string())
                     },
-                    207..305
+                    207..304
                 ),
                 response: Some((
                     HttpResponse {
@@ -83,7 +83,7 @@ mod tests {
                         headers: vec![],
                         body: Some("{{?expected_response_body}}\n\n\n".to_string())
                     },
-                    323..369
+                    323..368
                 )),
                 config: Some((
                     ParsedConfig {
@@ -111,15 +111,15 @@ mod tests {
                         secrets: Some(vec!["api_key".to_string()]),
                         auth: None
                     },
-                    12..190
+                    12..189
                 )),
                 refs: vec![
-                    (ReferenceType::Variable("query_value".to_string()), 207..305),
-                    (ReferenceType::Prompt("test_value".to_string()), 207..305),
-                    (ReferenceType::Secret("api_key".to_string()), 207..305),
+                    (ReferenceType::Variable("query_value".to_string()), 207..304),
+                    (ReferenceType::Prompt("test_value".to_string()), 207..304),
+                    (ReferenceType::Secret("api_key".to_string()), 207..304),
                     (
                         ReferenceType::Prompt("expected_response_body".to_string()),
-                        323..369
+                        323..368
                     )
                 ],
             }),

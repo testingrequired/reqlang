@@ -473,7 +473,7 @@ mod test {
                 errors::ReqlangError::ParseError(ParseError::UndefinedReferenceError(
                     ReferenceType::Variable("value".to_string())
                 )),
-                13..45
+                13..44
             )])
         );
 
@@ -491,7 +491,7 @@ mod test {
                 errors::ReqlangError::ParseError(ParseError::UndefinedReferenceError(
                     ReferenceType::Prompt("value".to_string())
                 )),
-                13..45
+                13..44
             )])
         );
 
@@ -509,7 +509,7 @@ mod test {
                 errors::ReqlangError::ParseError(ParseError::UndefinedReferenceError(
                     ReferenceType::Secret("value".to_string())
                 )),
-                13..45
+                13..44
             )])
         );
 
@@ -531,7 +531,7 @@ mod test {
                 errors::ReqlangError::ParseError(ParseError::UndefinedReferenceError(
                     ReferenceType::Variable("value".to_string())
                 )),
-                46..79
+                46..78
             )])
         );
 
@@ -553,7 +553,7 @@ mod test {
                 errors::ReqlangError::ParseError(ParseError::UndefinedReferenceError(
                     ReferenceType::Prompt("value".to_string())
                 )),
-                46..79
+                46..78
             )])
         );
 
@@ -575,7 +575,7 @@ mod test {
                 errors::ReqlangError::ParseError(ParseError::UndefinedReferenceError(
                     ReferenceType::Secret("value".to_string())
                 )),
-                46..79
+                46..78
             )])
         );
 
@@ -597,12 +597,12 @@ mod test {
             Err(vec![
                 (
                     ParseError::VariableNotDefinedInAnyEnvironment("base_url".to_string()).into(),
-                    12..32
+                    12..31
                 ),
                 (
                     ParseError::UnusedValueError(ReferenceType::Variable("base_url".to_string()))
                         .into(),
-                    12..32
+                    12..31
                 )
             ])
         );
@@ -625,7 +625,7 @@ mod test {
                 errors::ReqlangError::ParseError(ParseError::UnusedValueError(
                     ReferenceType::Prompt("base_url".to_string())
                 )),
-                12..36
+                12..35
             )])
         );
 
@@ -646,7 +646,7 @@ mod test {
                 errors::ReqlangError::ParseError(ParseError::UnusedValueError(
                     ReferenceType::Secret("base_url".to_string())
                 )),
-                12..35
+                12..34
             )])
         );
 
@@ -666,7 +666,7 @@ mod test {
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     "host".to_string()
                 )),
-                13..46
+                13..45
             )])
         );
 
@@ -684,7 +684,7 @@ mod test {
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     "host".to_string()
                 )),
-                13..46
+                13..45
             )])
         );
 
@@ -702,7 +702,7 @@ mod test {
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     "host".to_string()
                 )),
-                13..46
+                13..45
             )])
         );
 
@@ -720,7 +720,7 @@ mod test {
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     "accept-charset".to_string()
                 )),
-                13..69
+                13..68
             )])
         );
 
@@ -738,7 +738,7 @@ mod test {
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     "accept-encoding".to_string()
                 )),
-                13..70
+                13..69
             )])
         );
 
@@ -756,7 +756,7 @@ mod test {
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     "access-control-request-headers".to_string()
                 )),
-                13..85
+                13..84
             )])
         );
 
@@ -774,7 +774,7 @@ mod test {
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     "access-control-request-method".to_string()
                 )),
-                13..84
+                13..83
             )])
         );
 
@@ -792,7 +792,7 @@ mod test {
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     "connection".to_string()
                 )),
-                13..65
+                13..64
             )])
         );
 
@@ -810,7 +810,7 @@ mod test {
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     "content-length".to_string()
                 )),
-                13..69
+                13..68
             )])
         );
 
@@ -828,7 +828,7 @@ mod test {
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     "cookie".to_string()
                 )),
-                13..61
+                13..60
             )])
         );
 
@@ -846,7 +846,7 @@ mod test {
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     "date".to_string()
                 )),
-                13..59
+                13..58
             )])
         );
 
@@ -864,7 +864,7 @@ mod test {
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     "dnt".to_string()
                 )),
-                13..58
+                13..57
             )])
         );
 
@@ -882,7 +882,7 @@ mod test {
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     "expect".to_string()
                 )),
-                13..61
+                13..60
             )])
         );
 
@@ -900,7 +900,7 @@ mod test {
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     "keep-alive".to_string()
                 )),
-                13..65
+                13..64
             )])
         );
 
@@ -918,7 +918,7 @@ mod test {
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     "origin".to_string()
                 )),
-                13..61
+                13..60
             )])
         );
 
@@ -936,7 +936,7 @@ mod test {
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     "permission-policy".to_string()
                 )),
-                13..72
+                13..71
             )])
         );
 
@@ -954,7 +954,7 @@ mod test {
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     "te".to_string()
                 )),
-                13..57
+                13..56
             )])
         );
 
@@ -972,7 +972,7 @@ mod test {
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     "trailer".to_string()
                 )),
-                13..62
+                13..61
             )])
         );
 
@@ -990,7 +990,7 @@ mod test {
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     "transfer-encoding".to_string()
                 )),
-                13..72
+                13..71
             )])
         );
 
@@ -1008,7 +1008,7 @@ mod test {
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     "upgrade".to_string()
                 )),
-                13..62
+                13..61
             )])
         );
 
@@ -1026,7 +1026,7 @@ mod test {
                 errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     "via".to_string()
                 )),
-                13..58
+                13..57
             )])
         );
 
@@ -1103,7 +1103,7 @@ mod test {
                         headers: vec![],
                         body: Some("".to_string())
                     },
-                    13..47
+                    13..46
                 ),
                 response: None,
                 refs: vec![]
@@ -1133,7 +1133,7 @@ mod test {
                         headers: vec![],
                         body: Some("".to_string())
                     },
-                    13..45
+                    13..44
                 ),
                 response: Some((
                     HttpResponse {
@@ -1143,7 +1143,7 @@ mod test {
                         headers: vec![],
                         body: Some("".to_string())
                     },
-                    63..79
+                    63..78
                 )),
                 refs: vec![],
             })
@@ -1179,7 +1179,7 @@ mod test {
                         secrets: None,
                         auth: None
                     },
-                    12..83
+                    12..82
                 )),
                 request: (
                     HttpRequest {
@@ -1189,12 +1189,12 @@ mod test {
                         headers: vec![],
                         body: Some("".to_string())
                     },
-                    100..147
+                    100..146
                 ),
                 response: None,
                 refs: vec![
-                    (ReferenceType::Variable("bar".to_string()), 100..147),
-                    (ReferenceType::Variable("foo".to_string()), 12..83),
+                    (ReferenceType::Variable("bar".to_string()), 100..146),
+                    (ReferenceType::Variable("foo".to_string()), 12..82),
                 ],
             })
         );
@@ -1248,7 +1248,7 @@ mod test {
                         ],
                         body: Some("[1, 2, 3]\n\n".to_string())
                     },
-                    207..331
+                    207..330
                 ),
                 response: Some((
                     HttpResponse {
@@ -1258,7 +1258,7 @@ mod test {
                         headers: vec![],
                         body: Some("{{?expected_response_body}}\n\n\n".to_string())
                     },
-                    349..395
+                    349..394
                 )),
                 config: Some((
                     ParsedConfig {
@@ -1286,16 +1286,16 @@ mod test {
                         secrets: Some(vec!["api_key".to_string()]),
                         auth: None
                     },
-                    12..190
+                    12..189
                 )),
                 refs: vec![
-                    (ReferenceType::Variable("query_value".to_string()), 207..331),
-                    (ReferenceType::Prompt("test_value".to_string()), 207..331),
-                    (ReferenceType::Secret("api_key".to_string()), 207..331),
-                    (ReferenceType::Provider("provider".to_string()), 207..331),
+                    (ReferenceType::Variable("query_value".to_string()), 207..330),
+                    (ReferenceType::Prompt("test_value".to_string()), 207..330),
+                    (ReferenceType::Secret("api_key".to_string()), 207..330),
+                    (ReferenceType::Provider("provider".to_string()), 207..330),
                     (
                         ReferenceType::Prompt("expected_response_body".to_string()),
-                        349..395
+                        349..394
                     )
                 ],
             })
@@ -1349,7 +1349,7 @@ mod test {
                         secrets: None,
                         auth: None
                     },
-                    299..365
+                    299..364
                 )),
                 request: (
                     HttpRequest {
@@ -1359,7 +1359,7 @@ mod test {
                         headers: vec![],
                         body: Some(String::default())
                     },
-                    446..503
+                    446..502
                 ),
                 response: Some((
                     HttpResponse {
@@ -1369,10 +1369,10 @@ mod test {
                         headers: vec![("content-type".to_string(), "application/json".to_string())],
                         body: Some("\n".to_owned())
                     },
-                    588..636
+                    588..635
                 )),
                 refs: vec![
-                    (ReferenceType::Prompt(String::from("status_code")), 446..503)
+                    (ReferenceType::Prompt(String::from("status_code")), 446..502)
                 ]
             })
         );

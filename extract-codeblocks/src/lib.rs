@@ -1,8 +1,14 @@
 use markdown::{mdast::Node, to_mdast};
 use span::Spanned;
 
+pub type SpannedContent = Spanned<String>;
+pub type SpannedCodeBlock = Spanned<SpannedContent>;
+
 /// Extract matching lang code blocks from a markdown string.
-pub fn extract_codeblocks(input: impl AsRef<str>, lang: impl AsRef<str>) -> Vec<Spanned<String>> {
+pub fn extract_codeblocks(
+    input: impl AsRef<str>,
+    target_lang: impl AsRef<str>,
+) -> Vec<SpannedCodeBlock> {
     let mut results = vec![];
 
     let md_nodes: Vec<Node> = to_mdast(input.as_ref(), &markdown::ParseOptions::default())
@@ -12,17 +18,18 @@ pub fn extract_codeblocks(input: impl AsRef<str>, lang: impl AsRef<str>) -> Vec<
         .unwrap_or_default();
 
     for md_node in md_nodes {
-        if let Node::Code(codeblock) = md_node {
+        if let Node::Code(codeblock) = &md_node {
             let position = codeblock.position.as_ref().unwrap();
             let start = position.start.offset;
             let end = position.end.offset;
 
-            if let Some(codeblock_lang) = &codeblock.lang {
-                if codeblock_lang == lang.as_ref() {
-                    let codeblock_text = codeblock.value;
-                    let codeblock_span = start..end;
+            let text = codeblock.value.clone();
+            let text_start = (3 + 1) + target_lang.as_ref().len() + start;
+            let text_end = text_start + text.len();
 
-                    results.push((codeblock_text, codeblock_span));
+            if let Some(lang) = &codeblock.lang {
+                if lang == target_lang.as_ref() {
+                    results.push(((text, text_start..text_end), start..end));
                 }
             }
         }
@@ -40,18 +47,18 @@ mod tests {
     fn extract_codeblock_matching_lang() {
         let input = textwrap::dedent(
             "
-            ```javascript
-            const foo = 123;
-            ```
+```javascript
+const foo = 123;
+```
 
-            ```test_lang
-            TEST
-            ```
+```test_lang
+TEST
+```
             ",
         );
 
         assert_eq!(
-            vec![(String::from("TEST"), 37..58)],
+            vec![((String::from("TEST"), 50..54), 37..58)],
             extract_codeblocks(input, "test_lang")
         );
     }
@@ -60,28 +67,28 @@ mod tests {
     fn extract_multiple_codeblocks_matching_lang() {
         let input = textwrap::dedent(
             "
-            ```javascript
-            const foo = 123;
-            ```
+```javascript
+const foo = 123;
+```
 
-            ```test_lang
-            TEST
-            ```
-            
-            ```
-            TEST
-            ```
+```test_lang
+TEST
+```
 
-            ```test_lang
-            TEST TEST
-            ```
+```
+TEST
+```
+
+```test_lang
+TEST TEST
+```
             ",
         );
 
         assert_eq!(
             vec![
-                (String::from("TEST"), 37..58),
-                (String::from("TEST TEST"), 74..100)
+                ((String::from("TEST"), 50..54), 37..58),
+                ((String::from("TEST TEST"), 87..96), 74..100)
             ],
             extract_codeblocks(input, "test_lang")
         );
@@ -109,7 +116,7 @@ mod tests {
             ",
         );
 
-        let expected: Vec<Spanned<String>> = vec![];
+        let expected: Vec<SpannedCodeBlock> = vec![];
 
         assert_eq!(expected, extract_codeblocks(input, "nonmatching_lang"));
     }

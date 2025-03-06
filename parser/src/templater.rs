@@ -359,7 +359,7 @@ HTTP/1.1 200 OK
         &HashMap::default(),
         Err(vec![(
             ResolverError::NoEnvironmentsDefined("dev".to_string()).into(),
-            12..19
+            12..18
         )])
     );
 
@@ -386,7 +386,7 @@ HTTP/1.1 200 OK
         &HashMap::default(),
         Err(vec![(
             ResolverError::InvalidEnvError("dev".to_string()).into(),
-            12..59
+            12..58
         )])
     );
 }

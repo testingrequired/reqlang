@@ -312,8 +312,8 @@ mod cli_integration_tests {
             "        \"character\": 0\n",
             "      },\n",
             "      \"end\": {\n",
-            "        \"line\": 15,\n",
-            "        \"character\": 0\n",
+            "        \"line\": 14,\n",
+            "        \"character\": 26\n",
             "      }\n",
             "    },\n",
             "    \"severity\": 1,\n",
@@ -340,8 +340,8 @@ mod cli_integration_tests {
             "        \"character\": 0\n",
             "      },\n",
             "      \"end\": {\n",
-            "        \"line\": 4,\n",
-            "        \"character\": 0\n",
+            "        \"line\": 3,\n",
+            "        \"character\": 16\n",
             "      }\n",
             "    },\n",
             "    \"severity\": 1,\n",
@@ -491,8 +491,8 @@ mod cli_integration_tests {
             "        \"character\": 0\n",
             "      },\n",
             "      \"end\": {\n",
-            "        \"line\": 15,\n",
-            "        \"character\": 0\n",
+            "        \"line\": 14,\n",
+            "        \"character\": 26\n",
             "      }\n",
             "    },\n",
             "    \"severity\": 1,\n",
@@ -519,8 +519,8 @@ mod cli_integration_tests {
             "        \"character\": 0\n",
             "      },\n",
             "      \"end\": {\n",
-            "        \"line\": 4,\n",
-            "        \"character\": 0\n",
+            "        \"line\": 3,\n",
+            "        \"character\": 16\n",
             "      }\n",
             "    },\n",
             "    \"severity\": 1,\n",
@@ -542,8 +542,8 @@ mod cli_integration_tests {
                       "character": 0
                     },
                     "end": {
-                      "line": 2,
-                      "character": 0
+                      "line": 1,
+                      "character": 14
                     }
                   },
                   "severity": 1,
@@ -573,8 +573,8 @@ mod cli_integration_tests {
                       "character": 0
                     },
                     "end": {
-                      "line": 4,
-                      "character": 0
+                      "line": 3,
+                      "character": 6
                     }
                   },
                   "severity": 1,
@@ -604,8 +604,8 @@ mod cli_integration_tests {
                       "character": 0
                     },
                     "end": {
-                      "line": 7,
-                      "character": 0
+                      "line": 6,
+                      "character": 12
                     }
                   },
                   "severity": 1,
