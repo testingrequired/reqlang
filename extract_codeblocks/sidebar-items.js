@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["extract_codeblocks"]};
+window.SIDEBAR_ITEMS = {"fn":["extract_codeblocks"],"type":["SpannedCodeBlock","SpannedContent"]};

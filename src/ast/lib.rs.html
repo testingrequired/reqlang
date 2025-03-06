@@ -341,7 +341,14 @@
 <a href="#340" id="340">340</a>
 <a href="#341" id="341">341</a>
 <a href="#342" id="342">342</a>
-<a href="#343" id="343">343</a></pre></div><pre class="rust"><code><span class="kw">use </span>extract_codeblocks::extract_codeblocks;
+<a href="#343" id="343">343</a>
+<a href="#344" id="344">344</a>
+<a href="#345" id="345">345</a>
+<a href="#346" id="346">346</a>
+<a href="#347" id="347">347</a>
+<a href="#348" id="348">348</a>
+<a href="#349" id="349">349</a>
+<a href="#350" id="350">350</a></pre></div><pre class="rust"><code><span class="kw">use </span>extract_codeblocks::extract_codeblocks;
 <span class="kw">use </span>serde::{Deserialize, Serialize};
 <span class="kw">use </span>span::{Span, Spanned};
 
@@ -359,15 +366,15 @@
         <span class="kw">let </span><span class="kw-2">mut </span>ast = <span class="self">Self</span>(<span class="macro">vec!</span>[]);
 
         <span class="kw">for </span>(text, span) <span class="kw">in </span>extract_codeblocks(<span class="kw-2">&amp;</span>input, <span class="string">"%request"</span>).iter() {
-            ast.push(AstNode::request(text, span.clone()));
+            ast.push((AstNode::RequestBlock(text.clone()), span.clone()));
         }
 
         <span class="kw">for </span>(text, span) <span class="kw">in </span>extract_codeblocks(<span class="kw-2">&amp;</span>input, <span class="string">"%config"</span>).iter() {
-            ast.push(AstNode::config(text, span.clone()));
+            ast.push((AstNode::ConfigBlock(text.clone()), span.clone()));
         }
 
         <span class="kw">for </span>(text, span) <span class="kw">in </span>extract_codeblocks(<span class="kw-2">&amp;</span>input, <span class="string">"%response"</span>).iter() {
-            ast.push(AstNode::response(text, span.clone()));
+            ast.push((AstNode::ResponseBlock(text.clone()), span.clone()));
         }
 
         <span class="comment">// Sort AST nodes by their positions
@@ -466,7 +473,7 @@
         <span class="kw">let </span>suffix = <span class="string">"```"</span>;
 
         <span class="kw">let </span>start = span.start + prefix.len() + <span class="number">1</span>;
-        <span class="kw">let </span>end = span.end - suffix.len();
+        <span class="kw">let </span>end = span.end - suffix.len() + <span class="number">1</span>;
 
         (
             <span class="self">Self</span>::ConfigBlock((text.as_ref().to_string(), start..end)),
@@ -531,17 +538,20 @@
     </span><span class="kw">fn </span>test_request_without_response_or_config() {
         <span class="kw">let </span>input = textwrap::dedent(
             <span class="string">"
-        ```%request
-        REQUEST
-        ```
+```%request
+REQUEST
+```
         "</span>,
         );
 
         <span class="kw">let </span>ast_result = Ast::new(input);
         <span class="macro">assert_eq!</span>(
             Ast(<span class="macro">vec!</span>[
-                AstNode::comment(<span class="string">"\n"</span>, <span class="number">0</span>..<span class="number">1</span>),
-                AstNode::request(<span class="string">"REQUEST"</span>, <span class="number">1</span>..<span class="number">24</span>)
+                (AstNode::Comment(<span class="string">"\n"</span>.to_string()), <span class="number">0</span>..<span class="number">1</span>),
+                (
+                    AstNode::RequestBlock((<span class="string">"REQUEST"</span>.to_string(), <span class="number">13</span>..<span class="number">20</span>)),
+                    <span class="number">1</span>..<span class="number">24
+                </span>)
             ]),
             ast_result
         );
@@ -551,12 +561,12 @@
     </span><span class="kw">fn </span>test_request_with_response_and_empty_config() {
         <span class="kw">let </span>input = textwrap::dedent(
             <span class="string">"
-        ```%request
-        REQUEST
-        ```
-        ```%response
-        RESPONSE
-        ```
+```%request
+REQUEST
+```
+```%response
+RESPONSE
+```
         "</span>,
         );
 
@@ -564,9 +574,15 @@
         <span class="macro">assert_eq!</span>(
             Ast(<span class="macro">vec!</span>[
                 AstNode::comment(<span class="string">"\n"</span>, <span class="number">0</span>..<span class="number">1</span>),
-                AstNode::request(<span class="string">"REQUEST"</span>, <span class="number">1</span>..<span class="number">24</span>),
+                (
+                    AstNode::RequestBlock((<span class="string">"REQUEST"</span>.to_string(), <span class="number">13</span>..<span class="number">20</span>)),
+                    <span class="number">1</span>..<span class="number">24
+                </span>),
                 AstNode::comment(<span class="string">"\n"</span>, <span class="number">24</span>..<span class="number">25</span>),
-                AstNode::response(<span class="string">"RESPONSE"</span>, <span class="number">25</span>..<span class="number">50</span>),
+                (
+                    AstNode::ResponseBlock((<span class="string">"RESPONSE"</span>.to_string(), <span class="number">38</span>..<span class="number">46</span>)),
+                    <span class="number">25</span>..<span class="number">50
+                </span>),
             ]),
             ast_result
         );
@@ -576,15 +592,15 @@
     </span><span class="kw">fn </span>test_request_with_response_and_config() {
         <span class="kw">let </span>input = textwrap::dedent(
             <span class="string">"
-            ```%config
-            CONFIG
-            ```
-            ```%request
-            REQUEST
-            ```
-            ```%response
-            RESPONSE
-            ```
+```%config
+CONFIG
+```
+```%request
+REQUEST
+```
+```%response
+RESPONSE
+```
             "</span>,
         );
 
@@ -592,11 +608,17 @@
         <span class="macro">assert_eq!</span>(
             Ast(<span class="macro">vec!</span>[
                 AstNode::comment(<span class="string">"\n"</span>, <span class="number">0</span>..<span class="number">1</span>),
-                AstNode::config(<span class="string">"CONFIG"</span>, <span class="number">1</span>..<span class="number">22</span>),
+                (AstNode::ConfigBlock((<span class="string">"CONFIG"</span>.to_string(), <span class="number">12</span>..<span class="number">18</span>)), <span class="number">1</span>..<span class="number">22</span>),
                 AstNode::comment(<span class="string">"\n"</span>, <span class="number">22</span>..<span class="number">23</span>),
-                AstNode::request(<span class="string">"REQUEST"</span>, <span class="number">23</span>..<span class="number">46</span>),
+                (
+                    AstNode::RequestBlock((<span class="string">"REQUEST"</span>.to_string(), <span class="number">35</span>..<span class="number">42</span>)),
+                    <span class="number">23</span>..<span class="number">46
+                </span>),
                 AstNode::comment(<span class="string">"\n"</span>, <span class="number">46</span>..<span class="number">47</span>),
-                AstNode::response(<span class="string">"RESPONSE"</span>, <span class="number">47</span>..<span class="number">72</span>),
+                (
+                    AstNode::ResponseBlock((<span class="string">"RESPONSE"</span>.to_string(), <span class="number">60</span>..<span class="number">68</span>)),
+                    <span class="number">47</span>..<span class="number">72
+                </span>),
             ]),
             ast_result
         );
@@ -606,31 +628,31 @@
     </span><span class="kw">fn </span>parse_request_file() {
         <span class="kw">let </span>source = textwrap::dedent(
             <span class="string">r#"
-            A
+A
 
-            ```%config
-            vars = ["foo"]
+```%config
+vars = ["foo"]
 
-            [envs]
-            foo = "bar"
-            ```
+[envs]
+foo = "bar"
+```
 
-            B
+B
 
-            ```%request
-            GET https://example.com HTTP/1.1
-            ```
+```%request
+GET https://example.com HTTP/1.1
+```
 
-            C
+C
 
-            ```%response
-            HTTP/1.1 200 OK
-            content-type: application/html
+```%response
+HTTP/1.1 200 OK
+content-type: application/html
 
-            &lt;html&gt;&lt;/html&gt;
-            ```
+&lt;html&gt;&lt;/html&gt;
+```
 
-            D
+D
             "#</span>,
         );
 
@@ -640,17 +662,9 @@
                 AstNode::comment(<span class="string">"\nA\n\n"</span>, <span class="number">0</span>..<span class="number">4</span>),
                 (
                     AstNode::ConfigBlock((
-                        textwrap::dedent(
-                            <span class="string">r#"
-                            vars = ["foo"]
-
-                            [envs]
-                            foo = "bar"
-                            "#
-                        </span>)
-                        .trim()
-                        .to_string(),
-                        <span class="number">15</span>..<span class="number">50
+                        <span class="macro">concat!</span>(<span class="string">"vars = [\"foo\"]\n"</span>, <span class="string">"\n"</span>, <span class="string">"[envs]\n"</span>, <span class="string">"foo = \"bar\""</span>,)
+                            .to_string(),
+                        <span class="number">15</span>..<span class="number">49
                     </span>)),
                     <span class="number">4</span>..<span class="number">53
                 </span>),
@@ -658,7 +672,7 @@
                 (
                     AstNode::RequestBlock((
                         <span class="string">"GET https://example.com HTTP/1.1"</span>.to_string(),
-                        <span class="number">70</span>..<span class="number">103
+                        <span class="number">70</span>..<span class="number">102
                     </span>)),
                     <span class="number">58</span>..<span class="number">106
                 </span>),
@@ -675,7 +689,7 @@
                         </span>)
                         .trim()
                         .to_string(),
-                        <span class="number">124</span>..<span class="number">186
+                        <span class="number">124</span>..<span class="number">185
                     </span>)),
                     <span class="number">111</span>..<span class="number">189
                 </span>),

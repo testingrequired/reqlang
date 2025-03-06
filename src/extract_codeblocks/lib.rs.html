@@ -114,11 +114,24 @@
 <a href="#113" id="113">113</a>
 <a href="#114" id="114">114</a>
 <a href="#115" id="115">115</a>
-<a href="#116" id="116">116</a></pre></div><pre class="rust"><code><span class="kw">use </span>markdown::{mdast::Node, to_mdast};
+<a href="#116" id="116">116</a>
+<a href="#117" id="117">117</a>
+<a href="#118" id="118">118</a>
+<a href="#119" id="119">119</a>
+<a href="#120" id="120">120</a>
+<a href="#121" id="121">121</a>
+<a href="#122" id="122">122</a>
+<a href="#123" id="123">123</a></pre></div><pre class="rust"><code><span class="kw">use </span>markdown::{mdast::Node, to_mdast};
 <span class="kw">use </span>span::Spanned;
 
+<span class="kw">pub type </span>SpannedContent = Spanned&lt;String&gt;;
+<span class="kw">pub type </span>SpannedCodeBlock = Spanned&lt;SpannedContent&gt;;
+
 <span class="doccomment">/// Extract matching lang code blocks from a markdown string.
-</span><span class="kw">pub fn </span>extract_codeblocks(input: <span class="kw">impl </span>AsRef&lt;str&gt;, lang: <span class="kw">impl </span>AsRef&lt;str&gt;) -&gt; Vec&lt;Spanned&lt;String&gt;&gt; {
+</span><span class="kw">pub fn </span>extract_codeblocks(
+    input: <span class="kw">impl </span>AsRef&lt;str&gt;,
+    target_lang: <span class="kw">impl </span>AsRef&lt;str&gt;,
+) -&gt; Vec&lt;SpannedCodeBlock&gt; {
     <span class="kw">let </span><span class="kw-2">mut </span>results = <span class="macro">vec!</span>[];
 
     <span class="kw">let </span>md_nodes: Vec&lt;Node&gt; = to_mdast(input.as_ref(), <span class="kw-2">&amp;</span>markdown::ParseOptions::default())
@@ -128,17 +141,18 @@
         .unwrap_or_default();
 
     <span class="kw">for </span>md_node <span class="kw">in </span>md_nodes {
-        <span class="kw">if let </span>Node::Code(codeblock) = md_node {
+        <span class="kw">if let </span>Node::Code(codeblock) = <span class="kw-2">&amp;</span>md_node {
             <span class="kw">let </span>position = codeblock.position.as_ref().unwrap();
             <span class="kw">let </span>start = position.start.offset;
             <span class="kw">let </span>end = position.end.offset;
 
-            <span class="kw">if let </span><span class="prelude-val">Some</span>(codeblock_lang) = <span class="kw-2">&amp;</span>codeblock.lang {
-                <span class="kw">if </span>codeblock_lang == lang.as_ref() {
-                    <span class="kw">let </span>codeblock_text = codeblock.value;
-                    <span class="kw">let </span>codeblock_span = start..end;
+            <span class="kw">let </span>text = codeblock.value.clone();
+            <span class="kw">let </span>text_start = (<span class="number">3 </span>+ <span class="number">1</span>) + target_lang.as_ref().len() + start;
+            <span class="kw">let </span>text_end = text_start + text.len();
 
-                    results.push((codeblock_text, codeblock_span));
+            <span class="kw">if let </span><span class="prelude-val">Some</span>(lang) = <span class="kw-2">&amp;</span>codeblock.lang {
+                <span class="kw">if </span>lang == target_lang.as_ref() {
+                    results.push(((text, text_start..text_end), start..end));
                 }
             }
         }
@@ -156,18 +170,18 @@
     </span><span class="kw">fn </span>extract_codeblock_matching_lang() {
         <span class="kw">let </span>input = textwrap::dedent(
             <span class="string">"
-            ```javascript
-            const foo = 123;
-            ```
+```javascript
+const foo = 123;
+```
 
-            ```test_lang
-            TEST
-            ```
+```test_lang
+TEST
+```
             "</span>,
         );
 
         <span class="macro">assert_eq!</span>(
-            <span class="macro">vec!</span>[(String::from(<span class="string">"TEST"</span>), <span class="number">37</span>..<span class="number">58</span>)],
+            <span class="macro">vec!</span>[((String::from(<span class="string">"TEST"</span>), <span class="number">50</span>..<span class="number">54</span>), <span class="number">37</span>..<span class="number">58</span>)],
             extract_codeblocks(input, <span class="string">"test_lang"</span>)
         );
     }
@@ -176,28 +190,28 @@
     </span><span class="kw">fn </span>extract_multiple_codeblocks_matching_lang() {
         <span class="kw">let </span>input = textwrap::dedent(
             <span class="string">"
-            ```javascript
-            const foo = 123;
-            ```
+```javascript
+const foo = 123;
+```
 
-            ```test_lang
-            TEST
-            ```
-            
-            ```
-            TEST
-            ```
+```test_lang
+TEST
+```
 
-            ```test_lang
-            TEST TEST
-            ```
+```
+TEST
+```
+
+```test_lang
+TEST TEST
+```
             "</span>,
         );
 
         <span class="macro">assert_eq!</span>(
             <span class="macro">vec!</span>[
-                (String::from(<span class="string">"TEST"</span>), <span class="number">37</span>..<span class="number">58</span>),
-                (String::from(<span class="string">"TEST TEST"</span>), <span class="number">74</span>..<span class="number">100</span>)
+                ((String::from(<span class="string">"TEST"</span>), <span class="number">50</span>..<span class="number">54</span>), <span class="number">37</span>..<span class="number">58</span>),
+                ((String::from(<span class="string">"TEST TEST"</span>), <span class="number">87</span>..<span class="number">96</span>), <span class="number">74</span>..<span class="number">100</span>)
             ],
             extract_codeblocks(input, <span class="string">"test_lang"</span>)
         );
@@ -225,7 +239,7 @@
             "</span>,
         );
 
-        <span class="kw">let </span>expected: Vec&lt;Spanned&lt;String&gt;&gt; = <span class="macro">vec!</span>[];
+        <span class="kw">let </span>expected: Vec&lt;SpannedCodeBlock&gt; = <span class="macro">vec!</span>[];
 
         <span class="macro">assert_eq!</span>(expected, extract_codeblocks(input, <span class="string">"nonmatching_lang"</span>));
     }
