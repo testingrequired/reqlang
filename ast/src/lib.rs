@@ -1,6 +1,6 @@
 use extract_codeblocks::extract_codeblocks;
 use serde::{Deserialize, Serialize};
-use span::{Span, Spanned};
+use span::Spanned;
 
 /// Abstract syntax tree for a request file
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
@@ -39,7 +39,7 @@ impl Ast {
             if index < start {
                 let new_span = index..start;
                 let comment = input.as_ref()[new_span.clone()].to_string();
-                ast.push(AstNode::comment(comment, new_span.clone()));
+                ast.push((AstNode::Comment(comment), new_span.clone()));
                 index = node_span.end;
             }
         }
@@ -109,61 +109,6 @@ pub enum AstNode {
     ResponseBlock(Spanned<String>),
 }
 
-impl AstNode {
-    /// Utility function to create a [Spanned] [AstNode::Comment] from the given text and [Span].
-    pub fn comment(text: impl AsRef<str>, span: Span) -> Spanned<Self> {
-        (Self::Comment(text.as_ref().to_string()), span.clone())
-    }
-
-    /// Utility function to create a [Spanned] [AstNode::ConfigBlock] from the given text and [Span].
-    ///
-    /// This automatically handles calculating the [Span] for the code block text
-    pub fn config(text: impl AsRef<str>, span: Span) -> Spanned<Self> {
-        let prefix = "```%config";
-        let suffix = "```";
-
-        let start = span.start + prefix.len() + 1;
-        let end = span.end - suffix.len() + 1;
-
-        (
-            Self::ConfigBlock((text.as_ref().to_string(), start..end)),
-            span.clone(),
-        )
-    }
-
-    /// Utility function to create a [Spanned] [AstNode::RequestBlock] from the given text and [Span].
-    ///
-    /// This automatically handles calculating the [Span] for the code block text
-    pub fn request(text: impl AsRef<str>, span: Span) -> Spanned<Self> {
-        let prefix = "```%request";
-        let suffix = "```";
-
-        let start = span.start + prefix.len() + 1;
-        let end = span.end - suffix.len();
-
-        (
-            Self::RequestBlock((text.as_ref().to_string(), start..end)),
-            span.clone(),
-        )
-    }
-
-    /// Utility function to create a [Spanned] [AstNode::ResponseBlock] from the given text and [Span].
-    ///
-    /// This automatically handles calculating the [Span] for the code block text
-    pub fn response(text: impl AsRef<str>, span: Span) -> Spanned<Self> {
-        let prefix = "```%response";
-        let suffix = "```";
-
-        let start = span.start + prefix.len() + 1;
-        let end = span.end - suffix.len();
-
-        (
-            Self::ResponseBlock((text.as_ref().to_string(), start..end)),
-            span.clone(),
-        )
-    }
-}
-
 #[cfg(test)]
 mod ast_tests {
 
@@ -223,12 +168,12 @@ RESPONSE
         let ast_result = Ast::new(input);
         assert_eq!(
             Ast(vec![
-                AstNode::comment("\n", 0..1),
+                (AstNode::Comment("\n".to_string()), 0..1),
                 (
                     AstNode::RequestBlock(("REQUEST".to_string(), 13..20)),
                     1..24
                 ),
-                AstNode::comment("\n", 24..25),
+                (AstNode::Comment("\n".to_string()), 24..25),
                 (
                     AstNode::ResponseBlock(("RESPONSE".to_string(), 38..46)),
                     25..50
@@ -257,14 +202,14 @@ RESPONSE
         let ast_result = Ast::new(input);
         assert_eq!(
             Ast(vec![
-                AstNode::comment("\n", 0..1),
+                (AstNode::Comment("\n".to_string()), 0..1),
                 (AstNode::ConfigBlock(("CONFIG".to_string(), 12..18)), 1..22),
-                AstNode::comment("\n", 22..23),
+                (AstNode::Comment("\n".to_string()), 22..23),
                 (
                     AstNode::RequestBlock(("REQUEST".to_string(), 35..42)),
                     23..46
                 ),
-                AstNode::comment("\n", 46..47),
+                (AstNode::Comment("\n".to_string()), 46..47),
                 (
                     AstNode::ResponseBlock(("RESPONSE".to_string(), 60..68)),
                     47..72
@@ -309,7 +254,7 @@ D
         let ast_result = Ast::new(source);
         assert_eq!(
             Ast(vec![
-                AstNode::comment("\nA\n\n", 0..4),
+                (AstNode::Comment("\nA\n\n".to_string()), 0..4),
                 (
                     AstNode::ConfigBlock((
                         concat!("vars = [\"foo\"]\n", "\n", "[envs]\n", "foo = \"bar\"",)
@@ -318,7 +263,7 @@ D
                     )),
                     4..53
                 ),
-                AstNode::comment("\n\nB\n\n", 53..58),
+                (AstNode::Comment("\n\nB\n\n".to_string()), 53..58),
                 (
                     AstNode::RequestBlock((
                         "GET https://example.com HTTP/1.1".to_string(),
@@ -326,7 +271,7 @@ D
                     )),
                     58..106
                 ),
-                AstNode::comment("\n\nC\n\n", 106..111),
+                (AstNode::Comment("\n\nC\n\n".to_string()), 106..111),
                 (
                     AstNode::ResponseBlock((
                         textwrap::dedent(
