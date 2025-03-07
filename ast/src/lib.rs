@@ -7,51 +7,48 @@ use span::Spanned;
 pub struct Ast(Vec<Spanned<AstNode>>);
 
 impl Ast {
+    /// Create an [AST](Ast) from a collection of [nodes](AstNode)
     pub fn from(nodes: Vec<Spanned<AstNode>>) -> Self {
         Self(nodes)
     }
 
-    /// Parse a string in to an abstract syntax tree
+    /// Create an [AST](Ast) by parsing a string in to a collection of [nodes](AstNode)
     pub fn new(input: impl AsRef<str>) -> Self {
-        let mut ast = Self(vec![]);
+        let mut nodes: Vec<Spanned<AstNode>> = vec![];
 
         for (text, span) in extract_codeblocks(&input, "%request").iter() {
-            ast.push((AstNode::RequestBlock(text.clone()), span.clone()));
+            nodes.push((AstNode::RequestBlock(text.clone()), span.clone()));
         }
 
         for (text, span) in extract_codeblocks(&input, "%config").iter() {
-            ast.push((AstNode::ConfigBlock(text.clone()), span.clone()));
+            nodes.push((AstNode::ConfigBlock(text.clone()), span.clone()));
         }
 
         for (text, span) in extract_codeblocks(&input, "%response").iter() {
-            ast.push((AstNode::ResponseBlock(text.clone()), span.clone()));
+            nodes.push((AstNode::ResponseBlock(text.clone()), span.clone()));
         }
 
         // Sort AST nodes by their positions
-        ast.0.sort_by(|a, b| a.1.start.cmp(&b.1.start));
+        nodes.sort_by(|a, b| a.1.start.cmp(&b.1.start));
 
         let mut index = 0usize;
 
         // Find comment nodes
-        for (_, node_span) in ast.0.clone().iter() {
+        for (_, node_span) in nodes.clone().iter() {
             let start = node_span.start;
 
             if index < start {
                 let new_span = index..start;
                 let comment = input.as_ref()[new_span.clone()].to_string();
-                ast.push((AstNode::Comment(comment), new_span.clone()));
+                nodes.push((AstNode::Comment(comment), new_span.clone()));
                 index = node_span.end;
             }
         }
 
         // Sort AST nodes by their positions
-        ast.0.sort_by(|a, b| a.1.start.cmp(&b.1.start));
+        nodes.sort_by(|a, b| a.1.start.cmp(&b.1.start));
 
-        ast
-    }
-
-    fn push(&mut self, node: Spanned<AstNode>) {
-        self.0.push(node);
+        Self::from(nodes)
     }
 
     /// Iterate over the [nodes](AstNode)
