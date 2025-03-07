@@ -692,7 +692,7 @@
             </span>};
 
             client_ctx.reqfile = client_ctx.source.as_ref().map(|source| {
-                <span class="kw">let </span>ast = Ast::new(source);
+                <span class="kw">let </span>ast = Ast::from(source);
                 Box::new(parse(<span class="kw-2">&amp;</span>ast).unwrap())
             });
 

@@ -225,7 +225,7 @@
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>parse_full_request_file() {
-        <span class="kw">let </span>ast = ast::Ast::new(textwrap::dedent(
+        <span class="kw">let </span>ast = ast::Ast::from(textwrap::dedent(
             <span class="string">"
             ```%config
             vars = [\"query_value\"]

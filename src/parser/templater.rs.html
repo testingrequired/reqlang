@@ -406,7 +406,7 @@
     secrets: <span class="kw-2">&amp;</span>HashMap&lt;String, String&gt;,
     provider_values: <span class="kw-2">&amp;</span>HashMap&lt;String, String&gt;,
 ) -&gt; <span class="prelude-ty">Result</span>&lt;TemplatedRequestFile, Vec&lt;Spanned&lt;ReqlangError&gt;&gt;&gt; {
-    <span class="kw">let </span>ast = ast::Ast::new(reqfile_string);
+    <span class="kw">let </span>ast = ast::Ast::from(reqfile_string);
     <span class="kw">let </span>parsed_reqfile = parse(<span class="kw-2">&amp;</span>ast)<span class="question-mark">?</span>;
 
     <span class="kw">if let </span><span class="prelude-val">Some</span>(env) = env {
@@ -508,7 +508,7 @@
         input
     };
 
-    <span class="kw">let </span>ast = ast::Ast::new(<span class="kw-2">&amp;</span>templated_input);
+    <span class="kw">let </span>ast = ast::Ast::from(<span class="kw-2">&amp;</span>templated_input);
     <span class="kw">let </span>request = ast.request().cloned().expect(<span class="string">"should have a request"</span>);
     <span class="kw">let </span>response = ast.response().cloned();
 

@@ -300,12 +300,12 @@
 
 <span class="kw">impl </span>Ast {
     <span class="doccomment">/// Create an [AST](Ast) from a collection of [nodes](AstNode)
-    </span><span class="kw">pub fn </span>from(nodes: Vec&lt;Spanned&lt;AstNode&gt;&gt;) -&gt; <span class="self">Self </span>{
+    </span><span class="kw">pub fn </span>new(nodes: Vec&lt;Spanned&lt;AstNode&gt;&gt;) -&gt; <span class="self">Self </span>{
         <span class="self">Self</span>(nodes)
     }
 
     <span class="doccomment">/// Create an [AST](Ast) by parsing a string in to a collection of [nodes](AstNode)
-    </span><span class="kw">pub fn </span>new(input: <span class="kw">impl </span>AsRef&lt;str&gt;) -&gt; <span class="self">Self </span>{
+    </span><span class="kw">pub fn </span>from(input: <span class="kw">impl </span>AsRef&lt;str&gt;) -&gt; <span class="self">Self </span>{
         <span class="kw">let </span><span class="kw-2">mut </span>nodes: Vec&lt;Spanned&lt;AstNode&gt;&gt; = <span class="macro">vec!</span>[];
 
         <span class="kw">for </span>(text, span) <span class="kw">in </span>extract_codeblocks(<span class="kw-2">&amp;</span>input, <span class="string">"%request"</span>).iter() {
@@ -340,7 +340,7 @@
         <span class="comment">// Sort AST nodes by their positions
         </span>nodes.sort_by(|a, b| a.<span class="number">1</span>.start.cmp(<span class="kw-2">&amp;</span>b.<span class="number">1</span>.start));
 
-        <span class="self">Self</span>::from(nodes)
+        <span class="self">Self</span>::new(nodes)
     }
 
     <span class="doccomment">/// Iterate over the [nodes](AstNode)
@@ -406,14 +406,14 @@
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>test_empty_string() {
-        <span class="kw">let </span>output = Ast::new(<span class="string">""</span>);
+        <span class="kw">let </span>output = Ast::from(<span class="string">""</span>);
 
         <span class="macro">assert_eq!</span>(Ast(<span class="macro">vec!</span>[]), output);
     }
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>test_whitespace_string() {
-        <span class="kw">let </span>output = Ast::new(<span class="string">" \n "</span>);
+        <span class="kw">let </span>output = Ast::from(<span class="string">" \n "</span>);
 
         <span class="macro">assert_eq!</span>(Ast(<span class="macro">vec!</span>[]), output);
     }
@@ -428,7 +428,7 @@ REQUEST
         "</span>,
         );
 
-        <span class="kw">let </span>ast_result = Ast::new(input);
+        <span class="kw">let </span>ast_result = Ast::from(input);
         <span class="macro">assert_eq!</span>(
             Ast(<span class="macro">vec!</span>[
                 (AstNode::Comment(<span class="string">"\n"</span>.to_string()), <span class="number">0</span>..<span class="number">1</span>),
@@ -454,7 +454,7 @@ RESPONSE
         "</span>,
         );
 
-        <span class="kw">let </span>ast_result = Ast::new(input);
+        <span class="kw">let </span>ast_result = Ast::from(input);
         <span class="macro">assert_eq!</span>(
             Ast(<span class="macro">vec!</span>[
                 (AstNode::Comment(<span class="string">"\n"</span>.to_string()), <span class="number">0</span>..<span class="number">1</span>),
@@ -488,7 +488,7 @@ RESPONSE
             "</span>,
         );
 
-        <span class="kw">let </span>ast_result = Ast::new(input);
+        <span class="kw">let </span>ast_result = Ast::from(input);
         <span class="macro">assert_eq!</span>(
             Ast(<span class="macro">vec!</span>[
                 (AstNode::Comment(<span class="string">"\n"</span>.to_string()), <span class="number">0</span>..<span class="number">1</span>),
@@ -540,7 +540,7 @@ D
             "#</span>,
         );
 
-        <span class="kw">let </span>ast_result = Ast::new(source);
+        <span class="kw">let </span>ast_result = Ast::from(source);
         <span class="macro">assert_eq!</span>(
             Ast(<span class="macro">vec!</span>[
                 (AstNode::Comment(<span class="string">"\nA\n\n"</span>.to_string()), <span class="number">0</span>..<span class="number">4</span>),
