@@ -10,7 +10,17 @@
         {
           "include": "source.toml"
         }
-      ]
+      ],
+      "beginCaptures": {
+        "0": {
+          "name": "keyword.control.reqlang"
+        }
+      },
+      "endCaptures": {
+        "0": {
+          "name": "keyword.control.reqlang"
+        }
+      }
     },
     {
       "begin": "^```%(request|response)$",
@@ -23,7 +33,17 @@
         {
           "include": "#keywords"
         }
-      ]
+      ],
+      "beginCaptures": {
+        "0": {
+          "name": "keyword.control.reqlang"
+        }
+      },
+      "endCaptures": {
+        "0": {
+          "name": "keyword.control.reqlang"
+        }
+      }
     },
     {
       "match": ".*",
