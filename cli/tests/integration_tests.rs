@@ -53,13 +53,23 @@ mod cli_integration_tests {
     }
 
     #[test]
-    fn ast() {
+    fn as_markdown_reqlang_ast() {
         let expected_ast =
             fs::read_to_string("../examples/valid/as_markdown.reqlang.ast.txt").unwrap();
 
         let assert = assert_command!("reqlang ast ../examples/valid/as_markdown.reqlang");
 
         assert.success().stdout(format!("{expected_ast}\n"));
+    }
+
+    #[test]
+    fn as_markdown_reqlang_parse() {
+        let expected_parse =
+            fs::read_to_string("../examples/valid/as_markdown.reqlang.parse.txt").unwrap();
+
+        let assert = assert_command!("reqlang parse ../examples/valid/as_markdown.reqlang");
+
+        assert.success().stdout(format!("{expected_parse}\n"));
     }
 
     #[test]

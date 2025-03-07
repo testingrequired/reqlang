@@ -1,0 +1,57 @@
+{
+  "vars": [],
+  "envs": [],
+  "prompts": [
+    "status_code"
+  ],
+  "secrets": [],
+  "request": {
+    "verb": "GET",
+    "target": "https://httpbin.org/status/{{?status_code}}",
+    "http_version": "1.1",
+    "headers": [],
+    "body": ""
+  },
+  "full": {
+    "config": [
+      {
+        "vars": null,
+        "envs": null,
+        "prompts": {
+          "status_code": ""
+        },
+        "secrets": null,
+        "auth": null
+      },
+      {
+        "start": 286,
+        "end": 351
+      }
+    ],
+    "request": [
+      {
+        "verb": "GET",
+        "target": "https://httpbin.org/status/{{?status_code}}",
+        "http_version": "1.1",
+        "headers": [],
+        "body": ""
+      },
+      {
+        "start": 433,
+        "end": 489
+      }
+    ],
+    "response": null,
+    "refs": [
+      [
+        {
+          "Prompt": "status_code"
+        },
+        {
+          "start": 433,
+          "end": 489
+        }
+      ]
+    ]
+  }
+}
