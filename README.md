@@ -818,3 +818,7 @@ The [desktop client](./reqlang-client) is a very simple GUI written in [egui](ht
 ## Contributing
 
 Please see [CONTRIBUTING.md](./CONTRIBUTING.md) for details on how to contribute.
+
+## Development Log
+
+You can follow the development in this [Bluesky thread](https://bsky.app/profile/testingrequired.com/post/3lcftvxbp622b).
