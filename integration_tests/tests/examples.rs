@@ -10,7 +10,7 @@ mod integration_tests {
     #[rstest::rstest]
     fn integration_valid(#[files("../examples/valid/*.reqlang")] path: PathBuf) {
         let source = fs::read_to_string(path).expect("text should have been read from file");
-        let ast = ast::Ast::new(&source);
+        let ast = ast::Ast::from(&source);
 
         assert!(reqlang::parse(&ast).is_ok());
     }
@@ -18,7 +18,7 @@ mod integration_tests {
     #[rstest::rstest]
     fn integration_invalid(#[files("../examples/invalid/*.reqlang")] path: PathBuf) {
         let source = fs::read_to_string(path).expect("text should have been read from file");
-        let ast = ast::Ast::new(&source);
+        let ast = ast::Ast::from(&source);
 
         assert!(reqlang::parse(&ast).is_err());
     }

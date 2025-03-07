@@ -117,7 +117,7 @@ mod tests {
     fn it_works() {
         let source = String::from("");
 
-        let ast = ast::Ast::new(&source);
+        let ast = ast::Ast::from(&source);
 
         let errs = parse(&ast).unwrap_err();
 

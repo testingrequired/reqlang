@@ -24,7 +24,7 @@ mod tests {
 
     #[test]
     fn parse_full_request_file() {
-        let ast = ast::Ast::new(textwrap::dedent(
+        let ast = ast::Ast::from(textwrap::dedent(
             "
             ```%config
             vars = [\"query_value\"]

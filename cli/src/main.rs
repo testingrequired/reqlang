@@ -83,7 +83,7 @@ fn export_command(matches: &ArgMatches) {
 fn ast_command(matches: &ArgMatches) {
     let path = matches.get_one::<String>("path").unwrap();
     let contents = fs::read_to_string(path).expect("Should have been able to read the file");
-    let ast = Ast::new(&contents);
+    let ast = Ast::from(&contents);
 
     let json = serde_json::to_string_pretty(&ast).unwrap();
 
@@ -93,7 +93,7 @@ fn ast_command(matches: &ArgMatches) {
 fn parse_command(matches: &ArgMatches) {
     let path = matches.get_one::<String>("path").unwrap();
     let contents = fs::read_to_string(path).expect("Should have been able to read the file");
-    let ast = Ast::new(&contents);
+    let ast = Ast::from(&contents);
 
     match parse(&ast) {
         Ok(parsed_reqfile) => {

@@ -38,7 +38,7 @@ impl Backend {
     }
 
     async fn parse_file_for_client(&self, uri: &Url, source: &str) {
-        let ast = Ast::new(source);
+        let ast = Ast::from(source);
 
         let result = match parse(&ast) {
             Ok(parsed_request_file) => {

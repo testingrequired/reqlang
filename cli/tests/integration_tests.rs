@@ -89,7 +89,7 @@ mod cli_integration_tests {
         let assert = assert_command!(cmd);
 
         let reqfile_source = fs::read_to_string(reqfile_path).unwrap();
-        let ast = ast::Ast::new(&reqfile_source);
+        let ast = ast::Ast::from(&reqfile_source);
         let parsed_reqfile = parse(&ast).unwrap();
         let mut parse_results: ParseResult = parsed_reqfile.into();
 

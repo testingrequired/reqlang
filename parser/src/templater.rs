@@ -14,7 +14,7 @@ pub fn template(
     secrets: &HashMap<String, String>,
     provider_values: &HashMap<String, String>,
 ) -> Result<TemplatedRequestFile, Vec<Spanned<ReqlangError>>> {
-    let ast = ast::Ast::new(reqfile_string);
+    let ast = ast::Ast::from(reqfile_string);
     let parsed_reqfile = parse(&ast)?;
 
     if let Some(env) = env {
@@ -116,7 +116,7 @@ pub fn template(
         input
     };
 
-    let ast = ast::Ast::new(&templated_input);
+    let ast = ast::Ast::from(&templated_input);
     let request = ast.request().cloned().expect("should have a request");
     let response = ast.response().cloned();
 

@@ -50,7 +50,7 @@ impl LoadReqfileState {
             };
 
             client_ctx.reqfile = client_ctx.source.as_ref().map(|source| {
-                let ast = Ast::new(source);
+                let ast = Ast::from(source);
                 Box::new(parse(&ast).unwrap())
             });
 

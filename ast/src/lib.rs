@@ -8,12 +8,12 @@ pub struct Ast(Vec<Spanned<AstNode>>);
 
 impl Ast {
     /// Create an [AST](Ast) from a collection of [nodes](AstNode)
-    pub fn from(nodes: Vec<Spanned<AstNode>>) -> Self {
+    pub fn new(nodes: Vec<Spanned<AstNode>>) -> Self {
         Self(nodes)
     }
 
     /// Create an [AST](Ast) by parsing a string in to a collection of [nodes](AstNode)
-    pub fn new(input: impl AsRef<str>) -> Self {
+    pub fn from(input: impl AsRef<str>) -> Self {
         let mut nodes: Vec<Spanned<AstNode>> = vec![];
 
         for (text, span) in extract_codeblocks(&input, "%request").iter() {
@@ -48,7 +48,7 @@ impl Ast {
         // Sort AST nodes by their positions
         nodes.sort_by(|a, b| a.1.start.cmp(&b.1.start));
 
-        Self::from(nodes)
+        Self::new(nodes)
     }
 
     /// Iterate over the [nodes](AstNode)
@@ -114,14 +114,14 @@ mod ast_tests {
 
     #[test]
     fn test_empty_string() {
-        let output = Ast::new("");
+        let output = Ast::from("");
 
         assert_eq!(Ast(vec![]), output);
     }
 
     #[test]
     fn test_whitespace_string() {
-        let output = Ast::new(" \n ");
+        let output = Ast::from(" \n ");
 
         assert_eq!(Ast(vec![]), output);
     }
@@ -136,7 +136,7 @@ REQUEST
         ",
         );
 
-        let ast_result = Ast::new(input);
+        let ast_result = Ast::from(input);
         assert_eq!(
             Ast(vec![
                 (AstNode::Comment("\n".to_string()), 0..1),
@@ -162,7 +162,7 @@ RESPONSE
         ",
         );
 
-        let ast_result = Ast::new(input);
+        let ast_result = Ast::from(input);
         assert_eq!(
             Ast(vec![
                 (AstNode::Comment("\n".to_string()), 0..1),
@@ -196,7 +196,7 @@ RESPONSE
             ",
         );
 
-        let ast_result = Ast::new(input);
+        let ast_result = Ast::from(input);
         assert_eq!(
             Ast(vec![
                 (AstNode::Comment("\n".to_string()), 0..1),
@@ -248,7 +248,7 @@ D
             "#,
         );
 
-        let ast_result = Ast::new(source);
+        let ast_result = Ast::from(source);
         assert_eq!(
             Ast(vec![
                 (AstNode::Comment("\nA\n\n".to_string()), 0..4),
