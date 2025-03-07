@@ -290,10 +290,7 @@
 <a href="#289" id="289">289</a>
 <a href="#290" id="290">290</a>
 <a href="#291" id="291">291</a>
-<a href="#292" id="292">292</a>
-<a href="#293" id="293">293</a>
-<a href="#294" id="294">294</a>
-<a href="#295" id="295">295</a></pre></div><pre class="rust"><code><span class="kw">use </span>extract_codeblocks::extract_codeblocks;
+<a href="#292" id="292">292</a></pre></div><pre class="rust"><code><span class="kw">use </span>extract_codeblocks::extract_codeblocks;
 <span class="kw">use </span>serde::{Deserialize, Serialize};
 <span class="kw">use </span>span::Spanned;
 
@@ -302,51 +299,48 @@
 </span><span class="kw">pub struct </span>Ast(Vec&lt;Spanned&lt;AstNode&gt;&gt;);
 
 <span class="kw">impl </span>Ast {
-    <span class="kw">pub fn </span>from(nodes: Vec&lt;Spanned&lt;AstNode&gt;&gt;) -&gt; <span class="self">Self </span>{
+    <span class="doccomment">/// Create an [AST](Ast) from a collection of [nodes](AstNode)
+    </span><span class="kw">pub fn </span>from(nodes: Vec&lt;Spanned&lt;AstNode&gt;&gt;) -&gt; <span class="self">Self </span>{
         <span class="self">Self</span>(nodes)
     }
 
-    <span class="doccomment">/// Parse a string in to an abstract syntax tree
+    <span class="doccomment">/// Create an [AST](Ast) by parsing a string in to a collection of [nodes](AstNode)
     </span><span class="kw">pub fn </span>new(input: <span class="kw">impl </span>AsRef&lt;str&gt;) -&gt; <span class="self">Self </span>{
-        <span class="kw">let </span><span class="kw-2">mut </span>ast = <span class="self">Self</span>(<span class="macro">vec!</span>[]);
+        <span class="kw">let </span><span class="kw-2">mut </span>nodes: Vec&lt;Spanned&lt;AstNode&gt;&gt; = <span class="macro">vec!</span>[];
 
         <span class="kw">for </span>(text, span) <span class="kw">in </span>extract_codeblocks(<span class="kw-2">&amp;</span>input, <span class="string">"%request"</span>).iter() {
-            ast.push((AstNode::RequestBlock(text.clone()), span.clone()));
+            nodes.push((AstNode::RequestBlock(text.clone()), span.clone()));
         }
 
         <span class="kw">for </span>(text, span) <span class="kw">in </span>extract_codeblocks(<span class="kw-2">&amp;</span>input, <span class="string">"%config"</span>).iter() {
-            ast.push((AstNode::ConfigBlock(text.clone()), span.clone()));
+            nodes.push((AstNode::ConfigBlock(text.clone()), span.clone()));
         }
 
         <span class="kw">for </span>(text, span) <span class="kw">in </span>extract_codeblocks(<span class="kw-2">&amp;</span>input, <span class="string">"%response"</span>).iter() {
-            ast.push((AstNode::ResponseBlock(text.clone()), span.clone()));
+            nodes.push((AstNode::ResponseBlock(text.clone()), span.clone()));
         }
 
         <span class="comment">// Sort AST nodes by their positions
-        </span>ast.<span class="number">0</span>.sort_by(|a, b| a.<span class="number">1</span>.start.cmp(<span class="kw-2">&amp;</span>b.<span class="number">1</span>.start));
+        </span>nodes.sort_by(|a, b| a.<span class="number">1</span>.start.cmp(<span class="kw-2">&amp;</span>b.<span class="number">1</span>.start));
 
         <span class="kw">let </span><span class="kw-2">mut </span>index = <span class="number">0usize</span>;
 
         <span class="comment">// Find comment nodes
-        </span><span class="kw">for </span>(<span class="kw">_</span>, node_span) <span class="kw">in </span>ast.<span class="number">0</span>.clone().iter() {
+        </span><span class="kw">for </span>(<span class="kw">_</span>, node_span) <span class="kw">in </span>nodes.clone().iter() {
             <span class="kw">let </span>start = node_span.start;
 
             <span class="kw">if </span>index &lt; start {
                 <span class="kw">let </span>new_span = index..start;
                 <span class="kw">let </span>comment = input.as_ref()[new_span.clone()].to_string();
-                ast.push((AstNode::Comment(comment), new_span.clone()));
+                nodes.push((AstNode::Comment(comment), new_span.clone()));
                 index = node_span.end;
             }
         }
 
         <span class="comment">// Sort AST nodes by their positions
-        </span>ast.<span class="number">0</span>.sort_by(|a, b| a.<span class="number">1</span>.start.cmp(<span class="kw-2">&amp;</span>b.<span class="number">1</span>.start));
+        </span>nodes.sort_by(|a, b| a.<span class="number">1</span>.start.cmp(<span class="kw-2">&amp;</span>b.<span class="number">1</span>.start));
 
-        ast
-    }
-
-    <span class="kw">fn </span>push(<span class="kw-2">&amp;mut </span><span class="self">self</span>, node: Spanned&lt;AstNode&gt;) {
-        <span class="self">self</span>.<span class="number">0</span>.push(node);
+        <span class="self">Self</span>::from(nodes)
     }
 
     <span class="doccomment">/// Iterate over the [nodes](AstNode)
