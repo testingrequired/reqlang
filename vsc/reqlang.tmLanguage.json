@@ -3,19 +3,27 @@
   "name": "reqlang",
   "patterns": [
     {
-      "include": "#comments"
+      "begin": "^```%(request|response|config)$",
+      "end": "^```$",
+      "name": "meta.codeblock.reqlang",
+      "patterns": [
+        {
+          "include": "#ident"
+        },
+        {
+          "include": "#keywords"
+        },
+        {
+          "include": "#constants"
+        },
+        {
+          "include": "#toml"
+        }
+      ]
     },
     {
-      "include": "#ident"
-    },
-    {
-      "include": "#keywords"
-    },
-    {
-      "include": "#constants"
-    },
-    {
-      "include": "#toml"
+      "match": ".*",
+      "name": "comment.block.reqlang"
     }
   ],
   "repository": {
@@ -74,9 +82,6 @@
           "match": "\\{\\{([:?!@]{1})\\s+.+\\}\\}"
         }
       ]
-    },
-    "comments": {
-      "patterns": []
     }
   },
   "scopeName": "source.reqlang"
