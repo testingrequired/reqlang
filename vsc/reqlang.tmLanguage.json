@@ -3,7 +3,17 @@
   "name": "reqlang",
   "patterns": [
     {
-      "begin": "^```%(request|response|config)$",
+      "begin": "^```%config",
+      "end": "^```",
+      "name": "meta.codeblock.config.reqlang",
+      "patterns": [
+        {
+          "include": "source.toml"
+        }
+      ]
+    },
+    {
+      "begin": "^```%(request|response)$",
       "end": "^```$",
       "name": "meta.codeblock.reqlang",
       "patterns": [
@@ -12,12 +22,6 @@
         },
         {
           "include": "#keywords"
-        },
-        {
-          "include": "#constants"
-        },
-        {
-          "include": "#toml"
         }
       ]
     },
@@ -27,23 +31,6 @@
     }
   ],
   "repository": {
-    "toml": {
-      "patterns": [
-        {
-          "name": "source.toml",
-          "begin": "^```%config$",
-          "end": "^```$",
-          "patterns": [
-            {
-              "include": "#ident"
-            },
-            {
-              "include": "source.toml"
-            }
-          ]
-        }
-      ]
-    },
     "keywords": {
       "patterns": [
         {
@@ -55,9 +42,6 @@
           "match": "\\b(HTTP)(?:/[0-9]+.[0-9]+)\\b"
         }
       ]
-    },
-    "constants": {
-      "patterns": []
     },
     "ident": {
       "patterns": [
