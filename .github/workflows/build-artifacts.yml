@@ -122,6 +122,11 @@ jobs:
         with:
           name: reqlang-client
           path: target/release/reqlang-client
+      - name: Upload Web App
+        uses: actions/upload-artifact@v4
+        with:
+          name: reqlang-web-client
+          path: target/release/reqlang-web-client
       - name: Upload VS Code Extension Artifact
         uses: actions/upload-artifact@v4
         with:
@@ -163,3 +168,8 @@ jobs:
         with:
           name: reqlang-client.exe
           path: target/release/reqlang-client.exe
+      - name: Upload Web App
+        uses: actions/upload-artifact@v4
+        with:
+          name: reqlang-web-client.exe
+          path: target/release/reqlang-web-client.exe
