@@ -1,15 +1,10 @@
 default:
   @just --list
 
-build: clean
+build-client: clean-client
     cd client && npm run build
     cp -a ./client/dist/. ./static
-    cargo build
 
-clean:
+clean-client:
     rm -rf client/dist/*
     rm -rf static/*
-    cargo clean
-
-start:
-    ../target/debug/reqlang-web-client

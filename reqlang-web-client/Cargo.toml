@@ -10,3 +10,5 @@ tower = { version = "0.5.2", features = ["util"] }
 tower-http = { version = "0.6.1", features = ["fs", "trace"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tower-serve-static = "0.1.1"
+include_dir = "0.7.0"
