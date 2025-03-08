@@ -47,6 +47,7 @@ build: build_types
 
 # Build the code for release
 build_release: build_types
+    cd reqlang-web-client && just build-client
     cargo build --release
     cd vsc && just build
 
