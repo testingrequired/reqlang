@@ -4,7 +4,6 @@ use axum::Router;
 use error::Error;
 use include_dir::{Dir, include_dir};
 use tower_serve_static::ServeDir;
-use webbrowser;
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
