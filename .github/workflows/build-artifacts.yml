@@ -132,6 +132,47 @@ jobs:
         with:
           name: reqlang-0.1.0.vsix
           path: vsc/out/reqlang-0.1.0.vsix
+  build-mac:
+    runs-on: macos-latest
+    needs: [verify]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+          toolchain: 1.85.0
+      - uses: Swatinem/rust-cache@v2
+      - uses: actions/setup-node@v4
+        with:
+          cache: npm
+          cache-dependency-path: vsc/package-lock.json
+          node-version: 20
+      - name: Install just
+        uses: taiki-e/install-action@v2
+        with:
+          tool: just
+      - name: Build
+        run: just build_release
+      - name: Upload CLI Binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: reqlang (macos)
+          path: target/release/reqlang
+      - name: Upload LSP Binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: reqlang-lsp
+          path: target/release/reqlang-lsp (macos)
+      - name: Upload Desktop App
+        uses: actions/upload-artifact@v4
+        with:
+          name: reqlang-client
+          path: target/release/reqlang-client (macos)
+      - name: Upload Web App
+        uses: actions/upload-artifact@v4
+        with:
+          name: reqlang-web-client (macos)
+          path: target/release/reqlang-web-client
   build-windows:
     runs-on: windows-latest
     needs: [verify]
