@@ -87,7 +87,7 @@ check:
 
 # Run all checks, tests, and build the code
 verify:
-    just build && just check && just test
+    just build && just build-docs && just check && just test
 
 # Run all tests
 test:
