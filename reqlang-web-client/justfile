@@ -1,0 +1,11 @@
+default:
+  @just --list
+
+build-client: clean-client
+    cd client && npm ci
+    cd client && npm run build
+    cp -a ./client/dist/. ./static
+
+clean-client:
+    rm -rf client/dist/*
+    rm -rf static/*

@@ -9,6 +9,7 @@ move-bins:
     cp target/debug/reqlang ~/.cargo/bin/reqlang
     cp target/debug/reqlang-lsp ~/.cargo/bin/reqlang-lsp
     cp target/debug/reqlang-client ~/.cargo/bin/reqlang-client
+    cp target/debug/reqlang-web-client ~/.cargo/bin/reqlang-web-client
 
 [windows]
 [private]
@@ -16,6 +17,7 @@ move-bins:
     cp target/debug/reqlang.exe ~/.cargo/bin/reqlang.exe
     cp target/debug/reqlang-lsp.exe ~/.cargo/bin/reqlang-lsp.exe
     cp target/debug/reqlang-client.exe ~/.cargo/bin/reqlang-client.exe
+    cp target/debug/reqlang-web-client.exe ~/.cargo/bin/reqlang-web-client.exe
 
 [unix]
 [private]
@@ -23,6 +25,7 @@ move-bins-release:
     cp target/release/reqlang ~/.cargo/bin/reqlang
     cp target/release/reqlang-lsp ~/.cargo/bin/reqlang-lsp
     cp target/release/reqlang-client ~/.cargo/bin/reqlang-client
+    cp target/release/reqlang-web-client ~/.cargo/bin/reqlang-web-client
 
 [windows]
 [private]
@@ -30,6 +33,7 @@ move-bins-release:
     cp target/release/reqlang.exe ~/.cargo/bin/reqlang.exe
     cp target/release/reqlang-lsp.exe ~/.cargo/bin/reqlang-lsp.exe
     cp target/release/reqlang-client.exe ~/.cargo/bin/reqlang-client.exe
+    cp target/release/reqlang-web-client.exe ~/.cargo/bin/reqlang-web-client.exe
 
 # Build typescript types from Rust types required for VS Code extension
 build_types:
@@ -37,6 +41,7 @@ build_types:
 
 # Build the code
 build: build_types
+    cd reqlang-web-client && just build-client
     cargo build
     cd vsc && just build
 

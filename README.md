@@ -815,6 +815,16 @@ The [desktop client](./reqlang-client) is a very simple GUI written in [egui](ht
 
 ![GUI Client Screenshot](./reqlang-client/screenshot.png)
 
+### Web Client
+
+The [web client](./reqlang-web-client/) is a React app powered by a Rust API.
+
+```shell
+reqlang-web-client
+
+# Server is running! http://localhost:3000
+```
+
 ## Contributing
 
 Please see [CONTRIBUTING.md](./CONTRIBUTING.md) for details on how to contribute.
