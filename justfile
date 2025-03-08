@@ -121,11 +121,11 @@ run-status-request status_code:
 
 # Build docs for reqlang crate
 build-docs:
-    cargo doc --no-deps --workspace --exclude cli
+    cargo doc --no-deps --workspace --exclude cli --exclude reqlang-web-client
 
 # Build and open docs for reqlang crate
 build-docs-open:
-    cargo doc --no-deps --workspace --exclude cli --open
+    cargo doc --no-deps --workspace --exclude cli --exclude reqlang-web-client --open
 
 # Get an estimated lines of code in the project
 lines-of-code:
