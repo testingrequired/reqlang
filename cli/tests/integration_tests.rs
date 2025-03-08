@@ -53,6 +53,20 @@ mod cli_integration_tests {
     }
 
     #[test]
+    fn template_reference_as_http_verb_reqlang() {
+        let expected_ast = fs::read_to_string(
+            "../examples/valid/template_reference_as_http_verb.reqlang.parse.txt",
+        )
+        .unwrap();
+
+        let assert = assert_command!(
+            "reqlang ast ../examples/valid/template_reference_as_http_verb.reqlang"
+        );
+
+        assert.success().stdout(format!("{expected_ast}\n"));
+    }
+
+    #[test]
     fn as_markdown_reqlang_ast() {
         let expected_ast =
             fs::read_to_string("../examples/valid/as_markdown.reqlang.ast.txt").unwrap();

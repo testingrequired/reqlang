@@ -1,0 +1,65 @@
+{
+  "vars": [],
+  "envs": [],
+  "prompts": ["header"],
+  "secrets": [],
+  "request": {
+    "verb": "GET",
+    "target": "https://example.com",
+    "http_version": "1.1",
+    "headers": [
+      [
+        "{{?header}}",
+        "123"
+      ]
+    ],
+    "body": ""
+  },
+  "full": {
+    "config": [
+      {
+        "vars": null,
+        "envs": null,
+        "prompts": {
+          "header": ""
+        },
+        "secrets": null,
+        "auth": null
+      },
+      {
+        "start": 0,
+        "end": 36
+      }
+    ],
+    "request": [
+      {
+        "verb": "GET",
+        "target": "https://example.com",
+        "http_version": "1.1",
+        "headers": [
+          [
+            "{{?header}}",
+            "123"
+          ]
+        ],
+        "body": ""
+      },
+      {
+        "start": 38,
+        "end": 103
+      }
+    ],
+    "response": null,
+    "refs": [
+      [
+        {
+          "Prompt": "header"
+        },
+        {
+          "start": 83,
+          "end": 94
+        }
+      ]
+    ]
+  }
+}

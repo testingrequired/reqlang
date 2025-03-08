@@ -1,0 +1,9 @@
+```%config
+[prompts]
+header = ""
+```
+
+```%request
+GET https://example.com HTTP/1.1
+{{?header}}: 123
+```
