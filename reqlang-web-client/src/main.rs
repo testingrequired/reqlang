@@ -4,6 +4,7 @@ use axum::Router;
 use error::Error;
 use include_dir::{Dir, include_dir};
 use tower_serve_static::ServeDir;
+use webbrowser;
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
@@ -24,7 +25,11 @@ async fn main() -> Result<(), Error> {
 
     let addr = listener.local_addr()?;
 
-    eprintln!("Server is running! http://{addr}");
+    let url = format!("http://{addr}");
+
+    eprintln!("Server is running! {url}");
+
+    webbrowser::open(&url)?;
 
     axum::serve(listener, app).await?;
 
