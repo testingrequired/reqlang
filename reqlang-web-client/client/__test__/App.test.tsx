@@ -11,9 +11,7 @@ test("displays message to upload a file if a file hasn't been uploaded", () => {
 
   expect(screen.getByText("reqlang-web-client")).toBeVisible();
 
-  expect(
-    screen.getByText("Drag & drop a file here or click to select one")
-  ).toBeVisible();
+  expect(screen.getByText("Drag & drop a request file")).toBeVisible();
 });
 
 test.skip("displays request file content after drag and drop", async () => {
@@ -45,9 +43,7 @@ test.skip("displays request file content after drag and drop", async () => {
 
   expect(await screen.findByText("reqlang-web-client")).toBeVisible();
 
-  expect(
-    screen.getByText("Drag & drop a file here or click to select one")
-  ).toBeVisible();
+  expect(screen.getByText("Drag & drop a request file")).toBeVisible();
 
   expect(screen.getByText("Hello!")).toBeVisible();
 });
