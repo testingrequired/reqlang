@@ -5,6 +5,7 @@ use error::Error;
 
 #[cfg(not(feature = "dynamic_assets"))]
 use include_dir::{Dir, include_dir};
+use reqlang::ParseResult;
 use serde::Deserialize;
 #[cfg(feature = "dynamic_assets")]
 use tower_http::services::ServeDir;
@@ -57,10 +58,14 @@ async fn parse_request_file(Json(body): Json<ParseRequestFile>) -> (StatusCode, 
     let result = reqlang::parse(&ast);
 
     match &result {
-        Ok(result) => match serde_json::to_string_pretty(result) {
-            Ok(result) => (StatusCode::OK, result),
-            Err(err) => (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()),
-        },
+        Ok(result) => {
+            let result: ParseResult = result.clone().into();
+
+            match serde_json::to_string_pretty(&result) {
+                Ok(result) => (StatusCode::OK, result),
+                Err(err) => (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()),
+            }
+        }
         Err(err) => match serde_json::to_string_pretty(err) {
             Ok(result) => (StatusCode::BAD_REQUEST, result),
             Err(err) => (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()),
