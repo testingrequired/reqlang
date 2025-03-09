@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import "./Uploader.css";
 import { useFileStore } from "../stores/file";
 
@@ -6,16 +6,6 @@ const DragDropFileReader = () => {
   const [dragging, setDragging] = useState(false);
 
   const fileStore = useFileStore();
-
-  useEffect(() => {
-    if (fileStore.file) {
-      fetch("/parse", {
-        method: "POST",
-        body: JSON.stringify({ payload: fileStore.file?.text }),
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-  }, [fileStore.file]);
 
   const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
     event.preventDefault();
