@@ -1,4 +1,4 @@
-import { ParsedRequestFile } from "reqlang-types";
+import { ParseResult } from "reqlang-types";
 import { create } from "zustand";
 
 type LoadedFile = {
@@ -8,15 +8,15 @@ type LoadedFile = {
 
 interface FileState {
   file: LoadedFile | null;
-  parsedFile: ParsedRequestFile | null;
+  parsedFile: ParseResult | null;
 
   setFile: (file: LoadedFile) => void;
-  setParsedFile: (file: ParsedRequestFile) => void;
+  setParsedFile: (file: ParseResult) => void;
 }
 
 export const useFileStore = create<FileState>()((set) => ({
   file: null,
   parsedFile: null,
   setFile: (file: LoadedFile) => set({ file }),
-  setParsedFile: (file: ParsedRequestFile) => set({ parsedFile: file }),
+  setParsedFile: (file: ParseResult) => set({ parsedFile: file }),
 }));

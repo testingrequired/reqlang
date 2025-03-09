@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import "./App.css";
 import Uploader from "./components/Uploader";
 import { useFileStore } from "./stores/file";
-import { ParsedRequestFile } from "reqlang-types";
+import { ParseResult } from "reqlang-types";
 
 function App() {
   const fileStore = useFileStore();
@@ -17,8 +17,7 @@ function App() {
         });
 
         if (response.ok) {
-          const parsedRequestFile =
-            (await response.json()) as ParsedRequestFile;
+          const parsedRequestFile = (await response.json()) as ParseResult;
 
           fileStore.setParsedFile(parsedRequestFile);
         }
