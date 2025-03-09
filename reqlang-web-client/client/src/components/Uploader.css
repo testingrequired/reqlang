@@ -1,3 +1,8 @@
 .hidden {
     display: none;
 }
+
+.reqfile-text {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}

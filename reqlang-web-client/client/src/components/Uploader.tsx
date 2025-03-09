@@ -43,12 +43,13 @@ const DragDropFileReader = () => {
     >
       {file ? (
         <>
-          <h2>{file.fileName}</h2>
-          <pre>{file.text}</pre>
+          <h2>📄 {file.fileName}</h2>
+
+          <pre className="reqfile-text">{file.text}</pre>
         </>
       ) : (
         <>
-          <p>Drag & drop a request file</p>
+          <p>📄 Drag & drop a request file</p>
 
           <input
             type="file"
