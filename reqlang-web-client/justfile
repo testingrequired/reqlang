@@ -14,7 +14,9 @@ watch:
   #!/usr/bin/env -S parallel --shebang --ungroup --jobs {{ num_cpus() }}
   watchexec -w client just build-client-no-ci
   cargo run -F dynamic_assets
-  
+
+test:
+  cd client && npm test
 
 clean-client:
     rm -rf client/dist/*

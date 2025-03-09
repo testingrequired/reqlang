@@ -1,9 +1,13 @@
 import { useState } from "react";
 import "./Uploader.css";
 
+type LoadedFile = {
+  fileName: string;
+  text: string;
+};
+
 const DragDropFileReader = () => {
-  const [text, setText] = useState<string | null>(null);
-  const [filename, setFilename] = useState<string | null>(null);
+  const [file, setFile] = useState<LoadedFile | null>(null);
   const [dragging, setDragging] = useState(false);
 
   const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
@@ -14,10 +18,11 @@ const DragDropFileReader = () => {
       const file = event.dataTransfer.files[0];
       const reader = new FileReader();
 
-      setFilename(file.name);
-
       reader.onload = (e) => {
-        setText(e.target?.result as string);
+        setFile({
+          fileName: file.name,
+          text: e.target?.result as string,
+        });
       };
 
       reader.readAsText(file);
@@ -36,27 +41,34 @@ const DragDropFileReader = () => {
         dragging ? "border-blue-500" : "border-gray-300"
       }`}
     >
-      <p>Drag & drop a file here or click to select one</p>
-      <input
-        type="file"
-        onChange={(e) => {
-          if (e.target.files) {
-            const file = e.target.files[0];
-            const reader = new FileReader();
-            reader.onload = (e) => {
-              setText(e.target?.result as string);
-            };
-            reader.readAsText(file);
-          }
-        }}
-        className="hidden"
-        data-testid="uploader"
-      />
-      {text && (
-        <div>
-          <h2>{filename}</h2>
-          <pre>{text}</pre>
-        </div>
+      {file ? (
+        <>
+          <h2>{file.fileName}</h2>
+          <pre>{file.text}</pre>
+        </>
+      ) : (
+        <>
+          <p>Drag & drop a request file</p>
+
+          <input
+            type="file"
+            onChange={(e) => {
+              if (e.target.files) {
+                const file = e.target.files[0];
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                  setFile({
+                    fileName: file.name,
+                    text: e.target?.result as string,
+                  });
+                };
+                reader.readAsText(file);
+              }
+            }}
+            className="hidden"
+            data-testid="uploader"
+          />
+        </>
       )}
     </div>
   );
