@@ -825,6 +825,10 @@ reqlang-web-client
 # Server is running! http://localhost:3000
 ```
 
+#### Port
+
+The port defaults to a random open port but it can be set using the `REQLANG_WEB_CLIENT_PORT` environment variable.
+
 ## Contributing
 
 Please see [CONTRIBUTING.md](./CONTRIBUTING.md) for details on how to contribute.
