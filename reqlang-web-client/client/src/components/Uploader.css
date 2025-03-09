@@ -1,8 +1,13 @@
 .hidden {
-    display: none;
+  display: none;
 }
 
 .reqfile-text {
-    white-space: pre-wrap;
-    word-wrap: break-word;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  border: 1px solid white;
+  padding: 1em;
+  border-radius: 0.25em;
+  font-size: 1.1em;
+  min-width: 100%;
 }
