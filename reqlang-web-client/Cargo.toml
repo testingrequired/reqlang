@@ -13,3 +13,6 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 tower-serve-static = "0.1.1"
 include_dir = "0.7.0"
 webbrowser = "1"
+
+[features]
+dynamic_assets = []
