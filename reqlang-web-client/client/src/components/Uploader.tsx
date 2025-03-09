@@ -3,7 +3,7 @@ import "./Uploader.css";
 
 const DragDropFileReader = () => {
   const [text, setText] = useState<string | null>(null);
-  const [fileName, setFilename] = useState<string | null>(null);
+  const [filename, setFilename] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
 
   const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
@@ -14,13 +14,11 @@ const DragDropFileReader = () => {
       const file = event.dataTransfer.files[0];
       const reader = new FileReader();
 
-      console.log(JSON.stringify(event.dataTransfer));
+      setFilename(file.name);
 
       reader.onload = (e) => {
         setText(e.target?.result as string);
       };
-
-      console.log(JSON.stringify(event.dataTransfer.files, null, 2));
 
       reader.readAsText(file);
     }
@@ -49,7 +47,6 @@ const DragDropFileReader = () => {
               setText(e.target?.result as string);
             };
             reader.readAsText(file);
-            setFilename(file.name);
           }
         }}
         className="hidden"
@@ -57,7 +54,7 @@ const DragDropFileReader = () => {
       />
       {text && (
         <div>
-          <h3>{fileName}</h3>
+          <h2>{filename}</h2>
           <pre>{text}</pre>
         </div>
       )}
