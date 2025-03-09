@@ -11,8 +11,10 @@ build-client-no-ci: clean-client
     cp -a ./client/dist/. ./static
 
 watch:
-  cargo run -F dynamic_assets
+  #!/usr/bin/env -S parallel --shebang --ungroup --jobs {{ num_cpus() }}
   watchexec -w client just build-client-no-ci
+  cargo run -F dynamic_assets
+  
 
 clean-client:
     rm -rf client/dist/*
