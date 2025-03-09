@@ -84,6 +84,7 @@ All contributions are appreciated but not all will be accepted. We will review y
 - [NodeJS](https://nodejs.org/en/download/package-manager)/[nvm](https://github.com/nvm-sh/nvm)
 - [Rust](https://rustup.rs/)
 - [Just](https://just.systems/)
+- [watch-exec](https://github.com/watchexec/watchexec)
 - [VS Code](https://code.visualstudio.com/)
 
 #### Build

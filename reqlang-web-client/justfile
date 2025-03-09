@@ -6,6 +6,14 @@ build-client: clean-client
     cd client && npm run build
     cp -a ./client/dist/. ./static
 
+build-client-no-ci: clean-client
+    cd client && npm run build
+    cp -a ./client/dist/. ./static
+
+watch:
+  cargo run -F dynamic_assets
+  watchexec -w client just build-client-no-ci
+
 clean-client:
     rm -rf client/dist/*
     rm -rf static/*
