@@ -1,10 +1,11 @@
 mod error;
 
-use axum::Router;
+use axum::{Json, Router, http::StatusCode, routing::post};
 use error::Error;
 
 #[cfg(not(feature = "dynamic_assets"))]
 use include_dir::{Dir, include_dir};
+use serde::Deserialize;
 #[cfg(feature = "dynamic_assets")]
 use tower_http::services::ServeDir;
 #[cfg(not(feature = "dynamic_assets"))]
@@ -38,8 +39,31 @@ async fn main() -> Result<(), Error> {
 
     webbrowser::open(&url)?;
 
-    let app = Router::new().fallback_service(static_dir.clone());
+    let app = Router::new()
+        .route("/parse", post(parse_request_file))
+        .fallback_service(static_dir.clone());
     axum::serve(listener, app).await?;
 
     Ok(())
+}
+
+#[derive(Deserialize)]
+struct ParseRequestFile {
+    payload: String,
+}
+
+async fn parse_request_file(Json(body): Json<ParseRequestFile>) -> (StatusCode, String) {
+    let ast = reqlang::Ast::from(&body.payload);
+    let result = reqlang::parse(&ast);
+
+    match &result {
+        Ok(result) => match serde_json::to_string_pretty(result) {
+            Ok(result) => (StatusCode::OK, result),
+            Err(err) => (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()),
+        },
+        Err(err) => match serde_json::to_string_pretty(err) {
+            Ok(result) => (StatusCode::BAD_REQUEST, result),
+            Err(err) => (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()),
+        },
+    }
 }
