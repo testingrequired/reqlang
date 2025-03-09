@@ -1,24 +1,21 @@
 import { useEffect, useState } from "react";
 import "./Uploader.css";
-
-type LoadedFile = {
-  fileName: string;
-  text: string;
-};
+import { useFileStore } from "../stores/file";
 
 const DragDropFileReader = () => {
-  const [file, setFile] = useState<LoadedFile | null>(null);
   const [dragging, setDragging] = useState(false);
 
+  const fileStore = useFileStore();
+
   useEffect(() => {
-    if (file) {
+    if (fileStore.file) {
       fetch("/parse", {
         method: "POST",
-        body: JSON.stringify({ payload: file.text }),
+        body: JSON.stringify({ payload: fileStore.file?.text }),
         headers: { "Content-Type": "application/json" },
       });
     }
-  }, [file]);
+  }, [fileStore.file]);
 
   const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
     event.preventDefault();
@@ -29,7 +26,7 @@ const DragDropFileReader = () => {
       const reader = new FileReader();
 
       reader.onload = (e) => {
-        setFile({
+        fileStore.setFile({
           fileName: file.name,
           text: e.target?.result as string,
         });
@@ -51,11 +48,11 @@ const DragDropFileReader = () => {
         dragging ? "border-blue-500" : "border-gray-300"
       }`}
     >
-      {file ? (
+      {fileStore.file ? (
         <>
-          <h2>📄 {file.fileName}</h2>
+          <h2>📄 {fileStore.file.fileName}</h2>
 
-          <pre className="reqfile-text">{file.text}</pre>
+          <pre className="reqfile-text">{fileStore.file.text}</pre>
         </>
       ) : (
         <>
@@ -68,7 +65,7 @@ const DragDropFileReader = () => {
                 const file = e.target.files[0];
                 const reader = new FileReader();
                 reader.onload = (e) => {
-                  setFile({
+                  fileStore.setFile({
                     fileName: file.name,
                     text: e.target?.result as string,
                   });
