@@ -38,7 +38,9 @@ async fn main() -> Result<(), Error> {
 
     eprintln!("reqlang-web-client: {url}");
 
-    webbrowser::open(&url)?;
+    if webbrowser::Browser::is_available() {
+        webbrowser::open(&url)?;
+    }
 
     let app = Router::new()
         .route("/parse", post(parse_request_file))
