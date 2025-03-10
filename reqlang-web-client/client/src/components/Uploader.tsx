@@ -1,6 +1,7 @@
 import { useState } from "react";
 import "./Uploader.css";
 import { useFileStore } from "../stores/file";
+import CodeCard from "./CodeCard";
 
 const DragDropFileReader = () => {
   const [dragging, setDragging] = useState(false);
@@ -42,7 +43,7 @@ const DragDropFileReader = () => {
         <>
           <h2>📄 {fileStore.file.fileName}</h2>
 
-          <pre className="reqfile-text">{fileStore.file.text}</pre>
+          <CodeCard>{fileStore.file.text}</CodeCard>
         </>
       ) : (
         <>

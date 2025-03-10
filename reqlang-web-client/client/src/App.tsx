@@ -3,6 +3,7 @@ import "./App.css";
 import Uploader from "./components/Uploader";
 import { useFileStore } from "./stores/file";
 import { ParseResult } from "reqlang-types";
+import CodeCard from "./components/CodeCard";
 
 function App() {
   const fileStore = useFileStore();
@@ -35,9 +36,7 @@ function App() {
         <>
           <h2>Parsed</h2>
 
-          <pre className="parsed-file">
-            {JSON.stringify(fileStore.parsedFile, null, 2)}
-          </pre>
+          <CodeCard>{JSON.stringify(fileStore.parsedFile, null, 2)}</CodeCard>
         </>
       )}
     </>
