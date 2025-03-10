@@ -1,0 +1,15 @@
+.code-card {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  border: 20px solid rgb(58, 58, 58);
+  padding: 1.5em;
+  border-radius: 0.5em;
+  font-size: 1.2em;
+  min-width: 100%;
+}
+
+@media (prefers-color-scheme: light) {
+  .code-card {
+    border: 20px solid #e3e3e3;
+  }
+}
