@@ -1,1 +1,0 @@
-searchState.loadedDescShard("reqlang_fetch", 0, "Implement a fetch that returns an HttpResponse. See …\nFetch using an HttpRequest that returns an HttpResponse\nReturns the argument unchanged.\nCalls <code>U::from(self)</code>.")

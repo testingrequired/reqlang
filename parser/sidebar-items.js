@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"constant":["TEMPLATE_REFERENCE_PATTERN"],"fn":["parse","template"]};

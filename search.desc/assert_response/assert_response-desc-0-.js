@@ -1,1 +1,0 @@
-searchState.loadedDescShard("assert_response", 0, "Asserts that the <code>actual</code> response matches the <code>expected</code> …\nReturns the argument unchanged.\nReturns the argument unchanged.\nCalls <code>U::from(self)</code>.\nCalls <code>U::from(self)</code>.")

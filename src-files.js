@@ -1,3 +1,3 @@
-var srcIndex = new Map(JSON.parse('[["assert_response",["",[],["lib.rs"]]],["ast",["",[],["lib.rs"]]],["diagnostics",["",[],["lib.rs"]]],["errors",["",[],["lib.rs"]]],["export",["",[],["lib.rs"]]],["extract_codeblocks",["",[],["lib.rs"]]],["integration_tests",["",[],["lib.rs"]]],["parser",["",[],["lib.rs","parser.rs","templater.rs"]]],["reqlang",["",[],["lib.rs"]]],["reqlang_client",["",[],["main.rs"]]],["reqlang_fetch",["",[],["lib.rs"]]],["reqlang_lsp",["",[],["main.rs"]]],["span",["",[],["lib.rs"]]],["str_idxpos",["",[],["lib.rs"]]],["types",["",[],["http.rs","lib.rs"]]]]'));
+var srcIndex = new Map(JSON.parse('[["integration_tests",["",[],["lib.rs"]]],["reqlang",["",[["types",[],["http.rs","mod.rs"]]],["assert_response.rs","ast.rs","diagnostics.rs","errors.rs","export.rs","extract_codeblocks.rs","fetch.rs","lib.rs","parser.rs","prelude.rs","span.rs","str_idxpos.rs","templater.rs"]]],["reqlang_client",["",[],["main.rs"]]],["reqlang_lsp",["",[],["main.rs"]]]]'));
 createSrcSidebar();
-//{"start":36,"fragment_lengths":[38,27,35,30,30,42,41,57,31,39,37,36,28,34,39]}
+//{"start":36,"fragment_lengths":[40,236,39,36]}

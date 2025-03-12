@@ -1,2 +1,2 @@
-window.ALL_CRATES = ["assert_response","ast","diagnostics","errors","export","extract_codeblocks","integration_tests","parser","reqlang","reqlang_client","reqlang_fetch","reqlang_lsp","span","str_idxpos","types"];
-//{"start":21,"fragment_lengths":[17,6,14,9,9,21,20,9,10,17,16,14,7,13,8]}
+window.ALL_CRATES = ["integration_tests","reqlang","reqlang_client","reqlang_lsp"];
+//{"start":21,"fragment_lengths":[19,10,17,14]}
