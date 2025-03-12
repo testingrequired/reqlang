@@ -1,10 +1,11 @@
 use http::{HttpRequest, HttpResponse};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use span::Spanned;
 use std::collections::HashMap;
 use std::fmt::Display;
 use ts_rs::TS;
+
+use crate::span::Spanned;
 
 pub mod http;
 
@@ -282,9 +283,10 @@ mod tests {
     mod parsed_reqfile {
         use std::{collections::HashMap, vec};
 
-        use span::NO_SPAN;
-
-        use crate::{HttpRequest, ParsedConfig, ParsedRequestFile};
+        use crate::{
+            span::NO_SPAN,
+            types::{ParsedConfig, ParsedRequestFile, http::HttpRequest},
+        };
 
         #[test]
         fn get_prompt_names_when_defined() {
@@ -524,7 +526,7 @@ mod tests {
     }
 
     mod request_display {
-        use crate::HttpRequest;
+        use crate::types::http::HttpRequest;
 
         #[test]
         fn post_request() {

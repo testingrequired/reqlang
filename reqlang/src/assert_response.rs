@@ -1,9 +1,9 @@
 use std::fmt::{self, Display};
 
+use crate::types::http::{HttpResponse, HttpStatusCode, HttpVersion};
 use console::Style;
 use serde::{Deserialize, Serialize};
 use similar::{ChangeTag, TextDiff};
-use types::http::{HttpResponse, HttpStatusCode, HttpVersion};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum ResponseDiff {
@@ -303,7 +303,7 @@ pub fn assert_response(
 
 #[cfg(test)]
 mod tests {
-    use types::http::{HttpStatusCode, HttpVersion};
+    use crate::types::http::{HttpStatusCode, HttpVersion};
 
     use super::*;
 

@@ -4,11 +4,17 @@ use std::ops::Deref;
 use anyhow::{Context, Result};
 use reqlang::{
     assert_response::assert_response,
+    ast::Ast,
     diagnostics::{
         get_diagnostics, Diagnosis, DiagnosisPosition, DiagnosisRange, DiagnosisSeverity,
     },
-    export, parse, template, Ast, Fetch, HttpRequestFetcher, ParseResult, ReqlangError,
-    RequestFormat, RequestParamsFromClient, Spanned,
+    errors::ReqlangError,
+    export::{export, RequestFormat},
+    fetch::{Fetch, HttpRequestFetcher},
+    parser::parse,
+    span::Spanned,
+    templater::template,
+    types::{ParseResult, RequestParamsFromClient},
 };
 use reqwest::Url;
 use serde::{Deserialize, Serialize};

@@ -1,8 +1,11 @@
 use codespan_reporting::diagnostic::{Diagnostic, Label};
-use errors::{ParseError, ReqlangError, ResolverError};
 use serde::{Deserialize, Serialize};
-use span::{Span, Spanned};
-use str_idxpos::index_to_position;
+
+use crate::{
+    errors::{ParseError, ReqlangError, ResolverError},
+    span::{Span, Spanned},
+    str_idxpos::index_to_position,
+};
 
 /// Get a list of diagnostics from a list of errors
 pub fn get_diagnostics(errs: &[Spanned<ReqlangError>], source: &str) -> Vec<Diagnosis> {
@@ -109,15 +112,20 @@ impl AsDiagnostic for ReqlangError {
 
 #[cfg(test)]
 mod tests {
-    use parser::parse;
 
-    use crate::{get_diagnostics, Diagnosis, DiagnosisPosition, DiagnosisRange, DiagnosisSeverity};
+    use crate::{
+        ast::Ast,
+        diagnostics::{
+            Diagnosis, DiagnosisPosition, DiagnosisRange, DiagnosisSeverity, get_diagnostics,
+        },
+        parser::parse,
+    };
 
     #[test]
     fn it_works() {
         let source = String::from("");
 
-        let ast = ast::Ast::from(&source);
+        let ast = Ast::from(&source);
 
         let errs = parse(&ast).unwrap_err();
 

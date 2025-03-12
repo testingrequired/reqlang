@@ -1,6 +1,6 @@
+use crate::types::ReferenceType;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
-use types::ReferenceType;
 
 /// Common error for parsing and templating request files
 #[derive(Debug, Clone, Error, PartialEq, Serialize, Deserialize)]
@@ -21,7 +21,9 @@ pub enum ParseError {
     InvalidConfigError { message: String },
     #[error("Undefined template reference: {0}")]
     UndefinedReferenceError(ReferenceType),
-    #[error("Value was declared but not used. Try adding the template reference {0} to the request or response.")]
+    #[error(
+        "Value was declared but not used. Try adding the template reference {0} to the request or response."
+    )]
     UnusedValueError(ReferenceType),
     #[error(
         "This request header is calculated at request time and can not be specified by user: {0}"
@@ -37,7 +39,9 @@ pub enum ParseError {
 pub enum ResolverError {
     #[error("'{0}' is not a defined environment in the request file")]
     InvalidEnvError(String),
-    #[error("Trying to resolve the environment '{0}' but no environments are defined in the request file")]
+    #[error(
+        "Trying to resolve the environment '{0}' but no environments are defined in the request file"
+    )]
     NoEnvironmentsDefined(String),
     #[error("Prompt required but not passed: {0}")]
     PromptValueNotPassed(String),

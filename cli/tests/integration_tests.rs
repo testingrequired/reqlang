@@ -3,7 +3,7 @@ mod cli_integration_tests {
     use std::fs;
 
     use assert_cmd::Command;
-    use reqlang::{ast, parse, ParseResult};
+    use reqlang::{ast, parser::parse, types::ParseResult};
 
     macro_rules! assert_command {
         ($command:expr) => {{

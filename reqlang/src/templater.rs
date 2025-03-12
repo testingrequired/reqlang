@@ -1,10 +1,12 @@
 use std::collections::HashMap;
 
-use errors::{ReqlangError, ResolverError};
-use span::{Spanned, NO_SPAN};
-use types::{ParsedRequestFile, ReferenceType, TemplatedRequestFile};
-
-use crate::parser::{parse, parse_request, parse_response};
+use crate::{
+    ast::Ast,
+    errors::{ReqlangError, ResolverError},
+    parser::{parse, parse_request, parse_response},
+    span::{NO_SPAN, Spanned},
+    types::{ParsedRequestFile, ReferenceType, TemplatedRequestFile},
+};
 
 /// Template a request file string into a [TemplatedRequestFile].
 pub fn template(
@@ -14,7 +16,7 @@ pub fn template(
     secrets: &HashMap<String, String>,
     provider_values: &HashMap<String, String>,
 ) -> Result<TemplatedRequestFile, Vec<Spanned<ReqlangError>>> {
-    let ast = ast::Ast::from(reqfile_string);
+    let ast = Ast::from(reqfile_string);
     let parsed_reqfile = parse(&ast)?;
 
     if let Some(env) = env {
@@ -116,7 +118,7 @@ pub fn template(
         input
     };
 
-    let ast = ast::Ast::from(&templated_input);
+    let ast = Ast::from(&templated_input);
     let request = ast.request().cloned().expect("should have a request");
     let response = ast.response().cloned();
 
@@ -136,14 +138,15 @@ pub fn template(
 mod test {
     use std::collections::HashMap;
 
-    use errors::{ReqlangError, ResolverError};
-    use span::NO_SPAN;
-    use types::{
-        http::{HttpRequest, HttpResponse, HttpStatusCode},
-        TemplatedRequestFile,
+    use crate::{
+        errors::{ReqlangError, ResolverError},
+        span::NO_SPAN,
+        templater::template,
+        types::{
+            TemplatedRequestFile,
+            http::{HttpRequest, HttpResponse, HttpStatusCode},
+        },
     };
-
-    use crate::templater::template;
 
     macro_rules! templater_test {
         ($test_name:ident, $reqfile_string:expr, $env:expr, $prompts:expr, $secrets:expr, $provider_values: expr, $result:expr) => {
@@ -244,9 +247,7 @@ HTTP/1.1 200 OK
         HashMap::default(),
         &HashMap::default(),
         Err(vec![(
-            ReqlangError::ResolverError(errors::ResolverError::SecretValueNotPassed(
-                "api_key".to_string()
-            )),
+            ReqlangError::ResolverError(ResolverError::SecretValueNotPassed("api_key".to_string())),
             NO_SPAN
         )])
     );
@@ -259,7 +260,7 @@ HTTP/1.1 200 OK
         HashMap::from([("api_key".to_string(), "api_key_value".to_string())]),
         &HashMap::default(),
         Err(vec![(
-            ReqlangError::ResolverError(errors::ResolverError::PromptValueNotPassed(
+            ReqlangError::ResolverError(ResolverError::PromptValueNotPassed(
                 "expected_response_body".to_string()
             )),
             NO_SPAN

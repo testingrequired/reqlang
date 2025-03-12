@@ -243,17 +243,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "175571dd1d178ced59193a6fc02dde1b972eb0bc56c892cde9beeceac5bf0f6b"
 
 [[package]]
-name = "assert-response"
-version = "0.1.0"
-dependencies = [
- "console",
- "pretty_assertions",
- "serde",
- "similar",
- "types",
-]
-
-[[package]]
 name = "assert_cmd"
 version = "2.0.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -267,18 +256,6 @@ dependencies = [
  "predicates-core",
  "predicates-tree",
  "wait-timeout",
-]
-
-[[package]]
-name = "ast"
-version = "0.1.0"
-dependencies = [
- "extract-codeblocks",
- "pretty_assertions",
- "serde",
- "serde_json",
- "span",
- "textwrap",
 ]
 
 [[package]]
@@ -1108,19 +1085,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "diagnostics"
-version = "0.1.0"
-dependencies = [
- "ast",
- "codespan-reporting",
- "errors",
- "parser",
- "serde",
- "span",
- "str-idxpos",
-]
-
-[[package]]
 name = "diff"
 version = "0.1.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1366,16 +1330,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "errors"
-version = "0.1.0"
-dependencies = [
- "serde",
- "span",
- "thiserror 2.0.0",
- "types",
-]
-
-[[package]]
 name = "event-listener"
 version = "2.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1411,25 +1365,6 @@ checksum = "958e4d70b6d5e81971bebec42271ec641e7ff4e170a6fa605f2b8a8b65cb97d3"
 dependencies = [
  "event-listener 4.0.3",
  "pin-project-lite",
-]
-
-[[package]]
-name = "export"
-version = "0.1.0"
-dependencies = [
- "serde",
- "serde_json",
- "types",
-]
-
-[[package]]
-name = "extract-codeblocks"
-version = "0.1.0"
-dependencies = [
- "markdown",
- "pretty_assertions",
- "span",
- "textwrap",
 ]
 
 [[package]]
@@ -2294,9 +2229,9 @@ dependencies = [
 
 [[package]]
 name = "markdown"
-version = "1.0.0-alpha.21"
+version = "1.0.0-alpha.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a6491e6c702bf7e3b24e769d800746d5f2c06a6c6a2db7992612e0f429029e81"
+checksum = "9047e0a37a596d4e15411a1ffbdabe71c328908cb90a721cb9bf8dcf3434e6d2"
 dependencies = [
  "unicode-id",
 ]
@@ -2732,24 +2667,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "parser"
-version = "0.1.0"
-dependencies = [
- "ast",
- "errors",
- "extract-codeblocks",
- "httparse",
- "pretty_assertions",
- "quote",
- "regex",
- "span",
- "syn 2.0.87",
- "textwrap",
- "toml",
- "types",
-]
-
-[[package]]
 name = "paste"
 version = "1.0.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3066,17 +2983,25 @@ checksum = "ba39f3699c378cd8970968dcbff9c43159ea4cfbd88d43c00b22f2ef10a435d2"
 name = "reqlang"
 version = "0.1.0"
 dependencies = [
- "assert-response",
- "ast",
- "diagnostics",
- "errors",
- "export",
- "parser",
+ "codespan-reporting",
+ "console",
+ "httparse",
+ "line-col",
+ "markdown",
  "pretty_assertions",
- "reqlang-fetch",
- "span",
+ "quote",
+ "regex",
+ "reqwest",
+ "rstest",
+ "serde",
+ "serde_json",
+ "similar",
+ "syn 2.0.87",
  "textwrap",
- "types",
+ "thiserror 2.0.0",
+ "tokio",
+ "toml",
+ "ts-rs",
 ]
 
 [[package]]
@@ -3089,17 +3014,6 @@ dependencies = [
  "reqlang",
  "rfd",
  "serde",
-]
-
-[[package]]
-name = "reqlang-fetch"
-version = "0.1.0"
-dependencies = [
- "parser",
- "pretty_assertions",
- "reqwest",
- "tokio",
- "types",
 ]
 
 [[package]]
@@ -3649,13 +3563,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "span"
-version = "0.1.0"
-dependencies = [
- "serde",
-]
-
-[[package]]
 name = "spin"
 version = "0.9.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3672,13 +3579,6 @@ name = "str-buf"
 version = "1.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9e08d8363704e6c71fc928674353e6b7c23dcea9d82d7012c8faf2a3a025f8d0"
-
-[[package]]
-name = "str-idxpos"
-version = "0.1.0"
-dependencies = [
- "line-col",
-]
 
 [[package]]
 name = "strict-num"
@@ -4231,17 +4131,6 @@ name = "typenum"
 version = "1.17.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "42ff0bf0c66b8238c6f3b578df37d0b7848e55df8577b3f74f92a69acceeb825"
-
-[[package]]
-name = "types"
-version = "0.1.0"
-dependencies = [
- "rstest",
- "serde",
- "serde_json",
- "span",
- "ts-rs",
-]
 
 [[package]]
 name = "uds_windows"

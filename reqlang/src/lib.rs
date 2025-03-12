@@ -1,15 +1,15 @@
-pub use assert_response;
-pub use ast::{self, Ast};
-pub use diagnostics;
-pub use errors;
-pub use errors::ReqlangError;
-pub use export::*;
-pub use parser::parse;
-pub use parser::template;
-pub use reqlang_fetch::*;
-pub use span::*;
-pub use types::http::*;
-pub use types::*;
+pub mod assert_response;
+pub mod ast;
+pub mod diagnostics;
+pub mod errors;
+pub mod export;
+pub mod extract_codeblocks;
+pub mod fetch;
+pub mod parser;
+pub mod span;
+pub mod str_idxpos;
+pub mod templater;
+pub mod types;
 
 #[cfg(test)]
 mod tests {
@@ -18,13 +18,18 @@ mod tests {
     use pretty_assertions::assert_eq;
 
     use crate::{
-        HttpRequest, HttpResponse, HttpStatusCode, ParsedConfig, ParsedRequestFile, ReferenceType,
-        TemplatedRequestFile, parse, template,
+        ast::Ast,
+        parser::parse,
+        templater::template,
+        types::{
+            ParsedConfig, ParsedRequestFile, ReferenceType, TemplatedRequestFile,
+            http::{HttpRequest, HttpResponse, HttpStatusCode},
+        },
     };
 
     #[test]
     fn parse_full_request_file() {
-        let ast = ast::Ast::from(textwrap::dedent(
+        let ast = Ast::from(textwrap::dedent(
             "
             ```%config
             vars = [\"query_value\"]

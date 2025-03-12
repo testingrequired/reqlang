@@ -1,12 +1,16 @@
-use errors::{ParseError, ReqlangError};
 use regex::Regex;
-use span::{Spanned, NO_SPAN};
-use types::{
-    http::{HttpRequest, HttpResponse},
-    ParsedConfig, ParsedRequestFile, ReferenceType,
+
+use crate::{
+    ast::Ast,
+    errors::{ParseError, ReqlangError},
+    span::{NO_SPAN, Spanned},
+    types::{
+        ParsedConfig, ParsedRequestFile, ReferenceType,
+        http::{HttpRequest, HttpResponse},
+    },
 };
 
-use crate::TEMPLATE_REFERENCE_PATTERN;
+pub const TEMPLATE_REFERENCE_PATTERN: &str = r"\{\{([:?!@]{1})([a-zA-Z][_a-zA-Z0-9.]+)\}\}";
 
 static FORBIDDEN_REQUEST_HEADER_NAMES: &[&str] = &[
     "host",
@@ -30,8 +34,8 @@ static FORBIDDEN_REQUEST_HEADER_NAMES: &[&str] = &[
     "via",
 ];
 
-/// Parse [ast::Ast] into a [ParsedRequestFile]
-pub fn parse(ast: &ast::Ast) -> Result<ParsedRequestFile, Vec<Spanned<ReqlangError>>> {
+/// Parse [crate::ast::Ast] into a [ParsedRequestFile]
+pub fn parse(ast: &Ast) -> Result<ParsedRequestFile, Vec<Spanned<ReqlangError>>> {
     match ast.request() {
         Some(request) => {
             let mut parse_errors: Vec<Spanned<ReqlangError>> = vec![];
@@ -431,17 +435,19 @@ mod test {
         ($test_name:ident, $reqfile:expr, $result:expr) => {
             #[test]
             fn $test_name() {
-                let ast = ::ast::Ast::from($reqfile);
-                let result = $crate::parse(&ast);
+                let ast = $crate::ast::Ast::from($reqfile);
+                let result = $crate::parser::parse(&ast);
                 pretty_assertions::assert_eq!($result, result);
             }
         };
     }
 
     mod invaid {
-        use errors::ParseError;
-        use span::NO_SPAN;
-        use types::ReferenceType;
+        use crate::{
+            errors::{ParseError, ReqlangError},
+            span::NO_SPAN,
+            types::ReferenceType,
+        };
 
         // Structure
 
@@ -470,7 +476,7 @@ mod test {
                 "
             ),
             Err(vec![(
-                errors::ReqlangError::ParseError(ParseError::UndefinedReferenceError(
+                ReqlangError::ParseError(ParseError::UndefinedReferenceError(
                     ReferenceType::Variable("value".to_string())
                 )),
                 13..44
@@ -488,7 +494,7 @@ mod test {
             "
             ),
             Err(vec![(
-                errors::ReqlangError::ParseError(ParseError::UndefinedReferenceError(
+                ReqlangError::ParseError(ParseError::UndefinedReferenceError(
                     ReferenceType::Prompt("value".to_string())
                 )),
                 13..44
@@ -506,7 +512,7 @@ mod test {
                 "
             ),
             Err(vec![(
-                errors::ReqlangError::ParseError(ParseError::UndefinedReferenceError(
+                ReqlangError::ParseError(ParseError::UndefinedReferenceError(
                     ReferenceType::Secret("value".to_string())
                 )),
                 13..44
@@ -528,7 +534,7 @@ mod test {
             "
             ),
             Err(vec![(
-                errors::ReqlangError::ParseError(ParseError::UndefinedReferenceError(
+                ReqlangError::ParseError(ParseError::UndefinedReferenceError(
                     ReferenceType::Variable("value".to_string())
                 )),
                 46..78
@@ -550,7 +556,7 @@ mod test {
                 "
             ),
             Err(vec![(
-                errors::ReqlangError::ParseError(ParseError::UndefinedReferenceError(
+                ReqlangError::ParseError(ParseError::UndefinedReferenceError(
                     ReferenceType::Prompt("value".to_string())
                 )),
                 46..78
@@ -572,7 +578,7 @@ mod test {
                 "
             ),
             Err(vec![(
-                errors::ReqlangError::ParseError(ParseError::UndefinedReferenceError(
+                ReqlangError::ParseError(ParseError::UndefinedReferenceError(
                     ReferenceType::Secret("value".to_string())
                 )),
                 46..78
@@ -622,9 +628,9 @@ mod test {
                 "
             ),
             Err(vec![(
-                errors::ReqlangError::ParseError(ParseError::UnusedValueError(
-                    ReferenceType::Prompt("base_url".to_string())
-                )),
+                ReqlangError::ParseError(ParseError::UnusedValueError(ReferenceType::Prompt(
+                    "base_url".to_string()
+                ))),
                 12..35
             )])
         );
@@ -643,9 +649,9 @@ mod test {
                 "
             ),
             Err(vec![(
-                errors::ReqlangError::ParseError(ParseError::UnusedValueError(
-                    ReferenceType::Secret("base_url".to_string())
-                )),
+                ReqlangError::ParseError(ParseError::UnusedValueError(ReferenceType::Secret(
+                    "base_url".to_string()
+                ))),
                 12..34
             )])
         );
@@ -663,7 +669,7 @@ mod test {
                 "
             ),
             Err(vec![(
-                errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
+                ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     "host".to_string()
                 )),
                 13..45
@@ -681,7 +687,7 @@ mod test {
                 "
             ),
             Err(vec![(
-                errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
+                ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     "host".to_string()
                 )),
                 13..45
@@ -699,7 +705,7 @@ mod test {
                 "
             ),
             Err(vec![(
-                errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
+                ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     "host".to_string()
                 )),
                 13..45
@@ -717,7 +723,7 @@ mod test {
                 "
             ),
             Err(vec![(
-                errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
+                ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     "accept-charset".to_string()
                 )),
                 13..68
@@ -735,7 +741,7 @@ mod test {
                 "
             ),
             Err(vec![(
-                errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
+                ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     "accept-encoding".to_string()
                 )),
                 13..69
@@ -753,7 +759,7 @@ mod test {
                 "
             ),
             Err(vec![(
-                errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
+                ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     "access-control-request-headers".to_string()
                 )),
                 13..84
@@ -771,7 +777,7 @@ mod test {
                 "
             ),
             Err(vec![(
-                errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
+                ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     "access-control-request-method".to_string()
                 )),
                 13..83
@@ -789,7 +795,7 @@ mod test {
                 "
             ),
             Err(vec![(
-                errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
+                ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     "connection".to_string()
                 )),
                 13..64
@@ -807,7 +813,7 @@ mod test {
                 "
             ),
             Err(vec![(
-                errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
+                ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     "content-length".to_string()
                 )),
                 13..68
@@ -825,7 +831,7 @@ mod test {
                 "
             ),
             Err(vec![(
-                errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
+                ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     "cookie".to_string()
                 )),
                 13..60
@@ -843,7 +849,7 @@ mod test {
                 "
             ),
             Err(vec![(
-                errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
+                ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     "date".to_string()
                 )),
                 13..58
@@ -861,7 +867,7 @@ mod test {
                 "
             ),
             Err(vec![(
-                errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
+                ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     "dnt".to_string()
                 )),
                 13..57
@@ -879,7 +885,7 @@ mod test {
                 "
             ),
             Err(vec![(
-                errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
+                ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     "expect".to_string()
                 )),
                 13..60
@@ -897,7 +903,7 @@ mod test {
                 "
             ),
             Err(vec![(
-                errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
+                ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     "keep-alive".to_string()
                 )),
                 13..64
@@ -915,7 +921,7 @@ mod test {
                 "
             ),
             Err(vec![(
-                errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
+                ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     "origin".to_string()
                 )),
                 13..60
@@ -933,7 +939,7 @@ mod test {
                 "
             ),
             Err(vec![(
-                errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
+                ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     "permission-policy".to_string()
                 )),
                 13..71
@@ -951,7 +957,7 @@ mod test {
                 "
             ),
             Err(vec![(
-                errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
+                ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     "te".to_string()
                 )),
                 13..56
@@ -969,7 +975,7 @@ mod test {
                 "
             ),
             Err(vec![(
-                errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
+                ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     "trailer".to_string()
                 )),
                 13..61
@@ -987,7 +993,7 @@ mod test {
                 "
             ),
             Err(vec![(
-                errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
+                ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     "transfer-encoding".to_string()
                 )),
                 13..71
@@ -1005,7 +1011,7 @@ mod test {
                 "
             ),
             Err(vec![(
-                errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
+                ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     "upgrade".to_string()
                 )),
                 13..61
@@ -1023,7 +1029,7 @@ mod test {
                 "
             ),
             Err(vec![(
-                errors::ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
+                ReqlangError::ParseError(ParseError::ForbiddenRequestHeaderNameError(
                     "via".to_string()
                 )),
                 13..57
@@ -1047,7 +1053,7 @@ mod test {
                 "
             ),
             Err(vec![(
-                errors::ReqlangError::ParseError(ParseError::InvalidConfigError {
+                ReqlangError::ParseError(ParseError::InvalidConfigError {
                     message: "invalid table header\nexpected `.`, `]`".to_string()
                 }),
                 43..44
@@ -1068,7 +1074,7 @@ mod test {
                 "
             ),
             Err(vec![(
-                errors::ReqlangError::ParseError(ParseError::InvalidConfigError {
+                ReqlangError::ParseError(ParseError::InvalidConfigError {
                     message: "invalid key".to_string()
                 }),
                 12..13
@@ -1079,9 +1085,9 @@ mod test {
     mod valid {
         use std::collections::HashMap;
 
-        use types::{
-            http::{HttpRequest, HttpResponse, HttpStatusCode, HttpVerb, HttpVersion},
+        use crate::types::{
             ParsedConfig, ParsedRequestFile, ReferenceType,
+            http::{HttpRequest, HttpResponse, HttpStatusCode, HttpVerb, HttpVersion},
         };
 
         parser_test!(
@@ -1387,8 +1393,8 @@ mod resolve_tests {
         ($test_name:ident, $reqfile:expr, $env:expr, $result:expr) => {
             #[test]
             fn $test_name() {
-                let ast = ::ast::Ast::from($reqfile);
-                let resolved_reqfile = $crate::parse(&ast).unwrap();
+                let ast = $crate::ast::Ast::from($reqfile);
+                let resolved_reqfile = $crate::parser::parse(&ast).unwrap();
 
                 pretty_assertions::assert_eq!($result, resolved_reqfile.env($env));
             }

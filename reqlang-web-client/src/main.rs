@@ -5,7 +5,7 @@ use error::Error;
 
 #[cfg(not(feature = "dynamic_assets"))]
 use include_dir::{Dir, include_dir};
-use reqlang::ParseResult;
+use reqlang::{ast::Ast, types::ParseResult};
 use serde::Deserialize;
 #[cfg(feature = "dynamic_assets")]
 use tower_http::services::ServeDir;
@@ -56,8 +56,8 @@ struct ParseRequestFile {
 }
 
 async fn parse_request_file(Json(body): Json<ParseRequestFile>) -> (StatusCode, String) {
-    let ast = reqlang::Ast::from(&body.payload);
-    let result = reqlang::parse(&ast);
+    let ast = Ast::from(&body.payload);
+    let result = reqlang::parser::parse(&ast);
 
     match &result {
         Ok(result) => {
