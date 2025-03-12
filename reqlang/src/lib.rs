@@ -6,6 +6,7 @@ pub mod export;
 pub mod extract_codeblocks;
 pub mod fetch;
 pub mod parser;
+pub mod prelude;
 pub mod span;
 pub mod str_idxpos;
 pub mod templater;
