@@ -230,6 +230,17 @@ The [reqlang](./reqlang/) crate is a library working with request files.
 
 - [API Docs](https://testingrequired.github.io/reqlang/reqlang/)
 
+```rust
+use reqlang::prelude::*;
+
+let request_file_text = fs::read_to_string("./path/to/requestfile.reqlang")
+  .expect("Should have been able to read the file");
+
+const ast = Ast::from(&request_file_text);
+
+const parsed_request_file = parse(&ast).expect("should be a valid request file");
+```
+
 ## Tooling
 
 [![build-artifacts](https://github.com/testingrequired/reqlang/actions/workflows/build-artifacts.yml/badge.svg)](https://github.com/testingrequired/reqlang/actions/workflows/build-artifacts.yml)
