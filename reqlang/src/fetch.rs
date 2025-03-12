@@ -1,11 +1,12 @@
 use std::{collections::HashMap, future::Future};
 
-use parser::template;
-use reqwest::{Client, Method, Response, Version};
-use types::{
+use crate::types::{
     RequestParamsFromClient,
     http::{HttpRequest, HttpResponse, HttpStatusCode, HttpVersion},
 };
+use reqwest::{Client, Method, Response, Version};
+
+use crate::templater::template;
 
 /// Implement a fetch that returns an [HttpResponse]. See [HttpRequestFetcher].
 pub trait Fetch {
@@ -126,15 +127,13 @@ impl From<RequestParamsFromClient> for HttpRequestFetcher {
 mod test {
     use super::*;
 
+    use crate::types::http::{HttpStatusCode, HttpVerb};
     use pretty_assertions::assert_eq;
-    use types::http::HttpStatusCode;
-
-    use crate::Fetch;
 
     #[tokio::test]
     async fn test_real_http_request_fetch() {
         let http_request = HttpRequest {
-            verb: types::http::HttpVerb("GET".to_owned()),
+            verb: HttpVerb("GET".to_owned()),
             target: "https://example.com".to_owned(),
             http_version: HttpVersion::one_point_one(),
             headers: vec![],

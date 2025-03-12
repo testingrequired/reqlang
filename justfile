@@ -35,18 +35,16 @@ move-bins-release:
     cp target/release/reqlang-client.exe ~/.cargo/bin/reqlang-client.exe
     cp target/release/reqlang-web-client.exe ~/.cargo/bin/reqlang-web-client.exe
 
-# Build typescript types from Rust types required for VS Code extension
-build_types:
-    cd types && just build
 
 # Build the code
-build: build_types
+build:
+    cd reqlang && just build
     cd reqlang-web-client && just build-client
     cargo build
     cd vsc && just build
 
 # Build the code for release
-build_release: build_types
+build_release:
     cd reqlang-web-client && just build-client
     cargo build --release
     cd vsc && just build

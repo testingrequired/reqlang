@@ -278,7 +278,7 @@ mod tests {
     mod http_status_code {
         use rstest::rstest;
 
-        use crate::http::HttpStatusCode;
+        use crate::types::http::HttpStatusCode;
 
         #[rstest]
         #[case(100)]

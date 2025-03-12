@@ -1,6 +1,6 @@
-use extract_codeblocks::extract_codeblocks;
 use serde::{Deserialize, Serialize};
-use span::Spanned;
+
+use crate::{extract_codeblocks::extract_codeblocks, span::Spanned};
 
 /// Abstract syntax tree for a request file
 #[derive(Debug, PartialEq, Serialize, Deserialize)]

@@ -2,20 +2,11 @@
 
 members = [
     "cli",
-    "errors",
-    "span",
-    "types",
-    "parser",
     "reqlang-lsp",
-    "diagnostics",
-    "export",
     "reqlang-client",
-    "str-idxpos",
     "reqlang",
     "integration_tests",
-    "reqlang-fetch",
-    "assert-response",
-    "extract-codeblocks", "ast", "reqlang-web-client",
+    "reqlang-web-client",
 ]
 
 resolver = "2"

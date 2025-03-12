@@ -5,14 +5,18 @@ mod integration_tests {
     use std::fs;
     use std::path::PathBuf;
 
-    use reqlang::{Fetch, HttpRequestFetcher, HttpResponse, HttpStatusCode, HttpVersion, ast};
+    use reqlang::{
+        ast,
+        fetch::{Fetch, HttpRequestFetcher},
+        types::http::{HttpResponse, HttpStatusCode, HttpVersion},
+    };
 
     #[rstest::rstest]
     fn integration_valid(#[files("../examples/valid/*.reqlang")] path: PathBuf) {
         let source = fs::read_to_string(path).expect("text should have been read from file");
         let ast = ast::Ast::from(&source);
 
-        assert!(reqlang::parse(&ast).is_ok());
+        assert!(reqlang::parser::parse(&ast).is_ok());
     }
 
     #[rstest::rstest]
@@ -20,7 +24,7 @@ mod integration_tests {
         let source = fs::read_to_string(path).expect("text should have been read from file");
         let ast = ast::Ast::from(&source);
 
-        assert!(reqlang::parse(&ast).is_err());
+        assert!(reqlang::parser::parse(&ast).is_err());
     }
 
     #[tokio::test]
@@ -32,8 +36,9 @@ mod integration_tests {
         let secrets = HashMap::new();
         let provider_values = HashMap::new();
 
-        let reqfile = reqlang::template(&source, None, &prompts, &secrets, &provider_values)
-            .expect("request file should have been templated");
+        let reqfile =
+            reqlang::templater::template(&source, None, &prompts, &secrets, &provider_values)
+                .expect("request file should have been templated");
 
         let fetcher: HttpRequestFetcher = reqfile.request.into();
 

@@ -1,12 +1,12 @@
 use clap::builder::PossibleValuesParser;
 use clap::{crate_authors, crate_description, crate_version, Arg, ArgMatches, Command};
+use reqlang::prelude::*;
 use reqlang::{
-    assert_response::assert_response, export_response, parse, Ast, HttpRequestFetcher, ParseResult,
-    ResponseFormat,
+    diagnostics::get_diagnostics,
+    export::{export, export_response, RequestFormat, ResponseFormat},
+    types::ParseResult,
 };
 use std::{collections::HashMap, fs, process::exit};
-
-use reqlang::{diagnostics::get_diagnostics, export, template, Fetch, RequestFormat};
 
 use std::error::Error;
 

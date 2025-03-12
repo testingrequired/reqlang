@@ -1,7 +1,7 @@
 use std::{fmt::Display, str::FromStr};
 
+use crate::types::http::{HttpRequest, HttpResponse};
 use serde::{Deserialize, Serialize};
-use types::http::{HttpRequest, HttpResponse};
 
 /// Supported formats to export request files to
 #[derive(Copy, Clone, PartialEq, Eq, Debug, Serialize, Deserialize, Default)]
@@ -134,9 +134,9 @@ pub fn export_response(response: &HttpResponse, format: ResponseFormat) -> Strin
 
 #[cfg(test)]
 mod test {
-    use types::http::{HttpRequest, HttpResponse, HttpStatusCode, HttpVersion};
+    use crate::types::http::{HttpRequest, HttpResponse, HttpStatusCode, HttpVersion};
 
-    use crate::{export, export_response};
+    use super::{RequestFormat, ResponseFormat, export, export_response};
 
     macro_rules! export_test {
         ($test_name:ident, $request:expr, $format:expr, $expected:expr) => {
@@ -161,21 +161,21 @@ mod test {
     export_test!(
         format_to_curl_get_request,
         HttpRequest::get("/", "1.1", vec![]),
-        crate::RequestFormat::CurlCommand,
+        RequestFormat::CurlCommand,
         "curl / --http1.1 -v"
     );
 
     export_test!(
         format_to_curl_get_request_with_single_header,
         HttpRequest::get("/", "1.1", vec![("test".to_string(), "value".to_string())]),
-        crate::RequestFormat::CurlCommand,
+        RequestFormat::CurlCommand,
         "curl / --http1.1 -H \"test: value\" -v"
     );
 
     export_test!(
         format_to_curl_post_request,
         HttpRequest::post("/", "1.1", vec![], Some("")),
-        crate::RequestFormat::CurlCommand,
+        RequestFormat::CurlCommand,
         "curl -X POST / --http1.1 -v"
     );
 
@@ -187,7 +187,7 @@ mod test {
             vec![("test".to_string(), "value".to_string())],
             None
         ),
-        crate::RequestFormat::CurlCommand,
+        RequestFormat::CurlCommand,
         "curl -X POST / --http1.1 -H \"test: value\" -v"
     );
 
@@ -199,21 +199,21 @@ mod test {
             vec![("test".to_string(), "value".to_string())],
             Some("testing")
         ),
-        crate::RequestFormat::CurlCommand,
+        RequestFormat::CurlCommand,
         "curl -X POST / --http1.1 -H \"test: value\" -d 'testing' -v"
     );
 
     export_test!(
         format_to_http_get_request,
         HttpRequest::get("/", "1.1", vec![]),
-        crate::RequestFormat::HttpMessage,
+        RequestFormat::HttpMessage,
         "GET / HTTP/1.1\n"
     );
 
     export_test!(
         format_to_http_post_request,
         HttpRequest::post("/", "1.1", vec![], Some("[1, 2, 3]\n")),
-        crate::RequestFormat::HttpMessage,
+        RequestFormat::HttpMessage,
         "POST / HTTP/1.1\n\n[1, 2, 3]\n"
     );
 
@@ -226,7 +226,7 @@ mod test {
             headers: vec![],
             body: Some("".to_owned())
         },
-        crate::ResponseFormat::HttpMessage,
+        ResponseFormat::HttpMessage,
         "HTTP/1.1 200 OK\n"
     );
 
@@ -242,7 +242,7 @@ mod test {
             ],
             body: Some("".to_owned())
         },
-        crate::ResponseFormat::HttpMessage,
+        ResponseFormat::HttpMessage,
         "HTTP/1.1 200 OK\nx-value: 123\ncontent-type: application/json\n"
     );
 }

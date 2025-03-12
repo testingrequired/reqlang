@@ -4,22 +4,12 @@ Thank you for your interest in contributing to this project! We welcome contribu
 
 ## Navigating the Project
 
-- [**`assert-response`**](./assert-response/): Library for asserting responses against expected responses.
 - [**`cli`**](./cli/): A CLI for interacting with request files from the terminal.
-- [**`diagnostics`**](./diagnostics/): Contains diagnostic functionality, which helps you identify issues in your request files and provide feedback on how to fix them.
-- [**`errors`**](./errors/): A library of shared Rust error types that can be used across the project.
 - [**`examples`**](./examples/): Valid and invalid request files. Designed to illustrate the format's features. Also used when running the [integration tests](./integration-tests/).
-- [**errors**](./errors): Shared errors used by Reqlang
-- [**`extract-codeblocks`**](./extract-codeblocks/): Library for extracting code blocks from markdown strings. This is used for parsing the request, response, and config from request files.
 - [**`integration-tests`**](./integration-tests/): Test suite that parses the [example](./examples/) request files.
-- [**`parser`**](./parser/): A library for parsing, validating, and templating request files.
-- [**`reqlang`**](./reqlang/): Primary library for handling request files. Re-exports structs, enums, functions from other crates.
+- [**`reqlang`**](./reqlang/): Rust library for handling request files (parsing, templating, executing, diagnostics, etc...)
 - [**`reqlang-client`**](./reqlang-client/): A simple desktop GUI applicationfor testing and demonstration purposes.
-- [**`reqlang-fetch`**](./reqlang-fetch/): A library of traits for executing requests from request files.
 - [**`reqlang-lsp`**](./reqlang-lsp/): The reqlang language server. Used by the VS Code [extension](./vsc/).
-- [**`span`**](./span/): A library of types for handling spanned values when parisng request files.
-- [**`str-idxpos`**](./str-idxpos/): A utility library for handling string indices and positions.
-- [**`types`**](./types/): A library for defining shared data types used across the project, managing the structure of request files, configurations, and response data. It uses `serde` for serialization/deserialization, making it possible to interact with external tools easily.
 - [**`vsc`**](./vsc/): The VS Code extension for working with request files. It also acts as a client for executing requests.
 
 ## Ways to Contribute

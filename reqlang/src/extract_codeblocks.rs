@@ -1,5 +1,6 @@
 use markdown::{mdast::Node, to_mdast};
-use span::Spanned;
+
+use crate::span::Spanned;
 
 pub type SpannedContent = Spanned<String>;
 pub type SpannedCodeBlock = Spanned<SpannedContent>;

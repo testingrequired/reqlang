@@ -4,16 +4,32 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-ast = { path = "../ast" }
-parser = { path = "../parser" }
-types = { path = "../types" }
-span = { path = "../span" }
-errors = { path = "../errors" }
-export = { path = "../export" }
-diagnostics = { path = "../diagnostics" }
-reqlang-fetch = { path = "../reqlang-fetch" }
-assert-response = { path = "../assert-response" }
+serde = { version = "1.0.195", features = ["derive"] }
+serde_json = "1.0"
+thiserror = "2"
+codespan-reporting = "0.11.1"
+line-col = "0.2.1"
+httparse = "1.8.0"
+toml = "0.8.8"
+regex = "1.10.3"
+syn = "2.0"
+quote = "1.0"
+reqwest = { version = "0.12", features = ["json"] }
+tokio = { version = "1.17.0", features = ["macros"] }
+similar = { version = "2.7.0" }
+console = "0.15.10"
+ts-rs = "10.0"
+markdown = "1.0.0-alpha.21"
 
 [dev-dependencies]
 pretty_assertions = "1.4.1"
 textwrap = "0.16"
+rstest = "0.19.0"
+
+[[bin]]
+name = "bundle_types"
+path = "src/types/bundle.rs"
+required-features = ["bundle_types"]
+
+[features]
+bundle_types = []

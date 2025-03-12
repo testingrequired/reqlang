@@ -1,7 +1,0 @@
-[package]
-name = "str-idxpos"
-version = "0.1.0"
-edition = "2024"
-
-[dependencies]
-line-col = "0.2.1"
