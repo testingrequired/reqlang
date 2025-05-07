@@ -707,7 +707,7 @@ Options:
   -e, --env <env>         Resolve with an environment
   -P, --prompt <prompts>  Pass prompt values to resolve with
   -S, --secret <secrets>  Pass secret values to resolve with
-  -f, --format <format>   Format to export [default: json] [possible values: http, curl, json]
+  -f, --format <format>   Format to export [default: json] [possible values: http, curl, json, body]
   -h, --help              Print help
 ```
 
@@ -750,6 +750,17 @@ reqlang export examples/valid/status_code.reqlang --prompt status_code=400 --for
 
 ```shell
 curl https://httpbin.org/status/400 --http1.1 -v
+```
+
+##### Body Text
+
+```shell
+reqlang export examples/valid/base64decode.reqlang --format body
+```
+
+```
+HTTPBIN is awesome
+
 ```
 
 ##### Validation Errors
