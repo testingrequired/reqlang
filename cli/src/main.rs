@@ -278,7 +278,7 @@ async fn main() {
                         .short('f')
                         .long("format")
                         .default_value("http")
-                        .value_parser(PossibleValuesParser::new(["http", "json"]))
+                        .value_parser(PossibleValuesParser::new(["http", "json", "body"]))
                         .help("Format the response"),
                 )
                 .arg(

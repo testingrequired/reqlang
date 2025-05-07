@@ -423,10 +423,17 @@ mod cli_integration_tests {
 
         assert.failure().stderr(concat!(
             "error: invalid value 'invalid' for '--format <format>'\n",
-            "  [possible values: http, json]\n",
+            "  [possible values: http, json, body]\n",
             "\n",
             "For more information, try '--help'.\n"
         ));
+    }
+
+    #[test]
+    fn run_with_body_format() {
+        let assert = assert_command!("reqlang run ../examples/valid/base64decode.reqlang -f body");
+
+        assert.success().stdout("HTTPBIN is awesome\n");
     }
 
     #[test]

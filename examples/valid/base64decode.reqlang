@@ -1,0 +1,3 @@
+```%request
+GET https://httpbin.org/base64/SFRUUEJJTiBpcyBhd2Vzb21l HTTP/1.1
+```

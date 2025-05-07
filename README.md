@@ -286,7 +286,7 @@ Options:
   -e, --env <env>         Resolve with an environment
   -P, --prompt <prompts>  Input a prompt value
   -S, --secret <secrets>  Input a secret value
-  -f, --format <format>   Format the response [default: http] [possible values: http, json]
+  -f, --format <format>   Format the response [default: http] [possible values: http, json, body]
   -t, --test              Test if the response matches the expected response, if defined
   -h, --help              Print help
 ```

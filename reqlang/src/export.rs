@@ -101,6 +101,7 @@ pub enum ResponseFormat {
     /// Export as a JSON object
     #[default]
     Json,
+    Body,
 }
 
 impl Display for ResponseFormat {
@@ -108,6 +109,7 @@ impl Display for ResponseFormat {
         match self {
             ResponseFormat::HttpMessage => write!(f, "http"),
             ResponseFormat::Json => write!(f, "json"),
+            ResponseFormat::Body => write!(f, "body"),
         }
     }
 }
@@ -119,6 +121,7 @@ impl FromStr for ResponseFormat {
         match s {
             "http" => Ok(Self::HttpMessage),
             "json" => Ok(Self::Json),
+            "body" => Ok(Self::Body),
             _ => Err(format!("Unknown format: {s}")),
         }
     }
@@ -129,6 +132,7 @@ pub fn export_response(response: &HttpResponse, format: ResponseFormat) -> Strin
     match format {
         ResponseFormat::HttpMessage => format!("{}", response),
         ResponseFormat::Json => serde_json::to_string_pretty(response).unwrap(),
+        ResponseFormat::Body => response.clone().body.unwrap_or_default(),
     }
 }
 
@@ -244,5 +248,18 @@ mod test {
         },
         ResponseFormat::HttpMessage,
         "HTTP/1.1 200 OK\nx-value: 123\ncontent-type: application/json\n"
+    );
+
+    export_response_test!(
+        format_response_to_return_the_body,
+        HttpResponse {
+            http_version: HttpVersion::one_point_one(),
+            status_code: HttpStatusCode::new(200),
+            status_text: "OK".into(),
+            headers: vec![],
+            body: Some("response body\n".to_owned())
+        },
+        ResponseFormat::Body,
+        "response body\n"
     );
 }
