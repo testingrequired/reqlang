@@ -211,7 +211,39 @@
 <a href="#210" id="210">210</a>
 <a href="#211" id="211">211</a>
 <a href="#212" id="212">212</a>
-<a href="#213" id="213">213</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{collections::HashMap, future::Future};
+<a href="#213" id="213">213</a>
+<a href="#214" id="214">214</a>
+<a href="#215" id="215">215</a>
+<a href="#216" id="216">216</a>
+<a href="#217" id="217">217</a>
+<a href="#218" id="218">218</a>
+<a href="#219" id="219">219</a>
+<a href="#220" id="220">220</a>
+<a href="#221" id="221">221</a>
+<a href="#222" id="222">222</a>
+<a href="#223" id="223">223</a>
+<a href="#224" id="224">224</a>
+<a href="#225" id="225">225</a>
+<a href="#226" id="226">226</a>
+<a href="#227" id="227">227</a>
+<a href="#228" id="228">228</a>
+<a href="#229" id="229">229</a>
+<a href="#230" id="230">230</a>
+<a href="#231" id="231">231</a>
+<a href="#232" id="232">232</a>
+<a href="#233" id="233">233</a>
+<a href="#234" id="234">234</a>
+<a href="#235" id="235">235</a>
+<a href="#236" id="236">236</a>
+<a href="#237" id="237">237</a>
+<a href="#238" id="238">238</a>
+<a href="#239" id="239">239</a>
+<a href="#240" id="240">240</a>
+<a href="#241" id="241">241</a>
+<a href="#242" id="242">242</a>
+<a href="#243" id="243">243</a>
+<a href="#244" id="244">244</a>
+<a href="#245" id="245">245</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{collections::HashMap, future::Future};
 
 <span class="kw">use </span><span class="kw">crate</span>::types::{
     RequestParamsFromClient,
@@ -249,6 +281,18 @@
 
     <span class="kw">fn </span>request_url(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>str {
         <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="number">0</span>.target
+    }
+
+    <span class="kw">fn </span>body(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; String {
+        <span class="self">self</span>.<span class="number">0</span>.body.clone().unwrap_or_default()
+    }
+
+    <span class="kw">fn </span>request_headers(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Vec&lt;(<span class="kw-2">&amp;</span>str, <span class="kw-2">&amp;</span>str)&gt; {
+        <span class="self">self</span>.<span class="number">0
+            </span>.headers
+            .iter()
+            .map(|(k, v)| (k.as_str(), v.as_str()))
+            .collect()
     }
 
     <span class="kw">fn </span>map_response_http_version(response: <span class="kw-2">&amp;</span>Response) -&gt; HttpVersion {
@@ -289,11 +333,15 @@
     <span class="kw">async fn </span>fetch(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; std::result::Result&lt;HttpResponse, Box&lt;<span class="kw">dyn </span>std::error::Error + Send&gt;&gt; {
         <span class="kw">let </span>client = Client::new();
 
-        <span class="kw">let </span>response = client
-            .request(<span class="self">self</span>.request_method(), <span class="self">self</span>.request_url())
-            .send()
-            .<span class="kw">await
-            </span>.expect(<span class="string">"Request should have executed"</span>);
+        <span class="kw">let </span><span class="kw-2">mut </span>request = client.request(<span class="self">self</span>.request_method(), <span class="self">self</span>.request_url());
+
+        <span class="kw">for </span>header <span class="kw">in </span><span class="self">self</span>.request_headers().into_iter() {
+            request = request.header(header.<span class="number">0</span>, header.<span class="number">1</span>);
+        }
+
+        request = request.body(<span class="self">self</span>.body());
+
+        <span class="kw">let </span>response = request.send().<span class="kw">await</span>.expect(<span class="string">"Request should have executed"</span>);
 
         <span class="kw">let </span>http_version = <span class="self">Self</span>::map_response_http_version(<span class="kw-2">&amp;</span>response);
         <span class="kw">let </span>headers = <span class="self">Self</span>::map_response_headers(<span class="kw-2">&amp;</span>response);
@@ -341,16 +389,39 @@
     <span class="kw">use super</span>::<span class="kw-2">*</span>;
 
     <span class="kw">use </span><span class="kw">crate</span>::types::http::{HttpStatusCode, HttpVerb};
+    <span class="kw">use </span>httptest::{
+        Expectation, Server,
+        matchers::{all_of, contains, request},
+        responders::status_code,
+    };
     <span class="kw">use </span>pretty_assertions::assert_eq;
 
     <span class="attr">#[tokio::test]
     </span><span class="kw">async fn </span>test_real_http_request_fetch() {
+        <span class="kw">let </span>server = Server::run();
+
+        server.expect(
+            Expectation::matching(<span class="macro">all_of!</span>[
+                request::method(<span class="string">"POST"</span>),
+                request::path(<span class="string">"/test"</span>),
+                request::headers(contains((<span class="string">"content-type"</span>, <span class="string">"application/json"</span>))),
+                request::headers(contains((<span class="string">"x-test"</span>, <span class="string">"foo"</span>))),
+                request::body(<span class="string">"test body"</span>)
+            ])
+            .respond_with(status_code(<span class="number">200</span>).body(<span class="string">"test response!"</span>)),
+        );
+
+        <span class="kw">let </span>url = server.url(<span class="string">"/test"</span>);
+
         <span class="kw">let </span>http_request = HttpRequest {
-            verb: HttpVerb(<span class="string">"GET"</span>.to_owned()),
-            target: <span class="string">"https://example.com"</span>.to_owned(),
+            verb: HttpVerb(<span class="string">"POST"</span>.to_owned()),
+            target: url.to_string(),
             http_version: HttpVersion::one_point_one(),
-            headers: <span class="macro">vec!</span>[],
-            body: <span class="prelude-val">None</span>,
+            headers: <span class="macro">vec!</span>[
+                (<span class="string">"content-type"</span>.to_string(), <span class="string">"application/json"</span>.to_string()),
+                (<span class="string">"x-test"</span>.to_string(), <span class="string">"foo"</span>.to_string()),
+            ],
+            body: <span class="prelude-val">Some</span>(<span class="string">"test body"</span>.to_string()),
         };
 
         <span class="kw">let </span>fetcher: HttpRequestFetcher = http_request.into();
@@ -362,34 +433,41 @@
         <span class="macro">assert_eq!</span>(HttpVersion::one_point_one(), response.http_version);
         <span class="macro">assert_eq!</span>(HttpStatusCode::new(<span class="number">200</span>), response.status_code);
 
-        <span class="macro">assert_eq!</span>(
-            <span class="prelude-val">Some</span>((<span class="string">"content-type"</span>.to_string(), <span class="string">"text/html"</span>.to_string())),
-            response
-                .headers
-                .iter()
-                .find(|x| x.<span class="number">0 </span>== <span class="string">"content-type"</span>)
-                .cloned()
-        );
-
         <span class="macro">assert_eq!</span>(<span class="string">"OK"</span>, response.status_text);
 
-        <span class="macro">assert!</span>(response.body.is_some());
-
-        <span class="kw">let </span>body = response.body.unwrap();
-
-        <span class="macro">assert!</span>(body.contains(<span class="string">"&lt;h1&gt;Example Domain&lt;/h1&gt;"</span>));
-        <span class="macro">assert!</span>(body.contains(<span class="string">"&lt;p&gt;This domain is for use in illustrative examples in documents. You may use this\n    domain in literature without prior coordination or asking for permission.&lt;/p&gt;"</span>));
+        <span class="macro">assert_eq!</span>(<span class="prelude-val">Some</span>(<span class="string">"test response!"</span>.to_string()), response.body);
     }
 
     <span class="attr">#[tokio::test]
     </span><span class="kw">async fn </span>test_real_request_params_fetch() {
+        <span class="kw">let </span>server = Server::run();
+
+        server.expect(
+            Expectation::matching(<span class="macro">all_of!</span>[
+                request::method(<span class="string">"POST"</span>),
+                request::path(<span class="string">"/test"</span>),
+                request::headers(contains((<span class="string">"content-type"</span>, <span class="string">"application/json"</span>))),
+                request::headers(contains((<span class="string">"x-test"</span>, <span class="string">"foo"</span>))),
+                request::body(<span class="string">"test body\n\n"</span>)
+            ])
+            .respond_with(status_code(<span class="number">200</span>).body(<span class="string">"test response!"</span>)),
+        );
+
+        <span class="kw">let </span>url = server.url(<span class="string">"/test"</span>);
+
         <span class="kw">let </span>params: RequestParamsFromClient = RequestParamsFromClient {
-            reqfile: <span class="string">r#"
+            reqfile: <span class="macro">format!</span>(
+                <span class="string">r#"
 ```%request
-GET http://example.com HTTP/1.1
+POST {url} HTTP/1.1
+content-type: application/json
+x-test: foo
+
+test body
 ```
             "#
-            </span>.to_string(),
+            </span>)
+            .to_string(),
             env: <span class="prelude-val">None</span>,
             vars: HashMap::new(),
             prompts: HashMap::new(),
@@ -405,23 +483,9 @@ GET http://example.com HTTP/1.1
         <span class="macro">assert_eq!</span>(HttpVersion::one_point_one(), response.http_version);
         <span class="macro">assert_eq!</span>(HttpStatusCode::new(<span class="number">200</span>), response.status_code);
 
-        <span class="macro">assert_eq!</span>(
-            <span class="prelude-val">Some</span>((<span class="string">"content-type"</span>.to_string(), <span class="string">"text/html"</span>.to_string())),
-            response
-                .headers
-                .iter()
-                .find(|x| x.<span class="number">0 </span>== <span class="string">"content-type"</span>)
-                .cloned()
-        );
-
         <span class="macro">assert_eq!</span>(<span class="string">"OK"</span>, response.status_text);
 
-        <span class="macro">assert!</span>(response.body.is_some());
-
-        <span class="kw">let </span>body = response.body.unwrap();
-
-        <span class="macro">assert!</span>(body.contains(<span class="string">"&lt;h1&gt;Example Domain&lt;/h1&gt;"</span>));
-        <span class="macro">assert!</span>(body.contains(<span class="string">"&lt;p&gt;This domain is for use in illustrative examples in documents. You may use this\n    domain in literature without prior coordination or asking for permission.&lt;/p&gt;"</span>));
+        <span class="macro">assert_eq!</span>(<span class="prelude-val">Some</span>(<span class="string">"test response!"</span>.to_string()), response.body);
     }
 }
 </code></pre></div></section></main></body></html>
