@@ -1,7 +1,9 @@
 ```%config
-[prompts]
-foo_value = ""
-bar_value = ""
+[[prompts]]
+name = "foo_value"
+
+[[prompts]]
+name = "bar_value"
 ```
 
 ```%request

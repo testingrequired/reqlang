@@ -17,15 +17,19 @@
       {
         "vars": null,
         "envs": null,
-        "prompts": {
-          "status_code": ""
-        },
+        "prompts": [
+          {
+            "name": "status_code",
+            "description": "Status code the response will return",
+            "default": null
+          }
+        ],
         "secrets": null,
         "auth": null
       },
       {
         "start": 286,
-        "end": 351
+        "end": 371
       }
     ],
     "request": [
@@ -37,8 +41,8 @@
         "body": ""
       },
       {
-        "start": 433,
-        "end": 489
+        "start": 453,
+        "end": 509
       }
     ],
     "response": null,
@@ -48,8 +52,8 @@
           "Prompt": "status_code"
         },
         {
-          "start": 433,
-          "end": 489
+          "start": 453,
+          "end": 509
         }
       ]
     ]

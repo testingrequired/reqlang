@@ -5,7 +5,8 @@ secrets = ["client_secret"]
 envs.dev.access_token_url = "http://localhost:8080/default/token"
 envs.dev.authorize_url = "http://localhost:8080/default/authorize"
 
-prompts.client_key = ""
+[[prompts]]
+name = "client_key"
 
 [auth.oauth2]
 grant = "client"

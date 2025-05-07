@@ -88,6 +88,15 @@ impl ParsedRequestFile {
     }
 }
 
+/// A parsed prompt definition
+#[derive(Clone, Debug, PartialEq, Default, Serialize, Deserialize, TS)]
+#[ts(export)]
+pub struct ParsedConfigPrompt {
+    pub name: String,
+    pub description: Option<String>,
+    pub default: Option<String>,
+}
+
 /// Request file config parsed from a string input
 ///
 /// All template references are still in place
@@ -101,7 +110,7 @@ pub struct ParsedConfig {
     /// These values match the variable names in the config
     pub envs: Option<HashMap<String, HashMap<String, String>>>,
     /// The prompt names declared in the config
-    pub prompts: Option<HashMap<String, Option<String>>>,
+    pub prompts: Option<Vec<ParsedConfigPrompt>>,
     /// The secret names declared in the config
     pub secrets: Option<Vec<String>>,
     pub auth: Option<HashMap<String, HashMap<String, String>>>,
@@ -134,10 +143,10 @@ impl ParsedConfig {
 
     /// The prompt names declared
     pub fn prompts(&self) -> Vec<String> {
-        match &self.prompts {
-            Some(prompts) => prompts.keys().cloned().collect(),
-            None => vec![],
-        }
+        self.prompts
+            .as_ref()
+            .map(|prompts| prompts.iter().map(|prompt| prompt.name.clone()).collect())
+            .unwrap_or_default()
     }
 
     /// The secret names declared
@@ -285,7 +294,7 @@ mod tests {
 
         use crate::{
             span::NO_SPAN,
-            types::{ParsedConfig, ParsedRequestFile, http::HttpRequest},
+            types::{ParsedConfig, ParsedConfigPrompt, ParsedRequestFile, http::HttpRequest},
         };
 
         #[test]
@@ -295,10 +304,11 @@ mod tests {
                     ParsedConfig {
                         vars: None,
                         envs: None,
-                        prompts: Some(HashMap::from_iter([(
-                            "key".to_owned(),
-                            Some("value".to_owned()),
-                        )])),
+                        prompts: Some(vec![ParsedConfigPrompt {
+                            name: "key".to_string(),
+                            description: None,
+                            default: Some("value".to_string()),
+                        }]),
                         secrets: None,
                         auth: None,
                     },

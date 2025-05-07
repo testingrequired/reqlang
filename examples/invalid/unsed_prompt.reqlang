@@ -4,8 +4,8 @@ secrets = []
 
 [envs]
 
-[prompts]
-base_url = ""
+[[prompts]]
+name = "base_url"
 ```
 
 ```%request

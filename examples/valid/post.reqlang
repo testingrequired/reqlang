@@ -2,8 +2,8 @@
 vars = ["test_value"]
 secrets = ["super_secret_value"]
 
-[prompts]
-prompt_value = ""
+[[prompts]]
+name = "prompt_value"
 
 [envs.test]
 test_value = "test_value"

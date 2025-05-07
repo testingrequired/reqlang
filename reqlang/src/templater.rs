@@ -177,9 +177,11 @@ query_value = "{{?test_value}}"
 [envs.prod]
 query_value = "{{?test_value}}"
 
-[prompts]
-test_value = ""
-expected_response_body = ""
+[[prompts]]
+name = "test_value"
+
+[[prompts]]
+name = "expected_response_body"
 ```
 
 ```%request

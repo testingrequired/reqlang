@@ -1,9 +1,9 @@
 ```%config
-[prompts]
-# Key for cookie
-key = ""
-# Value for cookie
-value = ""
+[[prompts]]
+name = "key"
+
+[[prompts]]
+name = "value"
 ```
 
 ```%request
