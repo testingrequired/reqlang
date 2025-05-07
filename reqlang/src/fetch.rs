@@ -38,6 +38,18 @@ impl HttpRequestFetcher {
         &self.0.target
     }
 
+    fn body(&self) -> String {
+        self.0.body.clone().unwrap_or_default()
+    }
+
+    fn request_headers(&self) -> Vec<(&str, &str)> {
+        self.0
+            .headers
+            .iter()
+            .map(|(k, v)| (k.as_str(), v.as_str()))
+            .collect()
+    }
+
     fn map_response_http_version(response: &Response) -> HttpVersion {
         match response.version() {
             Version::HTTP_11 => HttpVersion::one_point_one(),
@@ -76,11 +88,15 @@ impl Fetch for HttpRequestFetcher {
     async fn fetch(&self) -> std::result::Result<HttpResponse, Box<dyn std::error::Error + Send>> {
         let client = Client::new();
 
-        let response = client
-            .request(self.request_method(), self.request_url())
-            .send()
-            .await
-            .expect("Request should have executed");
+        let mut request = client.request(self.request_method(), self.request_url());
+
+        for header in self.request_headers().into_iter() {
+            request = request.header(header.0, header.1);
+        }
+
+        request = request.body(self.body());
+
+        let response = request.send().await.expect("Request should have executed");
 
         let http_version = Self::map_response_http_version(&response);
         let headers = Self::map_response_headers(&response);
@@ -128,16 +144,39 @@ mod test {
     use super::*;
 
     use crate::types::http::{HttpStatusCode, HttpVerb};
+    use httptest::{
+        Expectation, Server,
+        matchers::{all_of, contains, request},
+        responders::status_code,
+    };
     use pretty_assertions::assert_eq;
 
     #[tokio::test]
     async fn test_real_http_request_fetch() {
+        let server = Server::run();
+
+        server.expect(
+            Expectation::matching(all_of![
+                request::method("POST"),
+                request::path("/test"),
+                request::headers(contains(("content-type", "application/json"))),
+                request::headers(contains(("x-test", "foo"))),
+                request::body("test body")
+            ])
+            .respond_with(status_code(200).body("test response!")),
+        );
+
+        let url = server.url("/test");
+
         let http_request = HttpRequest {
-            verb: HttpVerb("GET".to_owned()),
-            target: "https://example.com".to_owned(),
+            verb: HttpVerb("POST".to_owned()),
+            target: url.to_string(),
             http_version: HttpVersion::one_point_one(),
-            headers: vec![],
-            body: None,
+            headers: vec![
+                ("content-type".to_string(), "application/json".to_string()),
+                ("x-test".to_string(), "foo".to_string()),
+            ],
+            body: Some("test body".to_string()),
         };
 
         let fetcher: HttpRequestFetcher = http_request.into();
@@ -149,33 +188,40 @@ mod test {
         assert_eq!(HttpVersion::one_point_one(), response.http_version);
         assert_eq!(HttpStatusCode::new(200), response.status_code);
 
-        assert_eq!(
-            Some(("content-type".to_string(), "text/html".to_string())),
-            response
-                .headers
-                .iter()
-                .find(|x| x.0 == "content-type")
-                .cloned()
-        );
-
         assert_eq!("OK", response.status_text);
 
-        assert!(response.body.is_some());
-
-        let body = response.body.unwrap();
-
-        assert!(body.contains("<h1>Example Domain</h1>"));
-        assert!(body.contains("<p>This domain is for use in illustrative examples in documents. You may use this\n    domain in literature without prior coordination or asking for permission.</p>"));
+        assert_eq!(Some("test response!".to_string()), response.body);
     }
 
     #[tokio::test]
     async fn test_real_request_params_fetch() {
+        let server = Server::run();
+
+        server.expect(
+            Expectation::matching(all_of![
+                request::method("POST"),
+                request::path("/test"),
+                request::headers(contains(("content-type", "application/json"))),
+                request::headers(contains(("x-test", "foo"))),
+                request::body("test body\n\n")
+            ])
+            .respond_with(status_code(200).body("test response!")),
+        );
+
+        let url = server.url("/test");
+
         let params: RequestParamsFromClient = RequestParamsFromClient {
-            reqfile: r#"
+            reqfile: format!(
+                r#"
 ```%request
-GET http://example.com HTTP/1.1
+POST {url} HTTP/1.1
+content-type: application/json
+x-test: foo
+
+test body
 ```
             "#
+            )
             .to_string(),
             env: None,
             vars: HashMap::new(),
@@ -192,22 +238,8 @@ GET http://example.com HTTP/1.1
         assert_eq!(HttpVersion::one_point_one(), response.http_version);
         assert_eq!(HttpStatusCode::new(200), response.status_code);
 
-        assert_eq!(
-            Some(("content-type".to_string(), "text/html".to_string())),
-            response
-                .headers
-                .iter()
-                .find(|x| x.0 == "content-type")
-                .cloned()
-        );
-
         assert_eq!("OK", response.status_text);
 
-        assert!(response.body.is_some());
-
-        let body = response.body.unwrap();
-
-        assert!(body.contains("<h1>Example Domain</h1>"));
-        assert!(body.contains("<p>This domain is for use in illustrative examples in documents. You may use this\n    domain in literature without prior coordination or asking for permission.</p>"));
+        assert_eq!(Some("test response!".to_string()), response.body);
     }
 }

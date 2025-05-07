@@ -25,6 +25,7 @@ markdown = "1.0.0-alpha.21"
 pretty_assertions = "1.4.1"
 textwrap = "0.16"
 rstest = "0.19.0"
+httptest = "0.16.3"
 
 [[bin]]
 name = "bundle_types"
