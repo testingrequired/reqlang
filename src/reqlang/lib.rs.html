@@ -205,7 +205,20 @@
 <a href="#204" id="204">204</a>
 <a href="#205" id="205">205</a>
 <a href="#206" id="206">206</a>
-<a href="#207" id="207">207</a></pre></div><pre class="rust"><code><span class="kw">pub mod </span>assert_response;
+<a href="#207" id="207">207</a>
+<a href="#208" id="208">208</a>
+<a href="#209" id="209">209</a>
+<a href="#210" id="210">210</a>
+<a href="#211" id="211">211</a>
+<a href="#212" id="212">212</a>
+<a href="#213" id="213">213</a>
+<a href="#214" id="214">214</a>
+<a href="#215" id="215">215</a>
+<a href="#216" id="216">216</a>
+<a href="#217" id="217">217</a>
+<a href="#218" id="218">218</a>
+<a href="#219" id="219">219</a>
+<a href="#220" id="220">220</a></pre></div><pre class="rust"><code><span class="kw">pub mod </span>assert_response;
 <span class="kw">pub mod </span>ast;
 <span class="kw">pub mod </span>diagnostics;
 <span class="kw">pub mod </span>errors;
@@ -230,7 +243,8 @@
         parser::parse,
         templater::template,
         types::{
-            ParsedConfig, ParsedRequestFile, ReferenceType, TemplatedRequestFile,
+            ParsedConfig, ParsedConfigPrompt, ParsedRequestFile, ReferenceType,
+            TemplatedRequestFile,
             http::{HttpRequest, HttpResponse, HttpStatusCode},
         },
     };
@@ -248,9 +262,11 @@
             [envs.prod]
             query_value = \"prod_value\"
 
-            [prompts]
-            test_value = \"\"
-            expected_response_body = \"\"
+            [[prompts]]
+            name = \"test_value\"
+
+            [[prompts]]
+            name = \"expected_response_body\"
 
             ```
 
@@ -286,7 +302,7 @@
                         ],
                         body: <span class="prelude-val">Some</span>(<span class="string">"[1, 2, 3]\n\n"</span>.to_string())
                     },
-                    <span class="number">207</span>..<span class="number">304
+                    <span class="number">230</span>..<span class="number">327
                 </span>),
                 response: <span class="prelude-val">Some</span>((
                     HttpResponse {
@@ -296,7 +312,7 @@
                         headers: <span class="macro">vec!</span>[],
                         body: <span class="prelude-val">Some</span>(<span class="string">"{{?expected_response_body}}\n\n\n"</span>.to_string())
                     },
-                    <span class="number">323</span>..<span class="number">368
+                    <span class="number">346</span>..<span class="number">391
                 </span>)),
                 config: <span class="prelude-val">Some</span>((
                     ParsedConfig {
@@ -317,22 +333,30 @@
                                 )])
                             ),
                         ])),
-                        prompts: <span class="prelude-val">Some</span>(HashMap::from([
-                            (<span class="string">"expected_response_body"</span>.to_string(), <span class="prelude-val">Some</span>(<span class="string">""</span>.to_string())),
-                            (<span class="string">"test_value"</span>.to_string(), <span class="prelude-val">Some</span>(<span class="string">""</span>.to_string())),
-                        ])),
+                        prompts: <span class="prelude-val">Some</span>(<span class="macro">vec!</span>[
+                            ParsedConfigPrompt {
+                                name: <span class="string">"test_value"</span>.to_string(),
+                                description: <span class="prelude-val">None</span>,
+                                default: <span class="prelude-val">None</span>,
+                            },
+                            ParsedConfigPrompt {
+                                name: <span class="string">"expected_response_body"</span>.to_string(),
+                                description: <span class="prelude-val">None</span>,
+                                default: <span class="prelude-val">None</span>,
+                            }
+                        ]),
                         secrets: <span class="prelude-val">Some</span>(<span class="macro">vec!</span>[<span class="string">"api_key"</span>.to_string()]),
                         auth: <span class="prelude-val">None
                     </span>},
-                    <span class="number">12</span>..<span class="number">189
+                    <span class="number">12</span>..<span class="number">212
                 </span>)),
                 refs: <span class="macro">vec!</span>[
-                    (ReferenceType::Variable(<span class="string">"query_value"</span>.to_string()), <span class="number">207</span>..<span class="number">304</span>),
-                    (ReferenceType::Prompt(<span class="string">"test_value"</span>.to_string()), <span class="number">207</span>..<span class="number">304</span>),
-                    (ReferenceType::Secret(<span class="string">"api_key"</span>.to_string()), <span class="number">207</span>..<span class="number">304</span>),
+                    (ReferenceType::Variable(<span class="string">"query_value"</span>.to_string()), <span class="number">230</span>..<span class="number">327</span>),
+                    (ReferenceType::Prompt(<span class="string">"test_value"</span>.to_string()), <span class="number">230</span>..<span class="number">327</span>),
+                    (ReferenceType::Secret(<span class="string">"api_key"</span>.to_string()), <span class="number">230</span>..<span class="number">327</span>),
                     (
                         ReferenceType::Prompt(<span class="string">"expected_response_body"</span>.to_string()),
-                        <span class="number">323</span>..<span class="number">368
+                        <span class="number">346</span>..<span class="number">391
                     </span>)
                 ],
             }),
@@ -354,9 +378,11 @@
                 [envs.prod]
                 query_value = \"prod_value\"
 
-                [prompts]
-                test_value = \"\"
-                expected_response_body = \"\"
+                [[prompts]]
+                name = \"test_value\"
+
+                [[prompts]]
+                name = \"expected_response_body\"
 
                 ```
 

@@ -391,7 +391,9 @@
 <a href="#390" id="390">390</a>
 <a href="#391" id="391">391</a>
 <a href="#392" id="392">392</a>
-<a href="#393" id="393">393</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::collections::HashMap;
+<a href="#393" id="393">393</a>
+<a href="#394" id="394">394</a>
+<a href="#395" id="395">395</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::collections::HashMap;
 
 <span class="kw">use crate</span>::{
     ast::Ast,
@@ -570,9 +572,11 @@ query_value = "{{?test_value}}"
 [envs.prod]
 query_value = "{{?test_value}}"
 
-[prompts]
-test_value = ""
-expected_response_body = ""
+[[prompts]]
+name = "test_value"
+
+[[prompts]]
+name = "expected_response_body"
 ```
 
 ```%request
