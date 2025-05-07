@@ -618,8 +618,8 @@ mod test {
             textwrap::dedent(
                 "
                 ```%config
-                [prompts]
-                base_url = \"\"
+                [[prompts]]
+                name = \"base_url\"
                 ```
 
                 ```%request
@@ -631,7 +631,7 @@ mod test {
                 ReqlangError::ParseError(ParseError::UnusedValueError(ReferenceType::Prompt(
                     "base_url".to_string()
                 ))),
-                12..35
+                12..41
             )])
         );
 
@@ -1086,7 +1086,7 @@ mod test {
         use std::collections::HashMap;
 
         use crate::types::{
-            ParsedConfig, ParsedRequestFile, ReferenceType,
+            ParsedConfig, ParsedConfigPrompt, ParsedRequestFile, ReferenceType,
             http::{HttpRequest, HttpResponse, HttpStatusCode, HttpVerb, HttpVersion},
         };
 
@@ -1218,9 +1218,11 @@ mod test {
                 [envs.prod]
                 query_value = \"prod_value\"
 
-                [prompts]
-                test_value = \"\"
-                expected_response_body = \"\"
+                [[prompts]]
+                name = \"test_value\"
+                
+                [[prompts]]
+                name = \"expected_response_body\"
 
                 ```
 
@@ -1254,7 +1256,7 @@ mod test {
                         ],
                         body: Some("[1, 2, 3]\n\n".to_string())
                     },
-                    207..330
+                    230..353
                 ),
                 response: Some((
                     HttpResponse {
@@ -1264,7 +1266,7 @@ mod test {
                         headers: vec![],
                         body: Some("{{?expected_response_body}}\n\n\n".to_string())
                     },
-                    349..394
+                    372..417
                 )),
                 config: Some((
                     ParsedConfig {
@@ -1285,23 +1287,31 @@ mod test {
                                 )])
                             ),
                         ])),
-                        prompts: Some(HashMap::from([
-                            ("test_value".to_string(), Some("".to_string())),
-                            ("expected_response_body".to_string(), Some("".to_string()))
-                        ])),
+                        prompts: Some(vec![
+                            ParsedConfigPrompt {
+                                name: "test_value".to_string(),
+                                description: None,
+                                default: None,
+                            },
+                            ParsedConfigPrompt {
+                                name: "expected_response_body".to_string(),
+                                description: None,
+                                default: None,
+                            }
+                        ]),
                         secrets: Some(vec!["api_key".to_string()]),
                         auth: None
                     },
-                    12..189
+                    12..212
                 )),
                 refs: vec![
-                    (ReferenceType::Variable("query_value".to_string()), 207..330),
-                    (ReferenceType::Prompt("test_value".to_string()), 207..330),
-                    (ReferenceType::Secret("api_key".to_string()), 207..330),
-                    (ReferenceType::Provider("provider".to_string()), 207..330),
+                    (ReferenceType::Variable("query_value".to_string()), 230..353),
+                    (ReferenceType::Prompt("test_value".to_string()), 230..353),
+                    (ReferenceType::Secret("api_key".to_string()), 230..353),
+                    (ReferenceType::Provider("provider".to_string()), 230..353),
                     (
                         ReferenceType::Prompt("expected_response_body".to_string()),
-                        349..394
+                        372..417
                     )
                 ],
             })
@@ -1322,9 +1332,9 @@ mod test {
                 Use a `%config` code block to define the configuration.
 
                 ```%config
-                [prompts]
-                # Status code the response will return
-                status_code = \"\"
+                [[prompts]]
+                name = \"status_code\"
+                description = \"Status code the response will return\"
                 ```
 
                 ## Request
@@ -1351,11 +1361,17 @@ mod test {
                     ParsedConfig {
                         vars: None,
                         envs: None,
-                        prompts: Some(HashMap::from([("status_code".to_owned(), Some("".to_owned()))])),
+                        prompts: Some(vec![
+                            ParsedConfigPrompt {
+                                name: "status_code".to_string(),
+                                description: Some("Status code the response will return".to_string()),
+                                default: None,
+                            }
+                        ]),
                         secrets: None,
                         auth: None
                     },
-                    299..364
+                    299..384
                 )),
                 request: (
                     HttpRequest {
@@ -1365,7 +1381,7 @@ mod test {
                         headers: vec![],
                         body: Some(String::default())
                     },
-                    446..502
+                    466..522
                 ),
                 response: Some((
                     HttpResponse {
@@ -1375,10 +1391,10 @@ mod test {
                         headers: vec![("content-type".to_string(), "application/json".to_string())],
                         body: Some("\n".to_owned())
                     },
-                    588..635
+                    608..655
                 )),
                 refs: vec![
-                    (ReferenceType::Prompt(String::from("status_code")), 446..502)
+                    (ReferenceType::Prompt(String::from("status_code")), 466..522)
                 ]
             })
         );

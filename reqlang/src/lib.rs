@@ -23,7 +23,8 @@ mod tests {
         parser::parse,
         templater::template,
         types::{
-            ParsedConfig, ParsedRequestFile, ReferenceType, TemplatedRequestFile,
+            ParsedConfig, ParsedConfigPrompt, ParsedRequestFile, ReferenceType,
+            TemplatedRequestFile,
             http::{HttpRequest, HttpResponse, HttpStatusCode},
         },
     };
@@ -41,9 +42,11 @@ mod tests {
             [envs.prod]
             query_value = \"prod_value\"
 
-            [prompts]
-            test_value = \"\"
-            expected_response_body = \"\"
+            [[prompts]]
+            name = \"test_value\"
+
+            [[prompts]]
+            name = \"expected_response_body\"
 
             ```
 
@@ -79,7 +82,7 @@ mod tests {
                         ],
                         body: Some("[1, 2, 3]\n\n".to_string())
                     },
-                    207..304
+                    230..327
                 ),
                 response: Some((
                     HttpResponse {
@@ -89,7 +92,7 @@ mod tests {
                         headers: vec![],
                         body: Some("{{?expected_response_body}}\n\n\n".to_string())
                     },
-                    323..368
+                    346..391
                 )),
                 config: Some((
                     ParsedConfig {
@@ -110,22 +113,30 @@ mod tests {
                                 )])
                             ),
                         ])),
-                        prompts: Some(HashMap::from([
-                            ("expected_response_body".to_string(), Some("".to_string())),
-                            ("test_value".to_string(), Some("".to_string())),
-                        ])),
+                        prompts: Some(vec![
+                            ParsedConfigPrompt {
+                                name: "test_value".to_string(),
+                                description: None,
+                                default: None,
+                            },
+                            ParsedConfigPrompt {
+                                name: "expected_response_body".to_string(),
+                                description: None,
+                                default: None,
+                            }
+                        ]),
                         secrets: Some(vec!["api_key".to_string()]),
                         auth: None
                     },
-                    12..189
+                    12..212
                 )),
                 refs: vec![
-                    (ReferenceType::Variable("query_value".to_string()), 207..304),
-                    (ReferenceType::Prompt("test_value".to_string()), 207..304),
-                    (ReferenceType::Secret("api_key".to_string()), 207..304),
+                    (ReferenceType::Variable("query_value".to_string()), 230..327),
+                    (ReferenceType::Prompt("test_value".to_string()), 230..327),
+                    (ReferenceType::Secret("api_key".to_string()), 230..327),
                     (
                         ReferenceType::Prompt("expected_response_body".to_string()),
-                        323..368
+                        346..391
                     )
                 ],
             }),
@@ -147,9 +158,11 @@ mod tests {
                 [envs.prod]
                 query_value = \"prod_value\"
 
-                [prompts]
-                test_value = \"\"
-                expected_response_body = \"\"
+                [[prompts]]
+                name = \"test_value\"
+
+                [[prompts]]
+                name = \"expected_response_body\"
 
                 ```
 

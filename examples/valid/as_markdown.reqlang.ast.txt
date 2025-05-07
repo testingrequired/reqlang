@@ -11,16 +11,16 @@
   [
     {
       "ConfigBlock": [
-        "[prompts]\n# Status code the response will return\nstatus_code = \"\"",
+        "[[prompts]]\nname = \"status_code\"\ndescription = \"Status code the response will return\"",
         {
           "start": 286,
-          "end": 351
+          "end": 371
         }
       ]
     },
     {
       "start": 275,
-      "end": 355
+      "end": 375
     }
   ],
   [
@@ -28,8 +28,8 @@
       "Comment": "\n\n## Request\n\nThis will respond with the prompted `status_code`.\n\n"
     },
     {
-      "start": 355,
-      "end": 421
+      "start": 375,
+      "end": 441
     }
   ],
   [
@@ -37,14 +37,14 @@
       "RequestBlock": [
         "GET https://httpbin.org/status/{{?status_code}} HTTP/1.1",
         {
-          "start": 433,
-          "end": 489
+          "start": 453,
+          "end": 509
         }
       ]
     },
     {
-      "start": 421,
-      "end": 493
+      "start": 441,
+      "end": 513
     }
   ]
 ]

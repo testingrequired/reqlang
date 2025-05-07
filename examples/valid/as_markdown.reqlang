@@ -7,9 +7,9 @@ Anything outside of the config, request, or response code blocks is treated as m
 Prompt the user for the `status_code` to return.
 
 ```%config
-[prompts]
-# Status code the response will return
-status_code = ""
+[[prompts]]
+name = "status_code"
+description = "Status code the response will return"
 ```
 
 ## Request

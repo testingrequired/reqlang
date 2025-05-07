@@ -35,8 +35,8 @@ This is a living syntax subject to change wildly at anytime. The core concepts a
 vars = ["test_value"]
 secrets = ["super_secret_value"]
 
-[prompts]
-prompt_value = ""
+[[prompts]]
+name = "prompt_value"
 
 [envs.test]
 test_value = "test_value"
@@ -92,7 +92,6 @@ Client implementations can choose how to match the response against the expected
 - Exact match `status text`
 - Exact match `header value` of headers present in the expected response
 - Exact match `body`
-- Wildcard match `header value` and `body` using the `{{*}}` template references.
 
 ### Configuration
 
@@ -167,16 +166,18 @@ GET https://{{@env}}.example.com/users/{{:user_id}}/items/{{:item_id}} HTTP/1.1
 Prompts are values provided by the user at request execution time. These are "inputs" to the request file. They can be templated in the request and responses using the `{{?prompt_name}}` syntax.
 
 ```toml
-[prompts]
-tags = ""
+[[prompts]]
+name = "tags"
+description = "Tags included as a query param" # Optional
+default = "tag1,tag2" # Optional
 ```
 
 ##### Usage
 
 ````reqlang
 ```%config
-[prompts]
-tags = ""
+[[prompts]]
+name = "tags"
 ```
 
 ```%request

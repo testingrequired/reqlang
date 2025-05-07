@@ -1,8 +1,7 @@
 ```%config
-[prompts]
-# Image type to return
-# jpeg, png, svg, webp
-type = ""
+[[prompts]]
+name = "type"
+description = "Image type to return: jpeg, png, svg, webp"
 ```
 
 ```%request

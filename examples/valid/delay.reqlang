@@ -1,7 +1,7 @@
 ```%config
-[prompts]
-# Delay in the number of seconds before responding
-seconds = ""
+[[prompts]]
+name = "seconds"
+description = "Number of seconds to delay the response by"
 ```
 
 ```%request
