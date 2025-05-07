@@ -92,7 +92,6 @@ Client implementations can choose how to match the response against the expected
 - Exact match `status text`
 - Exact match `header value` of headers present in the expected response
 - Exact match `body`
-- Wildcard match `header value` and `body` using the `{{*}}` template references.
 
 ### Configuration
 
