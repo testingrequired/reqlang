@@ -1,0 +1,8 @@
+```%config
+[[prompts]]
+name = "a"
+```
+
+```%request
+GET https://example.com/{{?a}} HTTP/1.1
+```
