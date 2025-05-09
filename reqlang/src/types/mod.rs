@@ -79,6 +79,39 @@ impl ParsedRequestFile {
             .unwrap_or_default()
     }
 
+    pub fn required_prompts(&self) -> Vec<String> {
+        self.config
+            .as_ref()
+            .map(|(config, _)| config.required_prompts())
+            .unwrap_or_default()
+    }
+
+    pub fn optional_prompts(&self) -> Vec<String> {
+        self.config
+            .as_ref()
+            .map(|(config, _)| config.optional_prompts())
+            .unwrap_or_default()
+    }
+
+    pub fn default_prompt_values(&self) -> HashMap<String, String> {
+        let all_prompts = self.config.as_ref().map_or(vec![], |(config, _)| {
+            config.prompts.clone().unwrap_or_default()
+        });
+
+        let mut all_prompts_map: HashMap<String, String> = HashMap::new();
+
+        for prompt in all_prompts.iter() {
+            if prompt.default.is_some() {
+                all_prompts_map.insert(
+                    prompt.name.clone(),
+                    prompt.default.as_ref().unwrap().clone(),
+                );
+            }
+        }
+
+        all_prompts_map
+    }
+
     /// The secret names declared in the config
     pub fn secrets(&self) -> Vec<String> {
         self.config
@@ -146,6 +179,44 @@ impl ParsedConfig {
         self.prompts
             .as_ref()
             .map(|prompts| prompts.iter().map(|prompt| prompt.name.clone()).collect())
+            .unwrap_or_default()
+    }
+
+    /// A list of prompt names that don't have a default value defined
+    pub fn required_prompts(&self) -> Vec<String> {
+        self.prompts
+            .as_ref()
+            .map(|prompts| {
+                prompts
+                    .iter()
+                    .filter_map(|prompt| {
+                        if prompt.default.is_none() {
+                            Some(prompt.name.clone())
+                        } else {
+                            None
+                        }
+                    })
+                    .collect()
+            })
+            .unwrap_or_default()
+    }
+
+    /// A list of prompt names that do have a default value defined
+    pub fn optional_prompts(&self) -> Vec<String> {
+        self.prompts
+            .as_ref()
+            .map(|prompts| {
+                prompts
+                    .iter()
+                    .filter_map(|prompt| {
+                        if prompt.default.is_some() {
+                            Some(prompt.name.clone())
+                        } else {
+                            None
+                        }
+                    })
+                    .collect()
+            })
             .unwrap_or_default()
     }
 
@@ -247,6 +318,9 @@ pub struct ParseResult {
     pub vars: Vec<String>,
     pub envs: Vec<String>,
     pub prompts: Vec<String>,
+    pub required_prompts: Vec<String>,
+    pub optional_prompts: Vec<String>,
+    pub default_prompt_values: HashMap<String, String>,
     pub secrets: Vec<String>,
     pub request: HttpRequest,
     pub full: ParsedRequestFile,
@@ -265,6 +339,9 @@ impl From<ParsedRequestFile> for ParseResult {
         let envs: Vec<String> = value.envs();
 
         let prompts: Vec<String> = value.prompts();
+        let required_prompts = value.required_prompts();
+        let optional_prompts = value.optional_prompts();
+        let default_prompt_values = value.default_prompt_values();
 
         let secrets = value.secrets();
 
@@ -272,6 +349,9 @@ impl From<ParsedRequestFile> for ParseResult {
             vars,
             envs,
             prompts,
+            required_prompts,
+            optional_prompts,
+            default_prompt_values,
             secrets,
             request: value.clone().request.0,
             full: value,

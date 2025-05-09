@@ -1,0 +1,10 @@
+```%config
+[[prompts]]
+name = "input"
+description = "A base64 encoded string to decode. Default value decodes to 'foo'"
+default = "Rm9v"
+```
+
+```%request
+GET https://httpbin.org/base64/{{?input}} HTTP/1.1
+```

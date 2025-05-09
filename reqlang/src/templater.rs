@@ -49,22 +49,21 @@ pub fn template(
 
     let reqfile: &ParsedRequestFile = &parsed_reqfile;
 
-    let prompts = prompts.clone();
-    let required_prompts = parsed_reqfile.prompts();
+    let required_prompts = parsed_reqfile.required_prompts();
+    let default_prompt_values = parsed_reqfile.default_prompt_values();
     let missing_prompts = required_prompts
-        .iter()
-        .filter(|prompt| !prompts.contains_key(*prompt))
+        .into_iter()
+        .filter(|prompt| !prompts.contains_key(prompt))
         .map(|prompt| ResolverError::PromptValueNotPassed(prompt.clone()).into())
         .map(|err| (err, NO_SPAN))
         .collect::<Vec<Spanned<ReqlangError>>>();
 
     templating_errors.extend(missing_prompts);
 
-    let secrets = secrets.clone();
     let required_secrets = parsed_reqfile.secrets();
     let missing_secrets = required_secrets
-        .iter()
-        .filter(|secret| !secrets.contains_key(*secret))
+        .into_iter()
+        .filter(|secret| !secrets.contains_key(secret))
         .map(|secret| ResolverError::SecretValueNotPassed(secret.clone()).into())
         .map(|err| (err, NO_SPAN))
         .collect::<Vec<Spanned<ReqlangError>>>();
@@ -103,7 +102,9 @@ pub fn template(
         for (template_ref, ref_type) in &template_refs_to_replace {
             let value = match ref_type {
                 ReferenceType::Variable(name) => vars.get(name),
-                ReferenceType::Prompt(name) => prompts.get(name),
+                ReferenceType::Prompt(name) => {
+                    prompts.get(name).or(default_prompt_values.get(name))
+                }
                 ReferenceType::Secret(name) => secrets.get(name),
                 ReferenceType::Provider(name) => provider_values.get(name),
                 _ => None,
@@ -391,5 +392,67 @@ HTTP/1.1 200 OK
             ResolverError::InvalidEnvError("dev".to_string()).into(),
             12..58
         )])
+    );
+
+    templater_test!(
+        use_default_prompt_value_if_defined_and_no_prompt_passed,
+        textwrap::dedent(
+            "
+            ```%config
+            [[prompts]]
+            name = \"value\"
+            default = \"123\"
+            ```
+
+            ```%request
+            GET https://example.com/?query={{?value}} HTTP/1.1
+            ```
+            "
+        ),
+        None,
+        HashMap::new(),
+        HashMap::new(),
+        &HashMap::default(),
+        Ok(TemplatedRequestFile {
+            request: HttpRequest {
+                verb: "GET".into(),
+                target: "https://example.com/?query=123".to_string(),
+                http_version: "1.1".into(),
+                headers: vec![],
+                body: Some("".to_string())
+            },
+            response: None,
+        })
+    );
+
+    templater_test!(
+        use_input_prompt_value_if_defined_prompt_value_defined_and_input_prompt_passed,
+        textwrap::dedent(
+            "
+            ```%config
+            [[prompts]]
+            name = \"value\"
+            default = \"123\"
+            ```
+
+            ```%request
+            GET https://example.com/?query={{?value}} HTTP/1.1
+            ```
+            "
+        ),
+        None,
+        HashMap::from([("value".to_string(), "456".to_string()),]),
+        HashMap::new(),
+        &HashMap::default(),
+        Ok(TemplatedRequestFile {
+            request: HttpRequest {
+                verb: "GET".into(),
+                target: "https://example.com/?query=456".to_string(),
+                http_version: "1.1".into(),
+                headers: vec![],
+                body: Some("".to_string())
+            },
+            response: None,
+        })
     );
 }

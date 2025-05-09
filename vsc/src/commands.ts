@@ -363,102 +363,107 @@ export const runRequest =
       return;
     }
 
-    await RsResult.ifOk(parseResult, async ({ prompts, secrets }) => {
-      if (!window.activeTextEditor) {
-        return;
-      }
-
-      // Prompts
-
-      const promptsObj: Record<string, string> = Object.assign(
-        {},
-        args.prompts ?? {},
-      );
-
-      for (const prompt of prompts) {
-        if (Object.keys(promptsObj).includes(prompt)) {
-          continue;
-        }
-
-        const promptValue = await window.showInputBox({
-          title: `Prompt: ${prompt}`,
-          value: lastResponse?.params.prompts[prompt],
-        });
-
-        if (promptValue === undefined) {
+    await RsResult.ifOk(
+      parseResult,
+      async ({ prompts, secrets, default_prompt_values }) => {
+        if (!window.activeTextEditor) {
           return;
         }
 
-        promptsObj[prompt] = promptValue;
-      }
+        // Prompts
 
-      // Secrets
+        const promptsObj: Record<string, string> = Object.assign(
+          {},
+          args.prompts ?? {},
+        );
 
-      const secretsObj: Record<string, string> = Object.assign(
-        {},
-        args.secrets ?? {},
-      );
+        for (const prompt of prompts) {
+          if (Object.keys(promptsObj).includes(prompt)) {
+            continue;
+          }
 
-      for (const secret of secrets) {
-        if (Object.keys(secretsObj).includes(secret)) {
-          continue;
+          const promptValue = await window.showInputBox({
+            title: `Prompt: ${prompt}`,
+            value:
+              default_prompt_values[prompt] ??
+              lastResponse?.params.prompts[prompt],
+          });
+
+          if (promptValue === undefined) {
+            return;
+          }
+
+          promptsObj[prompt] = promptValue;
         }
 
-        const secretValue = await window.showInputBox({
-          title: `Secret: ${secret}`,
+        // Secrets
+
+        const secretsObj: Record<string, string> = Object.assign(
+          {},
+          args.secrets ?? {},
+        );
+
+        for (const secret of secrets) {
+          if (Object.keys(secretsObj).includes(secret)) {
+            continue;
+          }
+
+          const secretValue = await window.showInputBox({
+            title: `Secret: ${secret}`,
+          });
+
+          if (secretValue === undefined) {
+            return;
+          }
+
+          secretsObj[secret] = secretValue;
+        }
+
+        const vars: Record<string, string> = {};
+
+        const requestStartDate = new Date();
+
+        // Set state to know the request has been sent to the language server
+        // It's used to set UI state in the editor
+        state.setIsWaitingForResponse(uri, context, true);
+
+        const reqfile_text = window.activeTextEditor.document.getText();
+
+        const env = state.getEnv(uri, context)!;
+
+        const requestParamsToServer: RequestParamsFromClient = {
+          reqfile: reqfile_text,
+          env,
+          vars,
+          prompts: promptsObj,
+          secrets: secretsObj,
+        };
+
+        /**
+         * HTTP Response from language server
+         */
+        const responseJson = await commands.executeCommand<string>(
+          Commands.Execute,
+          requestParamsToServer,
+        );
+
+        const response: HttpResponse = JSON.parse(responseJson);
+        const statusCode = response.status_code;
+
+        state.setLastResponse(uri, context, {
+          startDateIso: requestStartDate.toISOString(),
+          response,
+          endDateIso: new Date().toISOString(),
+          wasSuccessful: statusCode >= 200 && statusCode < 300,
+          params: requestParamsToServer,
         });
 
-        if (secretValue === undefined) {
-          return;
-        }
+        // Set state to know the request has been received
+        state.setIsWaitingForResponse(uri, context, false);
 
-        secretsObj[secret] = secretValue;
-      }
-
-      const vars: Record<string, string> = {};
-
-      const requestStartDate = new Date();
-
-      // Set state to know the request has been sent to the language server
-      // It's used to set UI state in the editor
-      state.setIsWaitingForResponse(uri, context, true);
-
-      const reqfile_text = window.activeTextEditor.document.getText();
-
-      const env = state.getEnv(uri, context)!;
-
-      const requestParamsToServer: RequestParamsFromClient = {
-        reqfile: reqfile_text,
-        env,
-        vars,
-        prompts: promptsObj,
-        secrets: secretsObj,
-      };
-
-      /**
-       * HTTP Response from language server
-       */
-      const responseJson = await commands.executeCommand<string>(
-        Commands.Execute,
-        requestParamsToServer,
-      );
-
-      const response: HttpResponse = JSON.parse(responseJson);
-      const statusCode = response.status_code;
-
-      state.setLastResponse(uri, context, {
-        startDateIso: requestStartDate.toISOString(),
-        response,
-        endDateIso: new Date().toISOString(),
-        wasSuccessful: statusCode >= 200 && statusCode < 300,
-        params: requestParamsToServer,
-      });
-
-      // Set state to know the request has been received
-      state.setIsWaitingForResponse(uri, context, false);
-
-      commands.executeCommand(Commands.ShowResponse, response);
-    });
+        commands.executeCommand(Commands.ShowResponse, response);
+      },
+    );
   };
 
 export const exportToFile = (context: ExtensionContext) => async () => {

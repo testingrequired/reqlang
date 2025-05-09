@@ -68,6 +68,8 @@ export type ParsedReqfileFromServer = {
    */
   prompts: string[];
 
+  default_prompt_values: Record<string, string>;
+
   /**
    * List of secret names declared in the request file
    */

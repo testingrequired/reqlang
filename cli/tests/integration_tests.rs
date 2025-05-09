@@ -639,4 +639,12 @@ mod cli_integration_tests {
             .code(1)
             .stdout(expected_stderr);
     }
+
+    #[test]
+    fn run_default_prompt_value() {
+        let assert =
+            assert_command!("reqlang run ../examples/valid/default_prompt_value.reqlang -f body");
+
+        assert.success().stdout("Foo\n");
+    }
 }

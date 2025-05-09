@@ -201,6 +201,12 @@ impl InputParamsState {
             .map(|reqfile| reqfile.prompts())
             .unwrap_or_default();
 
+        let default_prompt_values: HashMap<String, String> = client_ctx
+            .reqfile
+            .as_ref()
+            .map(|reqfile| reqfile.default_prompt_values())
+            .unwrap_or_default();
+
         let secret_names: Vec<String> = client_ctx
             .reqfile
             .as_ref()
@@ -232,12 +238,17 @@ impl InputParamsState {
 
                 ui.horizontal(|ui| {
                     for prompt_name in prompt_names {
-                        let input = self.prompts.get_mut(prompt_name.as_str()).unwrap();
+                        let mut input_string = default_prompt_values
+                            .get(&prompt_name)
+                            .cloned()
+                            .unwrap_or_else(|| String::new());
 
                         ui.horizontal(|ui| {
                             ui.label(prompt_name.as_str());
-                            ui.text_edit_singleline(input);
+                            ui.text_edit_singleline(&mut input_string);
                         });
+
+                        self.prompts.insert(prompt_name, input_string);
 
                         ui.end_row();
                     }

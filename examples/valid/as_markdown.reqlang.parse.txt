@@ -4,6 +4,11 @@
   "prompts": [
     "status_code"
   ],
+  "required_prompts": [
+    "status_code"
+  ],
+  "optional_prompts": [],
+  "default_prompt_values": {},
   "secrets": [],
   "request": {
     "verb": "GET",
