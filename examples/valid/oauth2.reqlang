@@ -1,9 +1,15 @@
 ```%config
-vars = ["access_token_url", "authorize_url"]
 secrets = ["client_secret"]
 
-envs.dev.access_token_url = "http://localhost:8080/default/token"
-envs.dev.authorize_url = "http://localhost:8080/default/authorize"
+[[vars]]
+name = "access_token_url"
+
+[[vars]]
+name = "authorize_url"
+
+[envs.dev]
+access_token_url = "http://localhost:8080/default/token"
+authorize_url = "http://localhost:8080/default/authorize"
 
 [[prompts]]
 name = "client_key"

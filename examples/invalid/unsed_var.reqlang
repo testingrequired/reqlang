@@ -1,5 +1,6 @@
 ```%config
-vars = ["base_url"]
+[[vars]]
+name = "base_url"
 ```
 
 ```%request

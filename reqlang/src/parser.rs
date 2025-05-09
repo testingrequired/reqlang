@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use regex::Regex;
 
 use crate::{
@@ -101,10 +103,26 @@ pub fn parse(ast: &Ast) -> Result<ParsedRequestFile, Vec<Spanned<ReqlangError>>>
                         ));
                     }
 
+                    let mut default_values = HashMap::new();
+
+                    let default_values_pairs: Vec<(String, String)> = config
+                        .vars
+                        .clone()
+                        .unwrap_or_default()
+                        .iter()
+                        .filter(|x| x.default.is_some())
+                        .map(|x| (x.name.clone(), x.default.clone().unwrap_or_default()))
+                        .collect();
+
+                    for (key, value) in &default_values_pairs {
+                        default_values.insert(key.clone(), value.clone());
+                    }
+
+                    // Check that environments are defining the declared variables
                     for env_name in env_names.iter() {
                         match &config.env(env_name) {
                             Some(env) => {
-                                if !env.contains_key(var) {
+                                if !env.contains_key(var) && !default_values.contains_key(var) {
                                     parse_errors.push((
                                         ParseError::VariableUndefinedInEnvironment(
                                             var.clone(),
@@ -590,25 +608,26 @@ mod test {
         parser_test!(
             unused_variable,
             textwrap::dedent(
-                "
+                r#"
                 ```%config
-                vars = [\"base_url\"]
+                [[vars]]
+                name = "base_url"
                 ```
 
                 ```%request
                 GET http://example.com HTTP/1.1
                 ```
-                "
+                "#
             ),
             Err(vec![
                 (
                     ParseError::VariableNotDefinedInAnyEnvironment("base_url".to_string()).into(),
-                    12..31
+                    12..38
                 ),
                 (
                     ParseError::UnusedValueError(ReferenceType::Variable("base_url".to_string()))
                         .into(),
-                    12..31
+                    12..38
                 )
             ])
         );
@@ -1041,22 +1060,24 @@ mod test {
         parser_test!(
             invalid_config_syntax_error_incomplete_table,
             textwrap::dedent(
-                "
+                r#"
                 ```%config
-                vars = [\"body\"]
+                [[vars]]
+                name = "body"
+
                 [envs.dev.body = 123
                 ```
 
                 ```%request
                 GET https://example.com/ HTTP/1.1
                 ```
-                "
+                "#
             ),
             Err(vec![(
                 ReqlangError::ParseError(ParseError::InvalidConfigError {
                     message: "invalid table header\nexpected `.`, `]`".to_string()
                 }),
-                43..44
+                51..52
             )])
         );
 
@@ -1086,7 +1107,8 @@ mod test {
         use std::collections::HashMap;
 
         use crate::types::{
-            ParsedConfig, ParsedConfigPrompt, ParsedRequestFile, ReferenceType,
+            ParsedConfig, ParsedConfigPrompt, ParsedConfigVariable, ParsedRequestFile,
+            ReferenceType,
             http::{HttpRequest, HttpResponse, HttpStatusCode, HttpVerb, HttpVersion},
         };
 
@@ -1158,22 +1180,37 @@ mod test {
         parser_test!(
             template_reference_in_config,
             textwrap::dedent(
-                "
+                r#"
                 ```%config
-                vars = [\"foo\", \"bar\"]
-                envs.dev.foo = \"test!\"
-                envs.dev.bar = \"{{:foo}}\"
+                [[vars]]
+                name = "foo"
+
+                [[vars]]
+                name = "bar"
+
+                [envs.dev]
+                foo = "test!"
+                bar = "{{:foo}}"
                 ```
 
                 ```%request
                 GET http://example.com?value={{:bar}} HTTP/1.1
                 ```
-                "
+                "#
             ),
             Ok(ParsedRequestFile {
                 config: Some((
                     ParsedConfig {
-                        vars: Some(vec!["foo".to_string(), "bar".to_string()]),
+                        vars: Some(vec![
+                            ParsedConfigVariable {
+                                name: "foo".to_string(),
+                                default: None,
+                            },
+                            ParsedConfigVariable {
+                                name: "bar".to_string(),
+                                default: None,
+                            }
+                        ]),
                         envs: Some(HashMap::from([(
                             "dev".to_string(),
                             HashMap::from([
@@ -1185,7 +1222,7 @@ mod test {
                         secrets: None,
                         auth: None
                     },
-                    12..82
+                    12..99
                 )),
                 request: (
                     HttpRequest {
@@ -1195,12 +1232,12 @@ mod test {
                         headers: vec![],
                         body: Some("".to_string())
                     },
-                    100..146
+                    117..163
                 ),
                 response: None,
                 refs: vec![
-                    (ReferenceType::Variable("bar".to_string()), 100..146),
-                    (ReferenceType::Variable("foo".to_string()), 12..82),
+                    (ReferenceType::Variable("bar".to_string()), 117..163),
+                    (ReferenceType::Variable("foo".to_string()), 12..99),
                 ],
             })
         );
@@ -1208,21 +1245,23 @@ mod test {
         parser_test!(
             full_request_file,
             textwrap::dedent(
-                "
+                r#"
                 ```%config
-                vars = [\"query_value\"]
-                secrets = [\"api_key\"]
+                secrets = ["api_key"]
 
+                [[vars]]
+                name = "query_value"
+                
                 [envs.dev]
-                query_value = \"dev_value\"
+                query_value = "dev_value"
                 [envs.prod]
-                query_value = \"prod_value\"
+                query_value = "prod_value"
 
                 [[prompts]]
-                name = \"test_value\"
+                name = "test_value"
                 
                 [[prompts]]
-                name = \"expected_response_body\"
+                name = "expected_response_body"
 
                 ```
 
@@ -1241,7 +1280,7 @@ mod test {
                 {{?expected_response_body}}
 
                 ```
-                "
+                "#
             ),
             Ok(ParsedRequestFile {
                 request: (
@@ -1256,7 +1295,7 @@ mod test {
                         ],
                         body: Some("[1, 2, 3]\n\n".to_string())
                     },
-                    230..353
+                    238..361
                 ),
                 response: Some((
                     HttpResponse {
@@ -1266,11 +1305,14 @@ mod test {
                         headers: vec![],
                         body: Some("{{?expected_response_body}}\n\n\n".to_string())
                     },
-                    372..417
+                    380..425
                 )),
                 config: Some((
                     ParsedConfig {
-                        vars: Some(vec!["query_value".to_string()]),
+                        vars: Some(vec![ParsedConfigVariable {
+                            name: "query_value".to_string(),
+                            default: None,
+                        }]),
                         envs: Some(HashMap::from([
                             (
                                 "dev".to_string(),
@@ -1302,16 +1344,16 @@ mod test {
                         secrets: Some(vec!["api_key".to_string()]),
                         auth: None
                     },
-                    12..212
+                    12..220
                 )),
                 refs: vec![
-                    (ReferenceType::Variable("query_value".to_string()), 230..353),
-                    (ReferenceType::Prompt("test_value".to_string()), 230..353),
-                    (ReferenceType::Secret("api_key".to_string()), 230..353),
-                    (ReferenceType::Provider("provider".to_string()), 230..353),
+                    (ReferenceType::Variable("query_value".to_string()), 238..361),
+                    (ReferenceType::Prompt("test_value".to_string()), 238..361),
+                    (ReferenceType::Secret("api_key".to_string()), 238..361),
+                    (ReferenceType::Provider("provider".to_string()), 238..361),
                     (
                         ReferenceType::Prompt("expected_response_body".to_string()),
-                        372..417
+                        380..425
                     )
                 ],
             })
@@ -1431,38 +1473,21 @@ mod resolve_tests {
     );
 
     resolve_test!(
-        get_default_env_when_default_env_defined,
-        textwrap::dedent(
-            "
-            ```%config
-            vars = [\"value\"]
-
-            envs.default.value = \"foo\"
-            ```
-
-            ```%request
-            GET https://example.com?{{:value}} HTTP/1.1
-            ```
-            "
-        ),
-        "default",
-        Some(HashMap::from([("value".to_string(), "foo".to_string())]))
-    );
-
-    resolve_test!(
         get_default_env_when_user_env_defined,
         textwrap::dedent(
-            "
+            r#"
             ```%config
-            vars = [\"value\"]
+            [[vars]]
+            name = "value"
 
-            envs.test.value = \"foo\"
+            [envs.test]
+            value = "foo"
             ```
 
             ```%request
             GET https://example.com?{{:value}} HTTP/1.1
             ```
-            "
+            "#
         ),
         "default",
         None
@@ -1482,38 +1507,21 @@ mod resolve_tests {
     );
 
     resolve_test!(
-        get_user_env_when_default_env_defined,
-        textwrap::dedent(
-            "
-            ```%config
-            vars = [\"value\"]
-
-            envs.default.value = \"foo\"
-            ```
-
-            ```%request
-            GET https://example.com?{{:value}} HTTP/1.1
-            ```
-            "
-        ),
-        "test",
-        None
-    );
-
-    resolve_test!(
         get_user_env_when_user_env_defined,
         textwrap::dedent(
-            "
+            r#"
             ```%config
-            vars = [\"value\"]
+            [[vars]]
+            name = "value"
 
-            envs.test.value = \"foo\"
+            [envs.test]
+            value = "foo"
             ```
 
             ```%request
             GET https://example.com?{{:value}} HTTP/1.1
             ```
-            "
+            "#
         ),
         "test",
         Some(HashMap::from([("value".to_string(), "foo".to_string())]))
@@ -1522,17 +1530,19 @@ mod resolve_tests {
     resolve_test!(
         get_non_existent_env_when_user_env_defined,
         textwrap::dedent(
-            "
+            r#"
             ```%config
-            vars = [\"value\"]
+            [[vars]]
+            name = "value"
 
-            envs.test.value = \"foo\"
+            [envs.test]
+            value = "foo"
             ```
 
             ```%request
             GET https://example.com?{{:value}} HTTP/1.1
             ```
-            "
+            "#
         ),
         "doesnt_exist",
         None

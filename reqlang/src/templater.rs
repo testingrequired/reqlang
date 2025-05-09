@@ -49,6 +49,8 @@ pub fn template(
 
     let reqfile: &ParsedRequestFile = &parsed_reqfile;
 
+    let default_variable_values = parsed_reqfile.default_variable_values();
+
     let required_prompts = parsed_reqfile.required_prompts();
     let default_prompt_values = parsed_reqfile.default_prompt_values();
     let missing_prompts = required_prompts
@@ -101,7 +103,9 @@ pub fn template(
         // Replace template references with the resolved values
         for (template_ref, ref_type) in &template_refs_to_replace {
             let value = match ref_type {
-                ReferenceType::Variable(name) => vars.get(name),
+                ReferenceType::Variable(name) => {
+                    vars.get(name).or(default_variable_values.get(name))
+                }
                 ReferenceType::Prompt(name) => {
                     prompts.get(name).or(default_prompt_values.get(name))
                 }
@@ -168,8 +172,10 @@ mod test {
 
     static REQFILE: &str = r#"
 ```%config
-vars = ["query_value"]
 secrets = ["api_key"]
+
+[[vars]]
+name = "query_value"
 
 [envs]
 [envs.dev]
@@ -273,19 +279,25 @@ HTTP/1.1 200 OK
     templater_test!(
         nested_references_in_config_not_supported,
         textwrap::dedent(
-            "
+            r#"
             ```%config
-            vars = [\"query_value\", \"copy\"]
-            secrets = [\"api_key\"]
+            secrets = ["api_key"]
 
-            envs.dev.query_value = \"{{!api_key}}\"
-            envs.dev.copy = \"{{:query_value}}\"
+            [[vars]]
+            name = "query_value"
+
+            [[vars]]
+            name = "copy"
+
+            [envs.dev]
+            query_value = "{{!api_key}}"
+            copy = "{{:query_value}}"
             ```
 
             ```%request
             GET https://example.com/?query={{:copy}} HTTP/1.1
             ```
-            "
+            "#
         ),
         Some("dev"),
         HashMap::new(),
@@ -370,19 +382,20 @@ HTTP/1.1 200 OK
     templater_test!(
         resolve_env_with_config_and_envs_but_invalid_env,
         textwrap::dedent(
-            "
+            r#"
             ```%config
-            vars = [\"foo\"]
+            [[vars]]
+            name = "foo"
 
             [envs]
             [envs.test]
-            foo = \"bar\"
+            foo = "bar"
             ```
 
             ```%request
             GET https://example.com/?value={{:foo}} HTTP/1.1
             ```
-            "
+            "#
         ),
         Some("dev"),
         HashMap::new(),
@@ -390,7 +403,7 @@ HTTP/1.1 200 OK
         &HashMap::default(),
         Err(vec![(
             ResolverError::InvalidEnvError("dev".to_string()).into(),
-            12..58
+            12..65
         )])
     );
 
@@ -448,6 +461,43 @@ HTTP/1.1 200 OK
             request: HttpRequest {
                 verb: "GET".into(),
                 target: "https://example.com/?query=456".to_string(),
+                http_version: "1.1".into(),
+                headers: vec![],
+                body: Some("".to_string())
+            },
+            response: None,
+        })
+    );
+
+    templater_test!(
+        use_default_variable_value,
+        textwrap::dedent(
+            r#"
+            ```%config
+            [[vars]]
+            name = "foo"
+            default = "123"
+
+            [[vars]]
+            name = "bar"
+
+            [envs.test]
+            bar = "456"
+            ```
+
+            ```%request
+            GET https://example.com/?query={{:foo}}{{:bar}} HTTP/1.1
+            ```
+            "#
+        ),
+        Some("test"),
+        HashMap::new(),
+        HashMap::new(),
+        &HashMap::default(),
+        Ok(TemplatedRequestFile {
+            request: HttpRequest {
+                verb: "GET".into(),
+                target: "https://example.com/?query=123456".to_string(),
                 http_version: "1.1".into(),
                 headers: vec![],
                 body: Some("".to_string())

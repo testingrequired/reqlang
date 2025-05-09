@@ -1,0 +1,23 @@
+# Default Variable Value
+
+The `defaults` environment is where default variable values are defined.
+
+This request has variables `prefix and `suffix`.
+
+```%config
+[[vars]]
+name = "prefix"
+default = "Rm"
+
+[[vars]]
+name = "suffix"
+
+[envs.test]
+suffix = "9v"
+```
+
+This will result in url being https://httpbin.org/base64/Rm9v, which decodes to "Foo"
+
+```%request
+GET https://httpbin.org/base64/{{:prefix}}{{:suffix}} HTTP/1.1
+```

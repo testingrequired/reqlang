@@ -112,6 +112,28 @@ impl ParsedRequestFile {
         all_prompts_map
     }
 
+    pub fn default_variable_values(&self) -> HashMap<String, String> {
+        let mut default_values = HashMap::new();
+
+        let default_values_pairs: Vec<(String, String)> = self
+            .config
+            .clone()
+            .unwrap_or_default()
+            .0
+            .vars
+            .clone()
+            .unwrap_or_default()
+            .iter()
+            .map(|x| (x.name.clone(), x.default.clone().unwrap_or_default()))
+            .collect();
+
+        for (key, value) in &default_values_pairs {
+            default_values.insert(key.clone(), value.clone());
+        }
+
+        default_values
+    }
+
     /// The secret names declared in the config
     pub fn secrets(&self) -> Vec<String> {
         self.config
@@ -119,6 +141,14 @@ impl ParsedRequestFile {
             .map(|(config, _)| config.secrets())
             .unwrap_or_default()
     }
+}
+
+/// A parsed variable definition
+#[derive(Clone, Debug, PartialEq, Default, Serialize, Deserialize, TS)]
+#[ts(export)]
+pub struct ParsedConfigVariable {
+    pub name: String,
+    pub default: Option<String>,
 }
 
 /// A parsed prompt definition
@@ -137,7 +167,7 @@ pub struct ParsedConfigPrompt {
 #[ts(export)]
 pub struct ParsedConfig {
     /// The variable names declared in the config
-    pub vars: Option<Vec<String>>,
+    pub vars: Option<Vec<ParsedConfigVariable>>,
     /// Environments with values
     ///
     /// These values match the variable names in the config
@@ -153,7 +183,7 @@ impl ParsedConfig {
     /// The variable names declared
     pub fn vars(&self) -> Vec<String> {
         match &self.vars {
-            Some(envs) => envs.to_vec(),
+            Some(vars) => vars.iter().map(|var| var.clone().name).collect(),
             None => vec![],
         }
     }
@@ -334,7 +364,10 @@ impl From<ParsedRequestFile> for ParseResult {
             .unwrap_or_default()
             .0
             .vars
-            .unwrap_or_default();
+            .unwrap_or_default()
+            .iter()
+            .map(|x| x.name.clone())
+            .collect();
 
         let envs: Vec<String> = value.envs();
 
@@ -374,7 +407,10 @@ mod tests {
 
         use crate::{
             span::NO_SPAN,
-            types::{ParsedConfig, ParsedConfigPrompt, ParsedRequestFile, http::HttpRequest},
+            types::{
+                ParsedConfig, ParsedConfigPrompt, ParsedConfigVariable, ParsedRequestFile,
+                http::HttpRequest,
+            },
         };
 
         #[test]
@@ -502,7 +538,10 @@ mod tests {
             let reqfile = ParsedRequestFile {
                 config: Some((
                     ParsedConfig {
-                        vars: Some(vec!["var".to_string()]),
+                        vars: Some(vec![ParsedConfigVariable {
+                            name: "var".to_string(),
+                            default: None,
+                        }]),
                         envs: Some(HashMap::from([
                             (
                                 "dev".to_string(),
@@ -536,7 +575,10 @@ mod tests {
             let reqfile = ParsedRequestFile {
                 config: Some((
                     ParsedConfig {
-                        vars: Some(vec!["var".to_string()]),
+                        vars: Some(vec![ParsedConfigVariable {
+                            name: "var".to_string(),
+                            default: None,
+                        }]),
                         envs: Some(HashMap::new()),
                         prompts: None,
                         secrets: None,
@@ -559,7 +601,10 @@ mod tests {
             let reqfile = ParsedRequestFile {
                 config: Some((
                     ParsedConfig {
-                        vars: Some(vec!["var".to_string()]),
+                        vars: Some(vec![ParsedConfigVariable {
+                            name: "var".to_string(),
+                            default: None,
+                        }]),
                         envs: None,
                         prompts: None,
                         secrets: None,
@@ -582,7 +627,10 @@ mod tests {
             let reqfile = ParsedRequestFile {
                 config: Some((
                     ParsedConfig {
-                        vars: Some(vec!["var".to_string()]),
+                        vars: Some(vec![ParsedConfigVariable {
+                            name: "var".to_string(),
+                            default: None,
+                        }]),
                         envs: None,
                         prompts: None,
                         secrets: None,

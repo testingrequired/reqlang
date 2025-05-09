@@ -23,8 +23,8 @@ mod tests {
         parser::parse,
         templater::template,
         types::{
-            ParsedConfig, ParsedConfigPrompt, ParsedRequestFile, ReferenceType,
-            TemplatedRequestFile,
+            ParsedConfig, ParsedConfigPrompt, ParsedConfigVariable, ParsedRequestFile,
+            ReferenceType, TemplatedRequestFile,
             http::{HttpRequest, HttpResponse, HttpStatusCode},
         },
     };
@@ -32,22 +32,23 @@ mod tests {
     #[test]
     fn parse_full_request_file() {
         let ast = Ast::from(textwrap::dedent(
-            "
+            r#"
             ```%config
-            vars = [\"query_value\"]
-            secrets = [\"api_key\"]
+            secrets = ["api_key"]
+
+            [[vars]]
+            name = "query_value"
 
             [envs.dev]
-            query_value = \"dev_value\"
+            query_value = "dev_value"
             [envs.prod]
-            query_value = \"prod_value\"
+            query_value = "prod_value"
 
             [[prompts]]
-            name = \"test_value\"
+            name = "test_value"
 
             [[prompts]]
-            name = \"expected_response_body\"
-
+            name = "expected_response_body"
             ```
 
             ```%request
@@ -64,7 +65,7 @@ mod tests {
             {{?expected_response_body}}
 
             ```
-            ",
+            "#,
         ));
 
         let reqfile = parse(&ast);
@@ -82,7 +83,7 @@ mod tests {
                         ],
                         body: Some("[1, 2, 3]\n\n".to_string())
                     },
-                    230..327
+                    237..334
                 ),
                 response: Some((
                     HttpResponse {
@@ -92,11 +93,14 @@ mod tests {
                         headers: vec![],
                         body: Some("{{?expected_response_body}}\n\n\n".to_string())
                     },
-                    346..391
+                    353..398
                 )),
                 config: Some((
                     ParsedConfig {
-                        vars: Some(vec!["query_value".to_string()]),
+                        vars: Some(vec![ParsedConfigVariable {
+                            name: "query_value".to_string(),
+                            default: None,
+                        }]),
                         envs: Some(HashMap::from([
                             (
                                 "prod".to_string(),
@@ -128,15 +132,15 @@ mod tests {
                         secrets: Some(vec!["api_key".to_string()]),
                         auth: None
                     },
-                    12..212
+                    12..219
                 )),
                 refs: vec![
-                    (ReferenceType::Variable("query_value".to_string()), 230..327),
-                    (ReferenceType::Prompt("test_value".to_string()), 230..327),
-                    (ReferenceType::Secret("api_key".to_string()), 230..327),
+                    (ReferenceType::Variable("query_value".to_string()), 237..334),
+                    (ReferenceType::Prompt("test_value".to_string()), 237..334),
+                    (ReferenceType::Secret("api_key".to_string()), 237..334),
                     (
                         ReferenceType::Prompt("expected_response_body".to_string()),
-                        346..391
+                        353..398
                     )
                 ],
             }),
@@ -148,21 +152,23 @@ mod tests {
     fn template_full_request_file() {
         let templated_reqfile = template(
             &textwrap::dedent(
-                "
+                r#"
                 ```%config
-                vars = [\"query_value\"]
-                secrets = [\"api_key\"]
+                secrets = ["api_key"]
+
+                [[vars]]
+                name = "query_value"
 
                 [envs.dev]
-                query_value = \"dev_value\"
+                query_value = "dev_value"
                 [envs.prod]
-                query_value = \"prod_value\"
+                query_value = "prod_value"
 
                 [[prompts]]
-                name = \"test_value\"
+                name = "test_value"
 
                 [[prompts]]
-                name = \"expected_response_body\"
+                name = "expected_response_body"
 
                 ```
 
@@ -180,7 +186,7 @@ mod tests {
                 {{?expected_response_body}}
 
                 ```
-                ",
+                "#,
             ),
             Some("dev"),
             &HashMap::from([

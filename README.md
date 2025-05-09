@@ -32,11 +32,13 @@ This is a living syntax subject to change wildly at anytime. The core concepts a
 
 ````reqlang
 ```%config
-vars = ["test_value"]
 secrets = ["super_secret_value"]
 
 [[prompts]]
 name = "prompt_value"
+
+[[vars]]
+name = "test_value"
 
 [envs.test]
 test_value = "test_value"
@@ -97,97 +99,11 @@ Client implementations can choose how to match the response against the expected
 
 The configuration is optional but is used to define environment names and their variables as well as what prompts & secrets are needed. It currently uses the `toml` syntax.
 
-#### Variables & Environments
-
-Variables contain environmental variables that can be used in the request or response. A list of variable names is first declared.
-
-Variables can be templated using the `{{:var_name}}` syntax. The environment of the request execution can be referenced using the `{{@env}}` syntax.
-
-```toml
-vars = ["user_id", "item_id"]
-```
-
-Then enviroments are declared with the appropriate values.
-
-```toml
-vars = ["user_id", "item_id"]
-
-[envs.dev]
-user_id = 12345
-item_id = "abcd"
-
-[envs.prod]
-user_id = 67890
-item_id = "efgh"
-```
-
-There is an implicitly defined `default` environment present but it still must be declared in the config.
-
-```toml
-vars = ["user_id"]
-
-[envs.default]
-user_id = 12345
-```
-
-##### Usage
-
-````reqlang
-```%config
-vars = ["user_id", "item_id"]
-
-[envs.dev]
-user_id = 12345
-item_id = "abcd"
-
-[envs.prod]
-user_id = 67890
-item_id = "efgh"
-```
-
-```%request
-GET https://{{@env}}.example.com/users/{{:user_id}}/items/{{:item_id}} HTTP/1.1
-```
-````
-
-##### Goals
-
-- Clearly define everything the request and response will need
-- Declare environments once
-- Require variable declaration before definition
-
-###### Future
-
-- Default value (implicitly set in the `default` environment)
-- Value type
-
-#### Prompts
-
-Prompts are values provided by the user at request execution time. These are "inputs" to the request file. They can be templated in the request and responses using the `{{?prompt_name}}` syntax.
-
-```toml
-[[prompts]]
-name = "tags"
-description = "Tags included as a query param" # Optional
-default = "tag1,tag2" # Optional
-```
-
-##### Usage
-
-````reqlang
-```%config
-[[prompts]]
-name = "tags"
-```
-
-```%request
-GET https://example.com/posts?tags={{?tags}} HTTP/1.1
-```
-````
-
 #### Secrets
 
 Secrets are protected values referenced by a name and declares what secrets will be required. How secret values are fetched is up to client implementations. They can be referenced using the `{{!secret_name}}` syntax.
+
+Secrets are optional but if they are declared, they must be at the top of the config block (due to how TOML parses tables).
 
 ```toml
 secrets = ["api_key"]
@@ -213,6 +129,118 @@ x-api-key: {{!api_key}}
 ###### Future
 
 - Configuring secret fetching in the workspace
+
+#### Variables & Environments
+
+Variables contain environmental variables that can be used in the request or response. A list of variable names is first declared.
+
+Variables can be templated using the `{{:var_name}}` syntax. The environment of the request execution can be referenced using the `{{@env}}` syntax.
+
+```toml
+[[vars]]
+name = "user_id"
+
+[[vars]]
+name = "item_id"
+```
+
+Then enviroments are declared with the appropriate values.
+
+```toml
+[[vars]]
+name = "user_id"
+
+[[vars]]
+name = "item_id"
+
+[envs.dev]
+user_id = 12345
+item_id = "abcd"
+
+[envs.prod]
+user_id = 67890
+item_id = "efgh"
+```
+
+##### Default values
+
+```toml
+[[vars]]
+name = "user_id"
+default = "12345"
+
+[[vars]]
+name = "item_id"
+
+[envs.dev]
+item_id = "abcd"
+
+[envs.prod]
+user_id = "67890"
+item_id = "efgh"
+```
+
+##### Usage
+
+````reqlang
+```%config
+[[vars]]
+name = "user_id"
+
+[[vars]]
+name = "item_id"
+
+[envs.dev]
+user_id = 12345
+item_id = "abcd"
+
+[envs.prod]
+user_id = 67890
+item_id = "efgh"
+```
+
+```%request
+GET https://{{@env}}.example.com/users/{{:user_id}}/items/{{:item_id}} HTTP/1.1
+```
+````
+
+###### Warning
+
+Be sure to declare env definition blocks using the `[env.ENV]` syntax in TOML. You can use `env.ENV.name = value` but they must be at the top of the config block. This is due ot how TOML handles parsing tables.
+
+##### Goals
+
+- Clearly define everything the request and response will need
+- Declare environments once
+- Require variable declaration before definition
+
+###### Future
+
+- Value type
+
+#### Prompts
+
+Prompts are values provided by the user at request execution time. These are "inputs" to the request file. They can be templated in the request and responses using the `{{?prompt_name}}` syntax.
+
+```toml
+[[prompts]]
+name = "tags"
+description = "Tags included as a query param" # Optional
+default = "tag1,tag2" # Optional
+```
+
+##### Usage
+
+````reqlang
+```%config
+[[prompts]]
+name = "tags"
+```
+
+```%request
+GET https://example.com/posts?tags={{?tags}} HTTP/1.1
+```
+````
 
 ### Examples
 

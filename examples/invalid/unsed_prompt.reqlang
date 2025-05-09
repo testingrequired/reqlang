@@ -1,9 +1,4 @@
 ```%config
-vars = []
-secrets = []
-
-[envs]
-
 [[prompts]]
 name = "base_url"
 ```
