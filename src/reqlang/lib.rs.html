@@ -218,7 +218,13 @@
 <a href="#217" id="217">217</a>
 <a href="#218" id="218">218</a>
 <a href="#219" id="219">219</a>
-<a href="#220" id="220">220</a></pre></div><pre class="rust"><code><span class="kw">pub mod </span>assert_response;
+<a href="#220" id="220">220</a>
+<a href="#221" id="221">221</a>
+<a href="#222" id="222">222</a>
+<a href="#223" id="223">223</a>
+<a href="#224" id="224">224</a>
+<a href="#225" id="225">225</a>
+<a href="#226" id="226">226</a></pre></div><pre class="rust"><code><span class="kw">pub mod </span>assert_response;
 <span class="kw">pub mod </span>ast;
 <span class="kw">pub mod </span>diagnostics;
 <span class="kw">pub mod </span>errors;
@@ -243,8 +249,8 @@
         parser::parse,
         templater::template,
         types::{
-            ParsedConfig, ParsedConfigPrompt, ParsedRequestFile, ReferenceType,
-            TemplatedRequestFile,
+            ParsedConfig, ParsedConfigPrompt, ParsedConfigVariable, ParsedRequestFile,
+            ReferenceType, TemplatedRequestFile,
             http::{HttpRequest, HttpResponse, HttpStatusCode},
         },
     };
@@ -252,22 +258,23 @@
     <span class="attr">#[test]
     </span><span class="kw">fn </span>parse_full_request_file() {
         <span class="kw">let </span>ast = Ast::from(textwrap::dedent(
-            <span class="string">"
+            <span class="string">r#"
             ```%config
-            vars = [\"query_value\"]
-            secrets = [\"api_key\"]
+            secrets = ["api_key"]
+
+            [[vars]]
+            name = "query_value"
 
             [envs.dev]
-            query_value = \"dev_value\"
+            query_value = "dev_value"
             [envs.prod]
-            query_value = \"prod_value\"
+            query_value = "prod_value"
 
             [[prompts]]
-            name = \"test_value\"
+            name = "test_value"
 
             [[prompts]]
-            name = \"expected_response_body\"
-
+            name = "expected_response_body"
             ```
 
             ```%request
@@ -284,7 +291,7 @@
             {{?expected_response_body}}
 
             ```
-            "</span>,
+            "#</span>,
         ));
 
         <span class="kw">let </span>reqfile = parse(<span class="kw-2">&amp;</span>ast);
@@ -302,7 +309,7 @@
                         ],
                         body: <span class="prelude-val">Some</span>(<span class="string">"[1, 2, 3]\n\n"</span>.to_string())
                     },
-                    <span class="number">230</span>..<span class="number">327
+                    <span class="number">237</span>..<span class="number">334
                 </span>),
                 response: <span class="prelude-val">Some</span>((
                     HttpResponse {
@@ -312,11 +319,14 @@
                         headers: <span class="macro">vec!</span>[],
                         body: <span class="prelude-val">Some</span>(<span class="string">"{{?expected_response_body}}\n\n\n"</span>.to_string())
                     },
-                    <span class="number">346</span>..<span class="number">391
+                    <span class="number">353</span>..<span class="number">398
                 </span>)),
                 config: <span class="prelude-val">Some</span>((
                     ParsedConfig {
-                        vars: <span class="prelude-val">Some</span>(<span class="macro">vec!</span>[<span class="string">"query_value"</span>.to_string()]),
+                        vars: <span class="prelude-val">Some</span>(<span class="macro">vec!</span>[ParsedConfigVariable {
+                            name: <span class="string">"query_value"</span>.to_string(),
+                            default: <span class="prelude-val">None</span>,
+                        }]),
                         envs: <span class="prelude-val">Some</span>(HashMap::from([
                             (
                                 <span class="string">"prod"</span>.to_string(),
@@ -348,15 +358,15 @@
                         secrets: <span class="prelude-val">Some</span>(<span class="macro">vec!</span>[<span class="string">"api_key"</span>.to_string()]),
                         auth: <span class="prelude-val">None
                     </span>},
-                    <span class="number">12</span>..<span class="number">212
+                    <span class="number">12</span>..<span class="number">219
                 </span>)),
                 refs: <span class="macro">vec!</span>[
-                    (ReferenceType::Variable(<span class="string">"query_value"</span>.to_string()), <span class="number">230</span>..<span class="number">327</span>),
-                    (ReferenceType::Prompt(<span class="string">"test_value"</span>.to_string()), <span class="number">230</span>..<span class="number">327</span>),
-                    (ReferenceType::Secret(<span class="string">"api_key"</span>.to_string()), <span class="number">230</span>..<span class="number">327</span>),
+                    (ReferenceType::Variable(<span class="string">"query_value"</span>.to_string()), <span class="number">237</span>..<span class="number">334</span>),
+                    (ReferenceType::Prompt(<span class="string">"test_value"</span>.to_string()), <span class="number">237</span>..<span class="number">334</span>),
+                    (ReferenceType::Secret(<span class="string">"api_key"</span>.to_string()), <span class="number">237</span>..<span class="number">334</span>),
                     (
                         ReferenceType::Prompt(<span class="string">"expected_response_body"</span>.to_string()),
-                        <span class="number">346</span>..<span class="number">391
+                        <span class="number">353</span>..<span class="number">398
                     </span>)
                 ],
             }),
@@ -368,21 +378,23 @@
     </span><span class="kw">fn </span>template_full_request_file() {
         <span class="kw">let </span>templated_reqfile = template(
             <span class="kw-2">&amp;</span>textwrap::dedent(
-                <span class="string">"
+                <span class="string">r#"
                 ```%config
-                vars = [\"query_value\"]
-                secrets = [\"api_key\"]
+                secrets = ["api_key"]
+
+                [[vars]]
+                name = "query_value"
 
                 [envs.dev]
-                query_value = \"dev_value\"
+                query_value = "dev_value"
                 [envs.prod]
-                query_value = \"prod_value\"
+                query_value = "prod_value"
 
                 [[prompts]]
-                name = \"test_value\"
+                name = "test_value"
 
                 [[prompts]]
-                name = \"expected_response_body\"
+                name = "expected_response_body"
 
                 ```
 
@@ -400,7 +412,7 @@
                 {{?expected_response_body}}
 
                 ```
-                "</span>,
+                "#</span>,
             ),
             <span class="prelude-val">Some</span>(<span class="string">"dev"</span>),
             <span class="kw-2">&amp;</span>HashMap::from([

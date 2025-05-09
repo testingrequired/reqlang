@@ -1538,7 +1538,19 @@
 <a href="#1537" id="1537">1537</a>
 <a href="#1538" id="1538">1538</a>
 <a href="#1539" id="1539">1539</a>
-<a href="#1540" id="1540">1540</a></pre></div><pre class="rust"><code><span class="kw">use </span>regex::Regex;
+<a href="#1540" id="1540">1540</a>
+<a href="#1541" id="1541">1541</a>
+<a href="#1542" id="1542">1542</a>
+<a href="#1543" id="1543">1543</a>
+<a href="#1544" id="1544">1544</a>
+<a href="#1545" id="1545">1545</a>
+<a href="#1546" id="1546">1546</a>
+<a href="#1547" id="1547">1547</a>
+<a href="#1548" id="1548">1548</a>
+<a href="#1549" id="1549">1549</a>
+<a href="#1550" id="1550">1550</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::collections::HashMap;
+
+<span class="kw">use </span>regex::Regex;
 
 <span class="kw">use crate</span>::{
     ast::Ast,
@@ -1641,10 +1653,26 @@
                         ));
                     }
 
-                    <span class="kw">for </span>env_name <span class="kw">in </span>env_names.iter() {
+                    <span class="kw">let </span><span class="kw-2">mut </span>default_values = HashMap::new();
+
+                    <span class="kw">let </span>default_values_pairs: Vec&lt;(String, String)&gt; = config
+                        .vars
+                        .clone()
+                        .unwrap_or_default()
+                        .iter()
+                        .filter(|x| x.default.is_some())
+                        .map(|x| (x.name.clone(), x.default.clone().unwrap_or_default()))
+                        .collect();
+
+                    <span class="kw">for </span>(key, value) <span class="kw">in </span><span class="kw-2">&amp;</span>default_values_pairs {
+                        default_values.insert(key.clone(), value.clone());
+                    }
+
+                    <span class="comment">// Check that environments are defining the declared variables
+                    </span><span class="kw">for </span>env_name <span class="kw">in </span>env_names.iter() {
                         <span class="kw">match </span><span class="kw-2">&amp;</span>config.env(env_name) {
                             <span class="prelude-val">Some</span>(env) =&gt; {
-                                <span class="kw">if </span>!env.contains_key(var) {
+                                <span class="kw">if </span>!env.contains_key(var) &amp;&amp; !default_values.contains_key(var) {
                                     parse_errors.push((
                                         ParseError::VariableUndefinedInEnvironment(
                                             var.clone(),
@@ -2130,25 +2158,26 @@
         </span><span class="macro">parser_test!</span>(
             unused_variable,
             textwrap::dedent(
-                <span class="string">"
+                <span class="string">r#"
                 ```%config
-                vars = [\"base_url\"]
+                [[vars]]
+                name = "base_url"
                 ```
 
                 ```%request
                 GET http://example.com HTTP/1.1
                 ```
-                "
+                "#
             </span>),
             <span class="prelude-val">Err</span>(<span class="macro">vec!</span>[
                 (
                     ParseError::VariableNotDefinedInAnyEnvironment(<span class="string">"base_url"</span>.to_string()).into(),
-                    <span class="number">12</span>..<span class="number">31
+                    <span class="number">12</span>..<span class="number">38
                 </span>),
                 (
                     ParseError::UnusedValueError(ReferenceType::Variable(<span class="string">"base_url"</span>.to_string()))
                         .into(),
-                    <span class="number">12</span>..<span class="number">31
+                    <span class="number">12</span>..<span class="number">38
                 </span>)
             ])
         );
@@ -2581,22 +2610,24 @@
         </span><span class="macro">parser_test!</span>(
             invalid_config_syntax_error_incomplete_table,
             textwrap::dedent(
-                <span class="string">"
+                <span class="string">r#"
                 ```%config
-                vars = [\"body\"]
+                [[vars]]
+                name = "body"
+
                 [envs.dev.body = 123
                 ```
 
                 ```%request
                 GET https://example.com/ HTTP/1.1
                 ```
-                "
+                "#
             </span>),
             <span class="prelude-val">Err</span>(<span class="macro">vec!</span>[(
                 ReqlangError::ParseError(ParseError::InvalidConfigError {
                     message: <span class="string">"invalid table header\nexpected `.`, `]`"</span>.to_string()
                 }),
-                <span class="number">43</span>..<span class="number">44
+                <span class="number">51</span>..<span class="number">52
             </span>)])
         );
 
@@ -2626,7 +2657,8 @@
         <span class="kw">use </span>std::collections::HashMap;
 
         <span class="kw">use </span><span class="kw">crate</span>::types::{
-            ParsedConfig, ParsedConfigPrompt, ParsedRequestFile, ReferenceType,
+            ParsedConfig, ParsedConfigPrompt, ParsedConfigVariable, ParsedRequestFile,
+            ReferenceType,
             http::{HttpRequest, HttpResponse, HttpStatusCode, HttpVerb, HttpVersion},
         };
 
@@ -2698,22 +2730,37 @@
         <span class="macro">parser_test!</span>(
             template_reference_in_config,
             textwrap::dedent(
-                <span class="string">"
+                <span class="string">r#"
                 ```%config
-                vars = [\"foo\", \"bar\"]
-                envs.dev.foo = \"test!\"
-                envs.dev.bar = \"{{:foo}}\"
+                [[vars]]
+                name = "foo"
+
+                [[vars]]
+                name = "bar"
+
+                [envs.dev]
+                foo = "test!"
+                bar = "{{:foo}}"
                 ```
 
                 ```%request
                 GET http://example.com?value={{:bar}} HTTP/1.1
                 ```
-                "
+                "#
             </span>),
             <span class="prelude-val">Ok</span>(ParsedRequestFile {
                 config: <span class="prelude-val">Some</span>((
                     ParsedConfig {
-                        vars: <span class="prelude-val">Some</span>(<span class="macro">vec!</span>[<span class="string">"foo"</span>.to_string(), <span class="string">"bar"</span>.to_string()]),
+                        vars: <span class="prelude-val">Some</span>(<span class="macro">vec!</span>[
+                            ParsedConfigVariable {
+                                name: <span class="string">"foo"</span>.to_string(),
+                                default: <span class="prelude-val">None</span>,
+                            },
+                            ParsedConfigVariable {
+                                name: <span class="string">"bar"</span>.to_string(),
+                                default: <span class="prelude-val">None</span>,
+                            }
+                        ]),
                         envs: <span class="prelude-val">Some</span>(HashMap::from([(
                             <span class="string">"dev"</span>.to_string(),
                             HashMap::from([
@@ -2725,7 +2772,7 @@
                         secrets: <span class="prelude-val">None</span>,
                         auth: <span class="prelude-val">None
                     </span>},
-                    <span class="number">12</span>..<span class="number">82
+                    <span class="number">12</span>..<span class="number">99
                 </span>)),
                 request: (
                     HttpRequest {
@@ -2735,12 +2782,12 @@
                         headers: <span class="macro">vec!</span>[],
                         body: <span class="prelude-val">Some</span>(<span class="string">""</span>.to_string())
                     },
-                    <span class="number">100</span>..<span class="number">146
+                    <span class="number">117</span>..<span class="number">163
                 </span>),
                 response: <span class="prelude-val">None</span>,
                 refs: <span class="macro">vec!</span>[
-                    (ReferenceType::Variable(<span class="string">"bar"</span>.to_string()), <span class="number">100</span>..<span class="number">146</span>),
-                    (ReferenceType::Variable(<span class="string">"foo"</span>.to_string()), <span class="number">12</span>..<span class="number">82</span>),
+                    (ReferenceType::Variable(<span class="string">"bar"</span>.to_string()), <span class="number">117</span>..<span class="number">163</span>),
+                    (ReferenceType::Variable(<span class="string">"foo"</span>.to_string()), <span class="number">12</span>..<span class="number">99</span>),
                 ],
             })
         );
@@ -2748,21 +2795,23 @@
         <span class="macro">parser_test!</span>(
             full_request_file,
             textwrap::dedent(
-                <span class="string">"
+                <span class="string">r#"
                 ```%config
-                vars = [\"query_value\"]
-                secrets = [\"api_key\"]
+                secrets = ["api_key"]
 
+                [[vars]]
+                name = "query_value"
+                
                 [envs.dev]
-                query_value = \"dev_value\"
+                query_value = "dev_value"
                 [envs.prod]
-                query_value = \"prod_value\"
+                query_value = "prod_value"
 
                 [[prompts]]
-                name = \"test_value\"
+                name = "test_value"
                 
                 [[prompts]]
-                name = \"expected_response_body\"
+                name = "expected_response_body"
 
                 ```
 
@@ -2781,7 +2830,7 @@
                 {{?expected_response_body}}
 
                 ```
-                "
+                "#
             </span>),
             <span class="prelude-val">Ok</span>(ParsedRequestFile {
                 request: (
@@ -2796,7 +2845,7 @@
                         ],
                         body: <span class="prelude-val">Some</span>(<span class="string">"[1, 2, 3]\n\n"</span>.to_string())
                     },
-                    <span class="number">230</span>..<span class="number">353
+                    <span class="number">238</span>..<span class="number">361
                 </span>),
                 response: <span class="prelude-val">Some</span>((
                     HttpResponse {
@@ -2806,11 +2855,14 @@
                         headers: <span class="macro">vec!</span>[],
                         body: <span class="prelude-val">Some</span>(<span class="string">"{{?expected_response_body}}\n\n\n"</span>.to_string())
                     },
-                    <span class="number">372</span>..<span class="number">417
+                    <span class="number">380</span>..<span class="number">425
                 </span>)),
                 config: <span class="prelude-val">Some</span>((
                     ParsedConfig {
-                        vars: <span class="prelude-val">Some</span>(<span class="macro">vec!</span>[<span class="string">"query_value"</span>.to_string()]),
+                        vars: <span class="prelude-val">Some</span>(<span class="macro">vec!</span>[ParsedConfigVariable {
+                            name: <span class="string">"query_value"</span>.to_string(),
+                            default: <span class="prelude-val">None</span>,
+                        }]),
                         envs: <span class="prelude-val">Some</span>(HashMap::from([
                             (
                                 <span class="string">"dev"</span>.to_string(),
@@ -2842,16 +2894,16 @@
                         secrets: <span class="prelude-val">Some</span>(<span class="macro">vec!</span>[<span class="string">"api_key"</span>.to_string()]),
                         auth: <span class="prelude-val">None
                     </span>},
-                    <span class="number">12</span>..<span class="number">212
+                    <span class="number">12</span>..<span class="number">220
                 </span>)),
                 refs: <span class="macro">vec!</span>[
-                    (ReferenceType::Variable(<span class="string">"query_value"</span>.to_string()), <span class="number">230</span>..<span class="number">353</span>),
-                    (ReferenceType::Prompt(<span class="string">"test_value"</span>.to_string()), <span class="number">230</span>..<span class="number">353</span>),
-                    (ReferenceType::Secret(<span class="string">"api_key"</span>.to_string()), <span class="number">230</span>..<span class="number">353</span>),
-                    (ReferenceType::Provider(<span class="string">"provider"</span>.to_string()), <span class="number">230</span>..<span class="number">353</span>),
+                    (ReferenceType::Variable(<span class="string">"query_value"</span>.to_string()), <span class="number">238</span>..<span class="number">361</span>),
+                    (ReferenceType::Prompt(<span class="string">"test_value"</span>.to_string()), <span class="number">238</span>..<span class="number">361</span>),
+                    (ReferenceType::Secret(<span class="string">"api_key"</span>.to_string()), <span class="number">238</span>..<span class="number">361</span>),
+                    (ReferenceType::Provider(<span class="string">"provider"</span>.to_string()), <span class="number">238</span>..<span class="number">361</span>),
                     (
                         ReferenceType::Prompt(<span class="string">"expected_response_body"</span>.to_string()),
-                        <span class="number">372</span>..<span class="number">417
+                        <span class="number">380</span>..<span class="number">425
                     </span>)
                 ],
             })
@@ -2971,38 +3023,21 @@
     </span>);
 
     <span class="macro">resolve_test!</span>(
-        get_default_env_when_default_env_defined,
-        textwrap::dedent(
-            <span class="string">"
-            ```%config
-            vars = [\"value\"]
-
-            envs.default.value = \"foo\"
-            ```
-
-            ```%request
-            GET https://example.com?{{:value}} HTTP/1.1
-            ```
-            "
-        </span>),
-        <span class="string">"default"</span>,
-        <span class="prelude-val">Some</span>(HashMap::from([(<span class="string">"value"</span>.to_string(), <span class="string">"foo"</span>.to_string())]))
-    );
-
-    <span class="macro">resolve_test!</span>(
         get_default_env_when_user_env_defined,
         textwrap::dedent(
-            <span class="string">"
+            <span class="string">r#"
             ```%config
-            vars = [\"value\"]
+            [[vars]]
+            name = "value"
 
-            envs.test.value = \"foo\"
+            [envs.test]
+            value = "foo"
             ```
 
             ```%request
             GET https://example.com?{{:value}} HTTP/1.1
             ```
-            "
+            "#
         </span>),
         <span class="string">"default"</span>,
         <span class="prelude-val">None
@@ -3022,38 +3057,21 @@
     </span>);
 
     <span class="macro">resolve_test!</span>(
-        get_user_env_when_default_env_defined,
-        textwrap::dedent(
-            <span class="string">"
-            ```%config
-            vars = [\"value\"]
-
-            envs.default.value = \"foo\"
-            ```
-
-            ```%request
-            GET https://example.com?{{:value}} HTTP/1.1
-            ```
-            "
-        </span>),
-        <span class="string">"test"</span>,
-        <span class="prelude-val">None
-    </span>);
-
-    <span class="macro">resolve_test!</span>(
         get_user_env_when_user_env_defined,
         textwrap::dedent(
-            <span class="string">"
+            <span class="string">r#"
             ```%config
-            vars = [\"value\"]
+            [[vars]]
+            name = "value"
 
-            envs.test.value = \"foo\"
+            [envs.test]
+            value = "foo"
             ```
 
             ```%request
             GET https://example.com?{{:value}} HTTP/1.1
             ```
-            "
+            "#
         </span>),
         <span class="string">"test"</span>,
         <span class="prelude-val">Some</span>(HashMap::from([(<span class="string">"value"</span>.to_string(), <span class="string">"foo"</span>.to_string())]))
@@ -3062,17 +3080,19 @@
     <span class="macro">resolve_test!</span>(
         get_non_existent_env_when_user_env_defined,
         textwrap::dedent(
-            <span class="string">"
+            <span class="string">r#"
             ```%config
-            vars = [\"value\"]
+            [[vars]]
+            name = "value"
 
-            envs.test.value = \"foo\"
+            [envs.test]
+            value = "foo"
             ```
 
             ```%request
             GET https://example.com?{{:value}} HTTP/1.1
             ```
-            "
+            "#
         </span>),
         <span class="string">"doesnt_exist"</span>,
         <span class="prelude-val">None

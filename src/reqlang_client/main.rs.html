@@ -641,7 +641,18 @@
 <a href="#640" id="640">640</a>
 <a href="#641" id="641">641</a>
 <a href="#642" id="642">642</a>
-<a href="#643" id="643">643</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{
+<a href="#643" id="643">643</a>
+<a href="#644" id="644">644</a>
+<a href="#645" id="645">645</a>
+<a href="#646" id="646">646</a>
+<a href="#647" id="647">647</a>
+<a href="#648" id="648">648</a>
+<a href="#649" id="649">649</a>
+<a href="#650" id="650">650</a>
+<a href="#651" id="651">651</a>
+<a href="#652" id="652">652</a>
+<a href="#653" id="653">653</a>
+<a href="#654" id="654">654</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{
     collections::HashMap,
     fs,
     ops::ControlFlow,
@@ -844,6 +855,12 @@
             .map(|reqfile| reqfile.prompts())
             .unwrap_or_default();
 
+        <span class="kw">let </span>default_prompt_values: HashMap&lt;String, String&gt; = client_ctx
+            .reqfile
+            .as_ref()
+            .map(|reqfile| reqfile.default_prompt_values())
+            .unwrap_or_default();
+
         <span class="kw">let </span>secret_names: Vec&lt;String&gt; = client_ctx
             .reqfile
             .as_ref()
@@ -875,12 +892,17 @@
 
                 ui.horizontal(|ui| {
                     <span class="kw">for </span>prompt_name <span class="kw">in </span>prompt_names {
-                        <span class="kw">let </span>input = <span class="self">self</span>.prompts.get_mut(prompt_name.as_str()).unwrap();
+                        <span class="kw">let </span><span class="kw-2">mut </span>input_string = default_prompt_values
+                            .get(<span class="kw-2">&amp;</span>prompt_name)
+                            .cloned()
+                            .unwrap_or_else(String::new);
 
                         ui.horizontal(|ui| {
                             ui.label(prompt_name.as_str());
-                            ui.text_edit_singleline(input);
+                            ui.text_edit_singleline(<span class="kw-2">&amp;mut </span>input_string);
                         });
+
+                        <span class="self">self</span>.prompts.insert(prompt_name, input_string);
 
                         ui.end_row();
                     }

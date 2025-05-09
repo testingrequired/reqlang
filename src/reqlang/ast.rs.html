@@ -290,7 +290,14 @@
 <a href="#289" id="289">289</a>
 <a href="#290" id="290">290</a>
 <a href="#291" id="291">291</a>
-<a href="#292" id="292">292</a></pre></div><pre class="rust"><code><span class="kw">use </span>serde::{Deserialize, Serialize};
+<a href="#292" id="292">292</a>
+<a href="#293" id="293">293</a>
+<a href="#294" id="294">294</a>
+<a href="#295" id="295">295</a>
+<a href="#296" id="296">296</a>
+<a href="#297" id="297">297</a>
+<a href="#298" id="298">298</a>
+<a href="#299" id="299">299</a></pre></div><pre class="rust"><code><span class="kw">use </span>serde::{Deserialize, Serialize};
 
 <span class="kw">use crate</span>::{extract_codeblocks::extract_codeblocks, span::Spanned};
 
@@ -515,7 +522,8 @@ RESPONSE
 A
 
 ```%config
-vars = ["foo"]
+[[vars]]
+name = "foo"
 
 [envs]
 foo = "bar"
@@ -546,21 +554,27 @@ D
                 (AstNode::Comment(<span class="string">"\nA\n\n"</span>.to_string()), <span class="number">0</span>..<span class="number">4</span>),
                 (
                     AstNode::ConfigBlock((
-                        <span class="macro">concat!</span>(<span class="string">"vars = [\"foo\"]\n"</span>, <span class="string">"\n"</span>, <span class="string">"[envs]\n"</span>, <span class="string">"foo = \"bar\""</span>,)
-                            .to_string(),
-                        <span class="number">15</span>..<span class="number">49
+                        <span class="macro">concat!</span>(
+                            <span class="string">"[[vars]]\n"</span>,
+                            <span class="string">"name = \"foo\"\n"</span>,
+                            <span class="string">"\n"</span>,
+                            <span class="string">"[envs]\n"</span>,
+                            <span class="string">"foo = \"bar\""</span>,
+                        )
+                        .to_string(),
+                        <span class="number">15</span>..<span class="number">56
                     </span>)),
-                    <span class="number">4</span>..<span class="number">53
+                    <span class="number">4</span>..<span class="number">60
                 </span>),
-                (AstNode::Comment(<span class="string">"\n\nB\n\n"</span>.to_string()), <span class="number">53</span>..<span class="number">58</span>),
+                (AstNode::Comment(<span class="string">"\n\nB\n\n"</span>.to_string()), <span class="number">60</span>..<span class="number">65</span>),
                 (
                     AstNode::RequestBlock((
                         <span class="string">"GET https://example.com HTTP/1.1"</span>.to_string(),
-                        <span class="number">70</span>..<span class="number">102
+                        <span class="number">77</span>..<span class="number">109
                     </span>)),
-                    <span class="number">58</span>..<span class="number">106
+                    <span class="number">65</span>..<span class="number">113
                 </span>),
-                (AstNode::Comment(<span class="string">"\n\nC\n\n"</span>.to_string()), <span class="number">106</span>..<span class="number">111</span>),
+                (AstNode::Comment(<span class="string">"\n\nC\n\n"</span>.to_string()), <span class="number">113</span>..<span class="number">118</span>),
                 (
                     AstNode::ResponseBlock((
                         textwrap::dedent(
@@ -573,9 +587,9 @@ D
                         </span>)
                         .trim()
                         .to_string(),
-                        <span class="number">124</span>..<span class="number">185
+                        <span class="number">131</span>..<span class="number">192
                     </span>)),
-                    <span class="number">111</span>..<span class="number">189
+                    <span class="number">118</span>..<span class="number">196
                 </span>),
             ]),
             ast_result
