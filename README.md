@@ -185,11 +185,6 @@ GET https://example.com/posts?tags={{?tags}} HTTP/1.1
 ```
 ````
 
-##### Future
-
-- Default value
-- Value type
-
 #### Secrets
 
 Secrets are protected values referenced by a name and declares what secrets will be required. How secret values are fetched is up to client implementations. They can be referenced using the `{{!secret_name}}` syntax.
