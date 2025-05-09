@@ -241,7 +241,7 @@ impl InputParamsState {
                         let mut input_string = default_prompt_values
                             .get(&prompt_name)
                             .cloned()
-                            .unwrap_or_else(|| String::new());
+                            .unwrap_or_else(String::new);
 
                         ui.horizontal(|ui| {
                             ui.label(prompt_name.as_str());
