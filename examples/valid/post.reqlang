@@ -1,6 +1,8 @@
 ```%config
-vars = ["test_value"]
 secrets = ["super_secret_value"]
+
+[[vars]]
+name = "test_value"
 
 [[prompts]]
 name = "prompt_value"

@@ -322,7 +322,7 @@ mod cli_integration_tests {
             "        \"character\": 0\n",
             "      },\n",
             "      \"end\": {\n",
-            "        \"line\": 14,\n",
+            "        \"line\": 16,\n",
             "        \"character\": 26\n",
             "      }\n",
             "    },\n",
@@ -508,7 +508,7 @@ mod cli_integration_tests {
             "        \"character\": 0\n",
             "      },\n",
             "      \"end\": {\n",
-            "        \"line\": 14,\n",
+            "        \"line\": 16,\n",
             "        \"character\": 26\n",
             "      }\n",
             "    },\n",
@@ -559,8 +559,8 @@ mod cli_integration_tests {
                       "character": 0
                     },
                     "end": {
-                      "line": 1,
-                      "character": 14
+                      "line": 2,
+                      "character": 12
                     }
                   },
                   "severity": 1,
@@ -590,7 +590,7 @@ mod cli_integration_tests {
                       "character": 0
                     },
                     "end": {
-                      "line": 3,
+                      "line": 4,
                       "character": 6
                     }
                   },
@@ -621,7 +621,7 @@ mod cli_integration_tests {
                       "character": 0
                     },
                     "end": {
-                      "line": 6,
+                      "line": 7,
                       "character": 12
                     }
                   },
@@ -644,6 +644,15 @@ mod cli_integration_tests {
     fn run_default_prompt_value() {
         let assert =
             assert_command!("reqlang run ../examples/valid/default_prompt_value.reqlang -f body");
+
+        assert.success().stdout("Foo\n");
+    }
+
+    #[test]
+    fn run_default_variable_value() {
+        let assert = assert_command!(
+            "reqlang run ../examples/valid/default_variable_value.reqlang -e test -f body"
+        );
 
         assert.success().stdout("Foo\n");
     }

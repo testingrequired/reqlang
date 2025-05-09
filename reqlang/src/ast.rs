@@ -223,7 +223,8 @@ RESPONSE
 A
 
 ```%config
-vars = ["foo"]
+[[vars]]
+name = "foo"
 
 [envs]
 foo = "bar"
@@ -254,21 +255,27 @@ D
                 (AstNode::Comment("\nA\n\n".to_string()), 0..4),
                 (
                     AstNode::ConfigBlock((
-                        concat!("vars = [\"foo\"]\n", "\n", "[envs]\n", "foo = \"bar\"",)
-                            .to_string(),
-                        15..49
+                        concat!(
+                            "[[vars]]\n",
+                            "name = \"foo\"\n",
+                            "\n",
+                            "[envs]\n",
+                            "foo = \"bar\"",
+                        )
+                        .to_string(),
+                        15..56
                     )),
-                    4..53
+                    4..60
                 ),
-                (AstNode::Comment("\n\nB\n\n".to_string()), 53..58),
+                (AstNode::Comment("\n\nB\n\n".to_string()), 60..65),
                 (
                     AstNode::RequestBlock((
                         "GET https://example.com HTTP/1.1".to_string(),
-                        70..102
+                        77..109
                     )),
-                    58..106
+                    65..113
                 ),
-                (AstNode::Comment("\n\nC\n\n".to_string()), 106..111),
+                (AstNode::Comment("\n\nC\n\n".to_string()), 113..118),
                 (
                     AstNode::ResponseBlock((
                         textwrap::dedent(
@@ -281,9 +288,9 @@ D
                         )
                         .trim()
                         .to_string(),
-                        124..185
+                        131..192
                     )),
-                    111..189
+                    118..196
                 ),
             ]),
             ast_result
