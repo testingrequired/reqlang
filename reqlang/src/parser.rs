@@ -12,7 +12,7 @@ use crate::{
     },
 };
 
-pub const TEMPLATE_REFERENCE_PATTERN: &str = r"\{\{([:?!@]{1})([a-zA-Z][_a-zA-Z0-9.]+)\}\}";
+pub const TEMPLATE_REFERENCE_PATTERN: &str = r"\{\{([:?!@]{1})([a-zA-Z][_a-zA-Z0-9.]*)\}\}";
 
 static FORBIDDEN_REQUEST_HEADER_NAMES: &[&str] = &[
     "host",

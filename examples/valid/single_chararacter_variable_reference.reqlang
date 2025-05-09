@@ -1,0 +1,11 @@
+```%config
+[[vars]]
+name = "a"
+
+[envs.test]
+a = "123"
+```
+
+```%request
+GET https://example.com/{{:a}} HTTP/1.1
+```
