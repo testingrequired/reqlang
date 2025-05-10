@@ -455,7 +455,7 @@ mod test {
             fn $test_name() {
                 let ast = $crate::ast::Ast::from($reqfile);
                 let result = $crate::parser::parse(&ast);
-                pretty_assertions::assert_eq!($result, result);
+                ::pretty_assertions::assert_eq!($result, result);
             }
         };
     }

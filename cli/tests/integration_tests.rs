@@ -1,8 +1,10 @@
 #[cfg(test)]
 mod cli_integration_tests {
+    use core::str;
     use std::fs;
 
     use assert_cmd::Command;
+    use pretty_assertions::{assert_eq, assert_str_eq};
     use reqlang::{ast, parser::parse, types::ParseResult};
 
     macro_rules! assert_command {
@@ -18,7 +20,44 @@ mod cli_integration_tests {
             }
 
             let assert = cmd.assert();
+
             assert
+        }};
+    }
+
+    macro_rules! assert_output {
+        ($assert:expr, $success:expr, $code:expr, $stdout:expr, $stderr:expr) => {{
+            {
+                let output = $assert.get_output();
+
+                assert_eq!($success, output.status.success());
+
+                if let Some(stdout) = $stdout {
+                    assert_str_eq!(
+                        stdout,
+                        str::from_utf8(&output.stdout).expect("stdout buffer should become string")
+                    );
+                }
+
+                if let Some(stderr) = $stderr {
+                    assert_str_eq!(
+                        stderr,
+                        str::from_utf8(&output.stderr).expect("stderr buffer should become string")
+                    );
+                }
+            }
+        }};
+    }
+
+    macro_rules! assert_success {
+        ($assert:expr, $stdout:expr, $stderr:expr) => {{
+            assert_output!($assert, true, 0, $stdout, $stderr);
+        }};
+    }
+
+    macro_rules! assert_failure {
+        ($assert:expr, $stdout:expr, $stderr:expr) => {{
+            assert_output!($assert, false, 0, $stdout, $stderr);
         }};
     }
 
@@ -49,7 +88,7 @@ mod cli_integration_tests {
         .trim_start()
         .to_string();
 
-        assert.failure().stderr(expected_stderr);
+        assert_failure!(assert, None::<String>, Some(expected_stderr));
     }
 
     #[test]
@@ -59,7 +98,7 @@ mod cli_integration_tests {
 
         let assert = assert_command!("reqlang ast ../examples/valid/as_markdown.reqlang");
 
-        assert.success().stdout(format!("{expected_ast}\n"));
+        assert_success!(assert, Some(format!("{expected_ast}\n")), None::<String>);
     }
 
     #[test]
@@ -69,7 +108,7 @@ mod cli_integration_tests {
 
         let assert = assert_command!("reqlang parse ../examples/valid/as_markdown.reqlang");
 
-        assert.success().stdout(format!("{expected_parse}\n"));
+        assert_success!(assert, Some(format!("{expected_parse}\n")), None::<String>);
     }
 
     #[test]
@@ -88,7 +127,7 @@ mod cli_integration_tests {
         .trim_start()
         .to_string();
 
-        assert.failure().stderr(expected_stderr);
+        assert_failure!(assert, Some(""), Some(expected_stderr));
     }
 
     #[test]
@@ -107,18 +146,18 @@ mod cli_integration_tests {
         let output = assert.get_output();
         let mut output_deserialized: ParseResult = serde_json::from_slice(&output.stdout).unwrap();
 
-        pretty_assertions::assert_eq!(parse_results.envs.sort(), output_deserialized.envs.sort());
-        pretty_assertions::assert_eq!(parse_results.vars.sort(), output_deserialized.vars.sort());
-        pretty_assertions::assert_eq!(
+        assert_eq!(parse_results.envs.sort(), output_deserialized.envs.sort());
+        assert_eq!(parse_results.vars.sort(), output_deserialized.vars.sort());
+        assert_eq!(
             parse_results.prompts.sort(),
             output_deserialized.prompts.sort()
         );
-        pretty_assertions::assert_eq!(
+        assert_eq!(
             parse_results.secrets.sort(),
             output_deserialized.secrets.sort()
         );
 
-        pretty_assertions::assert_eq!(parse_results.request, output_deserialized.request);
+        assert_eq!(parse_results.request, output_deserialized.request);
     }
 
     #[test]
@@ -128,11 +167,9 @@ mod cli_integration_tests {
         let cmd = format!("reqlang parse {reqfile_path}");
         let assert = assert_command!(cmd);
 
-        assert
-            .failure()
-            .code(1)
-            .stderr("Invalid request file\n")
-            .stdout(concat!(
+        assert_failure!(
+            assert,
+            Some(concat!(
                 "[\n",
                 "  {\n",
                 "    \"range\": {\n",
@@ -149,58 +186,68 @@ mod cli_integration_tests {
                 "    \"message\": \"ParseError: Request file requires a request be defined\"\n",
                 "  }\n",
                 "]\n"
-            ));
+            )),
+            Some("Invalid request file\n")
+        );
     }
 
     #[test]
     fn export_no_args() {
-        (assert_command!("reqlang export"))
-            .failure()
-            .stderr(concat!(
+        let assert = assert_command!("reqlang export");
+
+        assert_failure!(
+            assert,
+            None::<String>,
+            Some(concat!(
                 "error: the following required arguments were not provided:\n",
                 "  <path>\n",
                 "\n",
                 "Usage: reqlang export <path>\n",
                 "\n",
                 "For more information, try '--help'.\n"
-            ));
+            ))
+        );
     }
 
     #[test]
     fn export_missing_prompt() {
-        (assert_command!(
+        let assert = assert_command!(
             "reqlang export ../examples/valid/post.reqlang -e test -S super_secret_value=123"
-        ))
-        .failure()
-        .code(1)
-        .stderr("Invalid request file or errors when exporting\n")
-        .stdout(concat!(
-            "[\n",
-            "  {\n",
-            "    \"range\": {\n",
-            "      \"start\": {\n",
-            "        \"line\": 0,\n",
-            "        \"character\": 0\n",
-            "      },\n",
-            "      \"end\": {\n",
-            "        \"line\": 0,\n",
-            "        \"character\": 0\n",
-            "      }\n",
-            "    },\n",
-            "    \"severity\": 1,\n",
-            "    \"message\": \"ResolverError: Prompt required but not passed: prompt_value\"\n",
-            "  }\n",
-            "]\n"
-        ));
+        );
+
+        assert_failure!(
+            assert,
+            Some(concat!(
+                "[\n",
+                "  {\n",
+                "    \"range\": {\n",
+                "      \"start\": {\n",
+                "        \"line\": 0,\n",
+                "        \"character\": 0\n",
+                "      },\n",
+                "      \"end\": {\n",
+                "        \"line\": 0,\n",
+                "        \"character\": 0\n",
+                "      }\n",
+                "    },\n",
+                "    \"severity\": 1,\n",
+                "    \"message\": \"ResolverError: Prompt required but not passed: prompt_value\"\n",
+                "  }\n",
+                "]\n"
+            )),
+            Some("Invalid request file or errors when exporting\n")
+        );
     }
 
     #[test]
     fn export_missing_secret() {
-        (assert_command!("reqlang export ../examples/valid/post.reqlang -e test -P prompt_value=foo"))
-            .failure()
-            .code(1)
-            .stderr("Invalid request file or errors when exporting\n")
-            .stdout(concat!(
+        let assert = assert_command!(
+            "reqlang export ../examples/valid/post.reqlang -e test -P prompt_value=foo"
+        );
+
+        assert_failure!(
+            assert,
+            Some(concat!(
                 "[\n",
                 "  {\n",
                 "    \"range\": {\n",
@@ -217,69 +264,92 @@ mod cli_integration_tests {
                 "    \"message\": \"ResolverError: Secret required but not passed: super_secret_value\"\n",
                 "  }\n",
                 "]\n"
-            ));
+            )),
+            Some("Invalid request file or errors when exporting\n")
+        );
     }
 
     #[test]
     fn export_to_default_format() {
-        (assert_command!(
+        let assert = assert_command!(
             "reqlang export ../examples/valid/status_code.reqlang -P status_code=404"
-        ))
-        .success()
-        .stdout(concat!(
-            "{\n",
-            "  \"verb\": \"GET\",\n",
-            "  \"target\": \"https://httpbin.org/status/404\",\n",
-            "  \"http_version\": \"1.1\",\n",
-            "  \"headers\": [],\n",
-            "  \"body\": \"\"\n",
-            "}\n"
-        ));
+        );
+
+        assert_success!(
+            assert,
+            Some(concat!(
+                "{\n",
+                "  \"verb\": \"GET\",\n",
+                "  \"target\": \"https://httpbin.org/status/404\",\n",
+                "  \"http_version\": \"1.1\",\n",
+                "  \"headers\": [],\n",
+                "  \"body\": \"\"\n",
+                "}\n"
+            )),
+            None::<String>
+        );
     }
 
     #[test]
     fn export_to_http() {
-        (assert_command!(
+        let assert = assert_command!(
             "reqlang export ../examples/valid/status_code.reqlang -f http -P status_code=200"
-        ))
-        .success()
-        .stdout("GET https://httpbin.org/status/200 HTTP/1.1\n\n");
+        );
+
+        assert_success!(
+            assert,
+            Some("GET https://httpbin.org/status/200 HTTP/1.1\n\n"),
+            None::<String>
+        );
     }
 
     #[test]
     fn export_to_curl() {
-        (assert_command!(
+        let assert = assert_command!(
             "reqlang export ../examples/valid/status_code.reqlang -f curl -P status_code=204"
-        ))
-        .success()
-        .stdout("curl https://httpbin.org/status/204 --http1.1 -v\n");
+        );
+
+        assert_success!(
+            assert,
+            Some("curl https://httpbin.org/status/204 --http1.1 -v\n"),
+            None::<String>
+        );
     }
 
     #[test]
     fn export_to_invalid_format() {
-        (assert_command!("reqlang export ../examples/valid/status_code.reqlang -f invalid"))
-            .failure()
-            .stderr(concat!(
+        let assert =
+            assert_command!("reqlang export ../examples/valid/status_code.reqlang -f invalid");
+
+        assert_failure!(
+            assert,
+            None::<String>,
+            Some(concat!(
                 "error: invalid value 'invalid' for '--format <format>'\n",
                 "  [possible values: http, curl, json]\n",
                 "\n",
                 "For more information, try '--help'.\n"
-            ));
+            ))
+        );
     }
 
     #[test]
     fn export_invalid_prompt_value_using_space() {
-        (assert_command!(
+        let assert = assert_command!(
             "reqlang export ../examples/valid/status_code.reqlang -P status_code 404"
-        ))
-        .failure()
-        .stderr(concat!(
-            "error: unexpected argument \'404\' found\n",
-            "\n",
-            "Usage: reqlang export [OPTIONS] <path>\n",
-            "\n",
-            "For more information, try '--help'.\n"
-        ));
+        );
+
+        assert_failure!(
+            assert,
+            None::<String>,
+            Some(concat!(
+                "error: unexpected argument \'404\' found\n",
+                "\n",
+                "Usage: reqlang export [OPTIONS] <path>\n",
+                "\n",
+                "For more information, try '--help'.\n"
+            ))
+        );
     }
 
     #[test]
@@ -287,96 +357,108 @@ mod cli_integration_tests {
         let assert =
             assert_command!("reqlang export ../examples/valid/status_code.reqlang -P status_code");
 
-        assert.failure().stderr(concat!(
-            "error: invalid value 'status_code' for '--prompt <prompts>': should be formatted as key=value pair: `status_code`\n",
-            "\n",
-            "For more information, try '--help'.\n"
-        ));
+        assert_failure!(
+            assert,
+            None::<String>,
+            Some(concat!(
+                "error: invalid value 'status_code' for '--prompt <prompts>': should be formatted as key=value pair: `status_code`\n",
+                "\n",
+                "For more information, try '--help'.\n"
+            ))
+        );
     }
 
     #[test]
     fn export_invalid_prompt_value_just_value() {
         let assert = assert_command!("reqlang export ../examples/valid/status_code.reqlang -P 404");
 
-        assert.failure().stderr(concat!(
-            "error: invalid value '404' for '--prompt <prompts>': should be formatted as key=value pair: `404`\n",
-            "\n",
-            "For more information, try '--help'.\n"
-        ));
+        assert_failure!(
+            assert,
+            None::<String>,
+            Some(concat!(
+                "error: invalid value '404' for '--prompt <prompts>': should be formatted as key=value pair: `404`\n",
+                "\n",
+                "For more information, try '--help'.\n"
+            ))
+        );
     }
 
     #[test]
     fn export_invalid_env() {
-        (assert_command!(
+        let assert = assert_command!(
             "reqlang export ../examples/valid/post.reqlang -e dev -S super_secret_value=123 -P prompt_value=456"
-        ))
-        .failure()
-        .code(1)
-        .stderr("Invalid request file or errors when exporting\n")
-        .stdout(concat!(
-            "[\n",
-            "  {\n",
-            "    \"range\": {\n",
-            "      \"start\": {\n",
-            "        \"line\": 1,\n",
-            "        \"character\": 0\n",
-            "      },\n",
-            "      \"end\": {\n",
-            "        \"line\": 16,\n",
-            "        \"character\": 26\n",
-            "      }\n",
-            "    },\n",
-            "    \"severity\": 1,\n",
-            "    \"message\": \"ResolverError: 'dev' is not a defined environment in the request file\"\n",
-            "  }\n",
-            "]\n"
-        ));
+        );
+
+        assert_failure!(
+            assert,
+            Some(concat!(
+                "[\n",
+                "  {\n",
+                "    \"range\": {\n",
+                "      \"start\": {\n",
+                "        \"line\": 1,\n",
+                "        \"character\": 0\n",
+                "      },\n",
+                "      \"end\": {\n",
+                "        \"line\": 16,\n",
+                "        \"character\": 26\n",
+                "      }\n",
+                "    },\n",
+                "    \"severity\": 1,\n",
+                "    \"message\": \"ResolverError: 'dev' is not a defined environment in the request file\"\n",
+                "  }\n",
+                "]\n"
+            )),
+            Some("Invalid request file or errors when exporting\n")
+        );
     }
 
     #[test]
     fn export_no_envs_defined() {
-        (assert_command!(
+        let assert = assert_command!(
             "reqlang export ../examples/valid/status_code.reqlang -e dev -P status_code=200"
-        ))
-        .failure()
-        .code(1)
-        .stderr("Invalid request file or errors when exporting\n")
-        .stdout(concat!(
-            "[\n",
-            "  {\n",
-            "    \"range\": {\n",
-            "      \"start\": {\n",
-            "        \"line\": 1,\n",
-            "        \"character\": 0\n",
-            "      },\n",
-            "      \"end\": {\n",
-            "        \"line\": 4,\n",
-            "        \"character\": 15\n",
-            "      }\n",
-            "    },\n",
-            "    \"severity\": 1,\n",
-            "    \"message\": \"ResolverError: Trying to resolve the environment 'dev' but no environments are defined in the request file\"\n",
-            "  }\n",
-            "]\n"
-        ));
+        );
+
+        assert_failure!(
+            assert,
+            Some(concat!(
+                "[\n",
+                "  {\n",
+                "    \"range\": {\n",
+                "      \"start\": {\n",
+                "        \"line\": 1,\n",
+                "        \"character\": 0\n",
+                "      },\n",
+                "      \"end\": {\n",
+                "        \"line\": 4,\n",
+                "        \"character\": 15\n",
+                "      }\n",
+                "    },\n",
+                "    \"severity\": 1,\n",
+                "    \"message\": \"ResolverError: Trying to resolve the environment 'dev' but no environments are defined in the request file\"\n",
+                "  }\n",
+                "]\n"
+            )),
+            Some("Invalid request file or errors when exporting\n")
+        );
     }
 
     #[test]
     fn run_status_code_request_file() {
-        (assert_command!(
+        let assert = assert_command!(
             "reqlang run ../examples/valid/status_code.reqlang --prompt status_code=200"
-        ))
-        .success()
-        .code(0);
+        );
+
+        assert_success!(assert, None::<String>, None::<String>);
     }
 
     #[test]
     fn run_status_code_request_file_with_response_assertion() {
-        (assert_command!(
+        let assert = assert_command!(
             "reqlang run ../examples/valid/status_code.reqlang --prompt status_code=200 --test"
-        ))
-        .success()
-        .code(0);
+        );
+
+        assert_success!(assert, None::<String>, None::<String>);
     }
 
     #[test]
@@ -384,13 +466,17 @@ mod cli_integration_tests {
         let assert =
             assert_command!("reqlang run ../examples/valid/status_code.reqlang -P status_code 404");
 
-        assert.failure().stderr(concat!(
-            "error: unexpected argument \'404\' found\n",
-            "\n",
-            "Usage: reqlang run [OPTIONS] <path>\n",
-            "\n",
-            "For more information, try '--help'.\n"
-        ));
+        assert_failure!(
+            assert,
+            None::<String>,
+            Some(concat!(
+                "error: unexpected argument \'404\' found\n",
+                "\n",
+                "Usage: reqlang run [OPTIONS] <path>\n",
+                "\n",
+                "For more information, try '--help'.\n"
+            ))
+        );
     }
 
     #[test]
@@ -398,22 +484,30 @@ mod cli_integration_tests {
         let assert =
             assert_command!("reqlang run ../examples/valid/status_code.reqlang -P status_code");
 
-        assert.failure().stderr(concat!(
-            "error: invalid value 'status_code' for '--prompt <prompts>': should be formatted as key=value pair: `status_code`\n",
-            "\n",
-            "For more information, try '--help'.\n"
-        ));
+        assert_failure!(
+            assert,
+            None::<String>,
+            Some(concat!(
+                "error: invalid value 'status_code' for '--prompt <prompts>': should be formatted as key=value pair: `status_code`\n",
+                "\n",
+                "For more information, try '--help'.\n"
+            ))
+        );
     }
 
     #[test]
     fn run_invalid_prompt_value_just_value() {
         let assert = assert_command!("reqlang run ../examples/valid/status_code.reqlang -P 404");
 
-        assert.failure().stderr(concat!(
-            "error: invalid value '404' for '--prompt <prompts>': should be formatted as key=value pair: `404`\n",
-            "\n",
-            "For more information, try '--help'.\n"
-        ));
+        assert_failure!(
+            assert,
+            None::<String>,
+            Some(concat!(
+                "error: invalid value '404' for '--prompt <prompts>': should be formatted as key=value pair: `404`\n",
+                "\n",
+                "For more information, try '--help'.\n"
+            ))
+        );
     }
 
     #[test]
@@ -421,19 +515,23 @@ mod cli_integration_tests {
         let assert =
             assert_command!("reqlang run ../examples/valid/status_code.reqlang -f invalid");
 
-        assert.failure().stderr(concat!(
-            "error: invalid value 'invalid' for '--format <format>'\n",
-            "  [possible values: http, json, body]\n",
-            "\n",
-            "For more information, try '--help'.\n"
-        ));
+        assert_failure!(
+            assert,
+            None::<String>,
+            Some(concat!(
+                "error: invalid value 'invalid' for '--format <format>'\n",
+                "  [possible values: http, json, body]\n",
+                "\n",
+                "For more information, try '--help'.\n"
+            ))
+        );
     }
 
     #[test]
     fn run_with_body_format() {
         let assert = assert_command!("reqlang run ../examples/valid/base64decode.reqlang -f body");
 
-        assert.success().stdout("HTTPBIN is awesome\n");
+        assert_success!(assert, Some("HTTPBIN is awesome\n"), None::<String>);
     }
 
     #[test]
@@ -478,73 +576,77 @@ mod cli_integration_tests {
         .trim_start()
         .to_string();
 
-        (assert_command!("reqlang run ../examples/valid/mismatch_response.reqlang --test"))
-            .failure()
-            .code(1)
-            .stderr(expected_stderr);
+        let assert =
+            assert_command!("reqlang run ../examples/valid/mismatch_response.reqlang --test");
+
+        assert_failure!(assert, None::<String>, Some(expected_stderr));
     }
 
     #[test]
     fn run_mismatch_response_without_response_assertion() {
-        assert_command!("reqlang run ../examples/valid/mismatch_response.reqlang")
-            .success()
-            .code(0);
+        let assert = assert_command!("reqlang run ../examples/valid/mismatch_response.reqlang");
+
+        assert_success!(assert, None::<String>, None::<String>);
     }
 
     #[test]
     fn run_invalid_env() {
-        (assert_command!(
+        let assert = assert_command!(
             "reqlang run ../examples/valid/post.reqlang -e dev -S super_secret_value=123 -P prompt_value=456"
-        ))
-        .failure()
-        .code(1)
-        .stderr("Invalid request file or errors with input\n")
-        .stdout(concat!(
-            "[\n",
-            "  {\n",
-            "    \"range\": {\n",
-            "      \"start\": {\n",
-            "        \"line\": 1,\n",
-            "        \"character\": 0\n",
-            "      },\n",
-            "      \"end\": {\n",
-            "        \"line\": 16,\n",
-            "        \"character\": 26\n",
-            "      }\n",
-            "    },\n",
-            "    \"severity\": 1,\n",
-            "    \"message\": \"ResolverError: 'dev' is not a defined environment in the request file\"\n",
-            "  }\n",
-            "]\n"
-        ));
+        );
+
+        assert_failure!(
+            assert, 
+            Some(concat!(
+                "[\n",
+                "  {\n",
+                "    \"range\": {\n",
+                "      \"start\": {\n",
+                "        \"line\": 1,\n",
+                "        \"character\": 0\n",
+                "      },\n",
+                "      \"end\": {\n",
+                "        \"line\": 16,\n",
+                "        \"character\": 26\n",
+                "      }\n",
+                "    },\n",
+                "    \"severity\": 1,\n",
+                "    \"message\": \"ResolverError: 'dev' is not a defined environment in the request file\"\n",
+                "  }\n",
+                "]\n"
+            )),
+            Some("Invalid request file or errors with input\n")
+        );
     }
 
     #[test]
     fn run_no_envs_defined() {
-        (assert_command!(
+        let assert = assert_command!(
             "reqlang run ../examples/valid/status_code.reqlang -e dev -P status_code=200"
-        ))
-        .failure()
-        .code(1)
-        .stderr("Invalid request file or errors with input\n")
-        .stdout(concat!(
-            "[\n",
-            "  {\n",
-            "    \"range\": {\n",
-            "      \"start\": {\n",
-            "        \"line\": 1,\n",
-            "        \"character\": 0\n",
-            "      },\n",
-            "      \"end\": {\n",
-            "        \"line\": 4,\n",
-            "        \"character\": 15\n",
-            "      }\n",
-            "    },\n",
-            "    \"severity\": 1,\n",
-            "    \"message\": \"ResolverError: Trying to resolve the environment 'dev' but no environments are defined in the request file\"\n",
-            "  }\n",
-            "]\n"
-        ));
+        );
+
+        assert_failure!(
+            assert, 
+            Some(concat!(
+                "[\n",
+                "  {\n",
+                "    \"range\": {\n",
+                "      \"start\": {\n",
+                "        \"line\": 1,\n",
+                "        \"character\": 0\n",
+                "      },\n",
+                "      \"end\": {\n",
+                "        \"line\": 4,\n",
+                "        \"character\": 15\n",
+                "      }\n",
+                "    },\n",
+                "    \"severity\": 1,\n",
+                "    \"message\": \"ResolverError: Trying to resolve the environment 'dev' but no environments are defined in the request file\"\n",
+                "  }\n",
+                "]\n"
+            )),
+            Some("Invalid request file or errors with input\n")
+        );
     }
 
     #[test]
@@ -572,10 +674,13 @@ mod cli_integration_tests {
         .trim_start()
         .to_string();
 
-        (assert_command!("reqlang run ../examples/invalid/undefined_in_envs.reqlang"))
-            .failure()
-            .code(1)
-            .stdout(expected_stderr);
+        let assert = assert_command!("reqlang run ../examples/invalid/undefined_in_envs.reqlang");
+
+        assert_failure!(
+            assert, 
+            Some(expected_stderr),
+            Some("Invalid request file or errors with input\n")
+        );
     }
 
     #[test]
@@ -603,10 +708,13 @@ mod cli_integration_tests {
         .trim_start()
         .to_string();
 
-        (assert_command!("reqlang run ../examples/invalid/undefined_in_envs_b.reqlang"))
-            .failure()
-            .code(1)
-            .stdout(expected_stderr);
+        let assert = assert_command!("reqlang run ../examples/invalid/undefined_in_envs_b.reqlang");
+
+        assert_failure!(
+            assert, 
+            Some(expected_stderr),
+            Some("Invalid request file or errors with input\n")
+        );
     }
 
     #[test]
@@ -634,10 +742,13 @@ mod cli_integration_tests {
         .trim_start()
         .to_string();
 
-        (assert_command!("reqlang run ../examples/invalid/undefined_in_env.reqlang"))
-            .failure()
-            .code(1)
-            .stdout(expected_stderr);
+        let assert = assert_command!("reqlang run ../examples/invalid/undefined_in_env.reqlang");
+
+        assert_failure!(
+            assert, 
+            Some(expected_stderr),
+            Some("Invalid request file or errors with input\n")
+        );
     }
 
     #[test]
@@ -645,7 +756,7 @@ mod cli_integration_tests {
         let assert =
             assert_command!("reqlang run ../examples/valid/default_prompt_value.reqlang -f body");
 
-        assert.success().stdout("Foo\n");
+        assert_success!(assert, Some("Foo\n"), None::<String>);
     }
 
     #[test]
@@ -654,6 +765,6 @@ mod cli_integration_tests {
             "reqlang run ../examples/valid/default_variable_value.reqlang -e test -f body"
         );
 
-        assert.success().stdout("Foo\n");
+        assert_success!(assert, Some("Foo\n"), None::<String>);
     }
 }
