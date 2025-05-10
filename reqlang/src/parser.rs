@@ -1547,4 +1547,25 @@ mod resolve_tests {
         "doesnt_exist",
         None
     );
+
+    resolve_test!(
+        get_var_default_value_if_defined_but_not_in_env,
+        textwrap::dedent(
+            r#"
+            ```%config
+            [[vars]]
+            name = "value"
+            default = "foo"
+
+            [envs.test]
+            ```
+
+            ```%request
+            GET https://example.com?{{:value}} HTTP/1.1
+            ```
+            "#
+        ),
+        "test",
+        Some(HashMap::from([("value".to_string(), "foo".to_string())]))
+    );
 }

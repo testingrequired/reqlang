@@ -196,12 +196,39 @@ impl ParsedConfig {
         }
     }
 
+    /// Get variables with values by environment name
     pub fn env(&self, env: impl Into<String>) -> Option<HashMap<String, String>> {
-        self.envs
+        let mut default_values = HashMap::new();
+
+        let default_values_pairs: Vec<(String, String)> = self
+            .vars
+            .clone()
+            .unwrap_or_default()
+            .iter()
+            .filter(|x| x.default.is_some())
+            .map(|x| (x.name.clone(), x.default.clone().unwrap_or_default()))
+            .collect();
+
+        for (key, value) in &default_values_pairs {
+            default_values.insert(key.clone(), value.clone());
+        }
+
+        let env_values_map = self
+            .envs
             .as_ref()
             .unwrap_or(&HashMap::new())
             .get(&env.into())
-            .cloned()
+            .cloned();
+
+        match env_values_map {
+            Some(env_values_map) => {
+                let mut merged = HashMap::new();
+                merged.extend(env_values_map);
+                merged.extend(default_values);
+                Some(merged)
+            }
+            None => env_values_map,
+        }
     }
 
     /// The prompt names declared
@@ -409,7 +436,7 @@ mod tests {
             span::NO_SPAN,
             types::{
                 ParsedConfig, ParsedConfigPrompt, ParsedConfigVariable, ParsedRequestFile,
-                http::HttpRequest,
+                ReferenceType, http::HttpRequest,
             },
         };
 
@@ -660,6 +687,40 @@ mod tests {
             let empty: Vec<String> = Vec::new();
 
             assert_eq!(empty, reqfile.envs());
+        }
+
+        #[test]
+        fn get_default_variable_value() {
+            let reqfile = ParsedRequestFile {
+                config: Some((
+                    ParsedConfig {
+                        vars: Some(vec![ParsedConfigVariable {
+                            name: "foo".to_string(),
+                            default: Some("123".to_string()),
+                        }]),
+                        envs: Some(HashMap::from([("test".to_string(), HashMap::new())])),
+                        prompts: None,
+                        secrets: None,
+                        auth: None,
+                    },
+                    NO_SPAN,
+                )),
+                request: (
+                    HttpRequest::get(
+                        "/",
+                        "1.1",
+                        vec![("x-foo".to_string(), "{{:foo}}".to_string())],
+                    ),
+                    NO_SPAN,
+                ),
+                response: None,
+                refs: vec![(ReferenceType::Variable("foo".to_string()), NO_SPAN)],
+            };
+
+            assert_eq!(
+                Some(HashMap::from([("foo".to_string(), "123".to_string())])),
+                reqfile.env("test")
+            );
         }
     }
 
