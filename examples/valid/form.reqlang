@@ -1,6 +1,16 @@
+```%config
+[[prompts]]
+name="greeting"
+default="Hello"
+
+[[prompts]]
+name="name"
+default="World"
+````
+
 ```%request
 POST https://httpbin.org/post HTTP/1.1
 content-type: application/x-www-form-urlencoded
 
-say=Hi&to=Mom
+say={{?greeting}}&to={{?name}}
 ```
