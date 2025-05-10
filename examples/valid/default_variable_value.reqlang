@@ -21,3 +21,9 @@ This will result in url being https://httpbin.org/base64/Rm9v, which decodes to 
 ```%request
 GET https://httpbin.org/base64/{{:prefix}}{{:suffix}} HTTP/1.1
 ```
+
+```%response
+HTTP/1.1 200 OK
+
+Foo
+```

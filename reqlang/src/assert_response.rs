@@ -287,7 +287,10 @@ pub fn assert_response(
         }
     }
 
-    if expected.body.is_some() && expected.body != actual.body {
+    if expected.body.is_some()
+        && expected.body.as_ref().map(|body| body.trim_end())
+            != actual.body.as_ref().map(|body| body.trim_end())
+    {
         differences.push(ResponseDiff::Body {
             expected: expected.body.clone(),
             actual: actual.body.clone(),
