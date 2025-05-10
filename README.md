@@ -4,15 +4,17 @@ A file format specification for defining HTTP requests, response assertions, and
 
 ## Goals
 
+- Can be treated as a markdown file
 - HTTP request and response messages
 - Easy to read, write, and diff
 - Lives in source control
-- Environments
-- Templating with variables, prompted, and secret values
+- Templating with variables, prompts, and secret values
+- Environments with environment specific variable values
 - Client/implementation agnostic
 
 ### Future
 
+- Typesafe expression language in the templates
 - Chaining requests
 - Response body mapping/transformation/extraction
 - Authenticated requests (e.g. OAuth2) configuration
@@ -20,7 +22,7 @@ A file format specification for defining HTTP requests, response assertions, and
 
 ## Request Files
 
-Request files (`*.reqlang`) are multi-document files containing a request along with an optional config and expected response. They are designed to define what the request is, not how to execute it (e.g. defining what secrets are needed instead of how to fetch them). This is left to implementing clients.
+Request files (`*.reqlang`) are templated markdown files containing an HTTP request, HTTP response assertion, and configuration.
 
 ### Living Syntax
 
@@ -64,7 +66,7 @@ POST https://httpbin.org/post HTTP/1.1
 
 ### Request
 
-The request is the request is what's executed when the request file is ran. They are written as [HTTP request messages](https://developer.mozilla.org/en-US/docs/Web/HTTP/Messages#http_requests).
+The request is written as a [HTTP request message](https://developer.mozilla.org/en-US/docs/Web/HTTP/Messages#http_requests) inside of a `%request` markdown code block.
 
 ````reqlang
 ```%request
@@ -74,7 +76,7 @@ GET https://example.com HTTP/1.1
 
 ### Response
 
-The response is optional but treated as an assertion if it is defined. When the request is executed, this response is compared to the actual response received.
+The response assertion is the (optional) expected HTTP response message the actual response will be compared to. It's written inside of a `%response` markdown code block.
 
 ````reqlang
 ```%request
@@ -97,7 +99,7 @@ Client implementations can choose how to match the response against the expected
 
 ### Configuration
 
-The configuration is optional but is used to define environment names and their variables as well as what prompts & secrets are needed. It currently uses the `toml` syntax.
+The configuration is TOML written in a `%config` markdown code block. Its where variables, environments, prompts, and secrets are declared/defined.
 
 #### Secrets
 
