@@ -229,8 +229,13 @@ pub fn parse(ast: &Ast) -> Result<ParsedRequestFile, Vec<Spanned<ReqlangError>>>
                     })
                     .collect();
 
+                let expr_sources: Vec<String> =
+                    exprs.clone().into_iter().map(|(x, _)| x.clone()).collect();
+
                 for var in &config.vars() {
-                    if !ref_names.contains(var) {
+                    if !ref_names.contains(var)
+                        && expr_sources.iter().find(|x| x.contains(var)).is_none()
+                    {
                         parse_errors.push((
                             ReqlangError::ParseError(ParseError::UnusedValueError(
                                 ReferenceType::Variable(var.clone()),
@@ -241,7 +246,9 @@ pub fn parse(ast: &Ast) -> Result<ParsedRequestFile, Vec<Spanned<ReqlangError>>>
                 }
 
                 for key in &config.prompts() {
-                    if !ref_names.contains(key) {
+                    if !ref_names.contains(key)
+                        && expr_sources.iter().find(|x| x.contains(key)).is_none()
+                    {
                         parse_errors.push((
                             ReqlangError::ParseError(ParseError::UnusedValueError(
                                 ReferenceType::Prompt(key.clone()),
@@ -252,7 +259,9 @@ pub fn parse(ast: &Ast) -> Result<ParsedRequestFile, Vec<Spanned<ReqlangError>>>
                 }
 
                 for secret in &config.secrets() {
-                    if !ref_names.contains(secret) {
+                    if !ref_names.contains(secret)
+                        && expr_sources.iter().find(|x| x.contains(secret)).is_none()
+                    {
                         parse_errors.push((
                             ReqlangError::ParseError(ParseError::UnusedValueError(
                                 ReferenceType::Secret(secret.clone()),

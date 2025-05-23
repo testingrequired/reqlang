@@ -6,10 +6,7 @@ use reqlang_expr::{prelude::Env, vm::RuntimeEnv};
 use crate::{
     ast::Ast,
     errors::{ReqlangError, ResolverError},
-    parser::{
-        TEMPLATE_EXPR_REFERENCE_PATTERN, TEMPLATE_EXPR_REFERENCE_PATTERN_INNER, parse,
-        parse_request, parse_response,
-    },
+    parser::{TEMPLATE_EXPR_REFERENCE_PATTERN_INNER, parse, parse_request, parse_response},
     span::{NO_SPAN, Spanned},
     types::{ParsedRequestFile, ReferenceType, TemplatedRequestFile},
 };
@@ -54,6 +51,48 @@ pub fn template(
     let mut templating_errors: Vec<Spanned<ReqlangError>> = vec![];
 
     let reqfile: &ParsedRequestFile = &parsed_reqfile;
+
+    // let mut var_values = reqfile.vars().iter().map(|x| match env {
+    //     Some(env) => {
+    //         let config = parsed_reqfile.config.unwrap().0.env(None).unwrap();
+    //         let value = config.get(x).unwrap();
+    //     }
+    //     None => todo!(),
+    // });
+
+    let var_values = match env {
+        Some(env) => reqfile
+            .vars()
+            .iter()
+            .map(|x| {
+                let config = parsed_reqfile.config.clone().unwrap().0.env(env).unwrap();
+                let value = config.get(x).unwrap();
+
+                value.clone()
+            })
+            .collect(),
+        None => vec![],
+    };
+
+    let prompt_values: Vec<String> = reqfile
+        .prompts()
+        .iter()
+        .map(|x| prompts.get(x).unwrap().clone())
+        .collect();
+
+    let secret_values: Vec<String> = reqfile
+        .secrets()
+        .iter()
+        .map(|x| secrets.get(x).unwrap().clone())
+        .collect();
+
+    let runtime_env = RuntimeEnv {
+        vars: var_values.clone(),
+        prompts: prompt_values.clone(),
+        secrets: secret_values.clone(),
+    };
+
+    eprintln!("{runtime_env:?}");
 
     let default_variable_values = parsed_reqfile.default_variable_values();
 
@@ -109,7 +148,9 @@ pub fn template(
             }
         };
 
-        let compiler_env = &Env::new(vec![], vec![], vec![]);
+        let compiler_env = &Env::new(reqfile.vars(), reqfile.prompts(), reqfile.secrets());
+
+        eprintln!("{compiler_env:?}");
 
         for (expr_ref, expr_span) in &expr_refs_to_replace {
             let expr_source = parse_inner_expr(&expr_ref);
@@ -122,15 +163,7 @@ pub fn template(
 
                     let mut vm = reqlang_expr::vm::Vm::new();
 
-                    let result = vm.interpret(
-                        &compiled_expr,
-                        compiler_env,
-                        &RuntimeEnv {
-                            vars: vec![],
-                            prompts: vec![],
-                            secrets: vec![],
-                        },
-                    );
+                    let result = vm.interpret(&compiled_expr, compiler_env, &runtime_env);
 
                     let replacement_string = match result {
                         Ok(value) => value.get_string().to_string(),
