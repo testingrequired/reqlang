@@ -14,6 +14,10 @@ use crate::{
 
 pub const TEMPLATE_REFERENCE_PATTERN: &str = r"\{\{([:?!@]{1})([a-zA-Z][_a-zA-Z0-9.]*)\}\}";
 
+// This matches patterns for expression references e.g. {(id :var)}
+pub const TEMPLATE_EXPR_REFERENCE_PATTERN: &str = r"(\{\(.*\)\})";
+pub const TEMPLATE_EXPR_REFERENCE_PATTERN_INNER: &str = r"\{(\(.*\))\}";
+
 static FORBIDDEN_REQUEST_HEADER_NAMES: &[&str] = &[
     "host",
     "accept-charset",
@@ -52,6 +56,14 @@ pub fn parse(ast: &Ast) -> Result<ParsedRequestFile, Vec<Spanned<ReqlangError>>>
             refs.extend(request_refs);
             refs.extend(response_refs);
             refs.extend(config_refs);
+
+            let request_exprs = parse_expressions(request);
+            let response_exprs = parse_expressions(&response.clone().unwrap_or_default());
+            let config_exprs = parse_expressions(&config.clone().unwrap_or_default());
+            let mut exprs: Vec<Spanned<String>> = vec![];
+            exprs.extend(request_exprs);
+            exprs.extend(response_exprs);
+            exprs.extend(config_exprs);
 
             let request = match parse_request(request) {
                 Ok((request, span)) => {
@@ -217,8 +229,13 @@ pub fn parse(ast: &Ast) -> Result<ParsedRequestFile, Vec<Spanned<ReqlangError>>>
                     })
                     .collect();
 
+                let expr_sources: Vec<String> =
+                    exprs.clone().into_iter().map(|(x, _)| x.clone()).collect();
+
                 for var in &config.vars() {
-                    if !ref_names.contains(var) {
+                    if !ref_names.contains(var)
+                        && expr_sources.iter().find(|x| x.contains(var)).is_none()
+                    {
                         parse_errors.push((
                             ReqlangError::ParseError(ParseError::UnusedValueError(
                                 ReferenceType::Variable(var.clone()),
@@ -229,7 +246,9 @@ pub fn parse(ast: &Ast) -> Result<ParsedRequestFile, Vec<Spanned<ReqlangError>>>
                 }
 
                 for key in &config.prompts() {
-                    if !ref_names.contains(key) {
+                    if !ref_names.contains(key)
+                        && expr_sources.iter().find(|x| x.contains(key)).is_none()
+                    {
                         parse_errors.push((
                             ReqlangError::ParseError(ParseError::UnusedValueError(
                                 ReferenceType::Prompt(key.clone()),
@@ -240,7 +259,9 @@ pub fn parse(ast: &Ast) -> Result<ParsedRequestFile, Vec<Spanned<ReqlangError>>>
                 }
 
                 for secret in &config.secrets() {
-                    if !ref_names.contains(secret) {
+                    if !ref_names.contains(secret)
+                        && expr_sources.iter().find(|x| x.contains(secret)).is_none()
+                    {
                         parse_errors.push((
                             ReqlangError::ParseError(ParseError::UnusedValueError(
                                 ReferenceType::Secret(secret.clone()),
@@ -260,6 +281,7 @@ pub fn parse(ast: &Ast) -> Result<ParsedRequestFile, Vec<Spanned<ReqlangError>>>
                 response,
                 config,
                 refs,
+                exprs,
             })
         }
         None => Err(vec![(ParseError::MissingRequest.into(), 0..0)]),
@@ -302,6 +324,25 @@ pub fn parse_references((input, span): &Spanned<String>) -> Vec<Spanned<Referenc
     }
 
     captured_refs
+}
+
+/// Extract template references from a string
+pub fn parse_expressions((input, _span): &Spanned<String>) -> Vec<Spanned<String>> {
+    let re = Regex::new(TEMPLATE_EXPR_REFERENCE_PATTERN).unwrap();
+
+    let mut captured_exprs: Vec<Spanned<String>> = vec![];
+
+    let spans = re.capture_locations();
+
+    let mut i = 0;
+
+    for (_, [expr]) in re.captures_iter(input).map(|cap| cap.extract()) {
+        let expr_span = spans.get(i).unwrap_or((0, 0));
+        captured_exprs.push((expr.to_string(), expr_span.0..expr_span.1));
+        i += 1;
+    }
+
+    captured_exprs
 }
 
 pub fn parse_request(
@@ -1134,7 +1175,8 @@ mod test {
                     13..46
                 ),
                 response: None,
-                refs: vec![]
+                refs: vec![],
+                exprs: vec![],
             })
         );
 
@@ -1174,6 +1216,7 @@ mod test {
                     63..78
                 )),
                 refs: vec![],
+                exprs: vec![],
             })
         );
 
@@ -1239,6 +1282,7 @@ mod test {
                     (ReferenceType::Variable("bar".to_string()), 117..163),
                     (ReferenceType::Variable("foo".to_string()), 12..99),
                 ],
+                exprs: vec![],
             })
         );
 
@@ -1356,6 +1400,7 @@ mod test {
                         380..425
                     )
                 ],
+                exprs: vec![],
             })
         );
 
@@ -1437,7 +1482,8 @@ mod test {
                 )),
                 refs: vec![
                     (ReferenceType::Prompt(String::from("status_code")), 466..522)
-                ]
+                ],
+                exprs: vec![],
             })
         );
     }

@@ -1,9 +1,12 @@
 use std::collections::HashMap;
 
+use regex::Regex;
+use reqlang_expr::{prelude::Env, vm::RuntimeEnv};
+
 use crate::{
     ast::Ast,
     errors::{ReqlangError, ResolverError},
-    parser::{parse, parse_request, parse_response},
+    parser::{TEMPLATE_EXPR_REFERENCE_PATTERN_INNER, parse, parse_request, parse_response},
     span::{NO_SPAN, Spanned},
     types::{ParsedRequestFile, ReferenceType, TemplatedRequestFile},
 };
@@ -49,6 +52,46 @@ pub fn template(
 
     let reqfile: &ParsedRequestFile = &parsed_reqfile;
 
+    // let mut var_values = reqfile.vars().iter().map(|x| match env {
+    //     Some(env) => {
+    //         let config = parsed_reqfile.config.unwrap().0.env(None).unwrap();
+    //         let value = config.get(x).unwrap();
+    //     }
+    //     None => todo!(),
+    // });
+
+    let var_values = match env {
+        Some(env) => reqfile
+            .vars()
+            .iter()
+            .map(|x| {
+                let config = parsed_reqfile.config.clone().unwrap().0.env(env).unwrap();
+                let value = config.get(x).unwrap();
+
+                value.clone()
+            })
+            .collect(),
+        None => vec![],
+    };
+
+    let prompt_values: Vec<String> = reqfile
+        .prompts()
+        .iter()
+        .map(|x| prompts.get(x).unwrap().clone())
+        .collect();
+
+    let secret_values: Vec<String> = reqfile
+        .secrets()
+        .iter()
+        .map(|x| secrets.get(x).unwrap().clone())
+        .collect();
+
+    let runtime_env = RuntimeEnv {
+        vars: var_values.clone(),
+        prompts: prompt_values.clone(),
+        secrets: secret_values.clone(),
+    };
+
     let default_variable_values = parsed_reqfile.default_variable_values();
 
     let required_prompts = parsed_reqfile.required_prompts();
@@ -76,6 +119,9 @@ pub fn template(
         return Err(templating_errors);
     }
 
+    let expr_refs_to_replace: Vec<Spanned<String>> =
+        reqfile.exprs.iter().map(|expr| expr.clone()).collect();
+
     // Gather list of template references along with each reference's type
     //
     // e.g. ("{{:var_name}}", ReferenceType::Variable("var_name"))
@@ -99,6 +145,56 @@ pub fn template(
                 HashMap::new()
             }
         };
+
+        let compiler_env = &Env::new(reqfile.vars(), reqfile.prompts(), reqfile.secrets());
+
+        for (expr_ref, expr_span) in &expr_refs_to_replace {
+            let expr_source = parse_inner_expr(&expr_ref);
+            let tokens = reqlang_expr::lexer::Lexer::new(&expr_source);
+            let parser = reqlang_expr::exprlang::ExprParser::new();
+
+            match parser.parse(tokens) {
+                Ok(expr) => {
+                    let compiled_expr = reqlang_expr::compiler::compile(&expr, compiler_env);
+
+                    let mut vm = reqlang_expr::vm::Vm::new();
+
+                    let result = vm.interpret(&compiled_expr, compiler_env, &runtime_env);
+
+                    let replacement_string = match result {
+                        Ok(value) => value.get_string().to_string(),
+                        Err(_interpreter_err) => {
+                            templating_errors.push((
+                                ReqlangError::ResolverError(
+                                    ResolverError::ExpressionEvaluationError(
+                                        expr_ref.clone(),
+                                        "".to_string(),
+                                    ),
+                                ),
+                                expr_span.clone(),
+                            ));
+
+                            expr_ref.clone()
+                        }
+                    };
+
+                    input = input.replace(expr_ref, &replacement_string);
+                }
+                Err(expr_err) => {
+                    templating_errors.push((
+                        ReqlangError::ResolverError(ResolverError::ExpressionEvaluationError(
+                            expr_ref.clone(),
+                            format!("{expr_err:#?}"),
+                        )),
+                        expr_span.clone(),
+                    ));
+                }
+            };
+        }
+
+        if !templating_errors.is_empty() {
+            return Err(templating_errors);
+        }
 
         // Replace template references with the resolved values
         for (template_ref, ref_type) in &template_refs_to_replace {
@@ -124,7 +220,10 @@ pub fn template(
     };
 
     let ast = Ast::from(&templated_input);
-    let request = ast.request().cloned().expect("should have a request");
+    let request = ast
+        .request()
+        .cloned()
+        .expect(&format!("should have a request: {templated_input}"));
     let response = ast.response().cloned();
 
     // Parse the templated request
@@ -137,6 +236,21 @@ pub fn template(
     let response = parse_response(&response).map(|x| x.unwrap().0);
 
     Ok(TemplatedRequestFile { request, response })
+}
+
+pub fn parse_inner_expr(input: &str) -> String {
+    let re = Regex::new(TEMPLATE_EXPR_REFERENCE_PATTERN_INNER).unwrap();
+
+    let mut captured_exprs: Vec<String> = vec![];
+
+    for (_, [expr]) in re.captures_iter(input).map(|cap| cap.extract()) {
+        captured_exprs.push(expr.to_string());
+    }
+
+    captured_exprs
+        .first()
+        .expect("should have captured the inner expression")
+        .clone()
 }
 
 #[cfg(test)]
