@@ -92,8 +92,6 @@ pub fn template(
         secrets: secret_values.clone(),
     };
 
-    eprintln!("{runtime_env:?}");
-
     let default_variable_values = parsed_reqfile.default_variable_values();
 
     let required_prompts = parsed_reqfile.required_prompts();
@@ -149,8 +147,6 @@ pub fn template(
         };
 
         let compiler_env = &Env::new(reqfile.vars(), reqfile.prompts(), reqfile.secrets());
-
-        eprintln!("{compiler_env:?}");
 
         for (expr_ref, expr_span) in &expr_refs_to_replace {
             let expr_source = parse_inner_expr(&expr_ref);
