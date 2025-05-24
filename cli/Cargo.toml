@@ -10,7 +10,7 @@ publish = false
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-clap = { version = "4.5.38", features = ["derive", "cargo"] }
+clap = { version = "4.4.16", features = ["derive", "cargo"] }
 tokio = { version = "1", features = ["full"] }
 reqlang = { path = "../reqlang" }
 serde = { version = "1" }
