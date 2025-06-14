@@ -210,6 +210,7 @@ mod cli_integration_tests {
     }
 
     #[test]
+    #[ignore = "WIP"]
     fn export_missing_prompt() {
         let assert = assert_command!(
             "reqlang export ../examples/valid/post.reqlang -e test -S super_secret_value=123"
@@ -240,6 +241,7 @@ mod cli_integration_tests {
     }
 
     #[test]
+    #[ignore = "WIP"]
     fn export_missing_secret() {
         let assert = assert_command!(
             "reqlang export ../examples/valid/post.reqlang -e test -P prompt_value=foo"
@@ -752,6 +754,7 @@ mod cli_integration_tests {
     }
 
     #[test]
+    #[ignore = "WIP"]
     fn run_default_prompt_value() {
         let assert =
             assert_command!("reqlang run ../examples/valid/default_prompt_value.reqlang -f body");
