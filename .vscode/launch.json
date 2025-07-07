@@ -8,7 +8,14 @@
       "request": "launch",
       "name": "Launch CLI",
       "program": "${workspaceFolder}/target/debug/reqlang",
-      "args": ["parse", "examples/invalid/undefined_in_env.reqlang"],
+      "args": [
+        "run",
+        "examples/valid/expr_reference_env.reqlang",
+        "-f",
+        "body",
+        "-e",
+        "dev"
+      ],
       "cwd": "${workspaceFolder}",
       "preLaunchTask": "Build"
     },

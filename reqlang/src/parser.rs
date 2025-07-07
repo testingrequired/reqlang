@@ -15,6 +15,8 @@ use crate::{
 pub const TEMPLATE_REFERENCE_PATTERN: &str = r"\{\{(.+)\}\}";
 pub const TEMPLATE_REFERENCE_PATTERN_INNER: &str = r"([:?!@]{1})([a-zA-Z][_a-zA-Z0-9.]*)";
 
+pub const TEMPLATE_EXPR_REFERENCE_PATTERN: &str = r"\{\((.*)\)\}";
+
 static FORBIDDEN_REQUEST_HEADER_NAMES: &[&str] = &[
     "host",
     "accept-charset",
@@ -53,6 +55,23 @@ pub fn parse(ast: &Ast) -> Result<ParsedRequestFile, Vec<Spanned<ReqlangError>>>
             refs.extend(request_refs);
             refs.extend(response_refs);
             refs.extend(config_refs);
+
+            // Extract expression references from the request, response, and config
+
+            let request_exprs = parse_expressions(request);
+            let response_exprs = parse_expressions(&response.clone().unwrap_or_default());
+            let config_exprs = parse_expressions(&config.clone().unwrap_or_default());
+            let mut exprs: Vec<Spanned<String>> = vec![];
+            exprs.extend(request_exprs);
+            exprs.extend(response_exprs);
+            exprs.extend(config_exprs);
+
+            // Extract template references from expression references
+
+            for (expr, expr_span) in exprs.iter() {
+                let expr_refs = parse_inner_references(&(expr.clone(), expr_span.clone()));
+                refs.extend(expr_refs);
+            }
 
             let request = match parse_request(request) {
                 Ok((request, span)) => {
@@ -261,6 +280,7 @@ pub fn parse(ast: &Ast) -> Result<ParsedRequestFile, Vec<Spanned<ReqlangError>>>
                 response,
                 config,
                 refs,
+                exprs,
             })
         }
         None => Err(vec![(ParseError::MissingRequest.into(), 0..0)]),
@@ -305,6 +325,40 @@ pub fn parse_references((input, span): &Spanned<String>) -> Vec<Spanned<Referenc
     }
 
     captured_refs
+}
+
+pub fn parse_inner_references((input, span): &Spanned<String>) -> Vec<Spanned<ReferenceType>> {
+    let mut captured_refs: Vec<Spanned<ReferenceType>> = vec![];
+
+    let inner_re = Regex::new(TEMPLATE_REFERENCE_PATTERN_INNER).unwrap();
+    for (_, [prefix, name]) in inner_re.captures_iter(input).map(|cap| cap.extract()) {
+        captured_refs.push(match prefix {
+            ":" => (ReferenceType::Variable(name.to_string()), span.to_owned()),
+            "?" => (ReferenceType::Prompt(name.to_string()), span.to_owned()),
+            "!" => (ReferenceType::Secret(name.to_string()), span.to_owned()),
+            "@" => (ReferenceType::Provider(name.to_string()), span.to_owned()),
+            _ => (ReferenceType::Unknown(name.to_string()), span.to_owned()),
+        });
+    }
+
+    captured_refs
+}
+
+/// Extract template references from a string
+pub fn parse_expressions((input, _span): &Spanned<String>) -> Vec<Spanned<String>> {
+    let mut captured_exprs: Vec<Spanned<String>> = vec![];
+
+    {
+        let re = Regex::new(TEMPLATE_EXPR_REFERENCE_PATTERN).unwrap();
+        let spans = re.capture_locations();
+
+        for (i, (_, [expr])) in re.captures_iter(input).map(|cap| cap.extract()).enumerate() {
+            let expr_span = spans.get(i).unwrap_or((0, 0));
+            captured_exprs.push((expr.to_string(), expr_span.0..expr_span.1));
+        }
+    };
+
+    captured_exprs
 }
 
 pub fn parse_request(
@@ -1137,7 +1191,8 @@ mod test {
                     13..46
                 ),
                 response: None,
-                refs: vec![]
+                refs: vec![],
+                exprs: vec![],
             })
         );
 
@@ -1177,6 +1232,7 @@ mod test {
                     63..78
                 )),
                 refs: vec![],
+                exprs: vec![],
             })
         );
 
@@ -1242,6 +1298,7 @@ mod test {
                     (ReferenceType::Variable("bar".to_string()), 117..163),
                     (ReferenceType::Variable("foo".to_string()), 12..99),
                 ],
+                exprs: vec![],
             })
         );
 
@@ -1359,6 +1416,7 @@ mod test {
                         380..425
                     )
                 ],
+                exprs: vec![],
             })
         );
 
@@ -1440,7 +1498,8 @@ mod test {
                 )),
                 refs: vec![
                     (ReferenceType::Prompt(String::from("status_code")), 466..522)
-                ]
+                ],
+                exprs: vec![],
             })
         );
     }

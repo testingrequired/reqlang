@@ -32,7 +32,7 @@ impl Display for ReferenceType {
                 ReferenceType::Prompt(name) => format!("?{name}"),
                 ReferenceType::Secret(name) => format!("!{name}"),
                 ReferenceType::Provider(name) => format!("@{name}"),
-                ReferenceType::Unknown(name) => format!("???{name}???"),
+                ReferenceType::Unknown(name) => panic!("WHHOPS"),
             }
         )
     }
@@ -48,6 +48,7 @@ pub struct ParsedRequestFile {
     pub request: Spanned<HttpRequest>,
     pub response: Option<Spanned<HttpResponse>>,
     pub refs: Vec<Spanned<ReferenceType>>,
+    pub exprs: Vec<Spanned<String>>,
 }
 
 impl ParsedRequestFile {
@@ -460,6 +461,7 @@ mod tests {
                 request: (HttpRequest::get("/", "1.1", vec![]), NO_SPAN),
                 response: None,
                 refs: vec![],
+                exprs: vec![],
             };
 
             assert_eq!(vec!["key"], reqfile.prompts());
@@ -481,6 +483,7 @@ mod tests {
                 request: (HttpRequest::get("/", "1.1", vec![]), NO_SPAN),
                 response: None,
                 refs: vec![],
+                exprs: vec![],
             };
 
             let expected: Vec<&str> = vec![];
@@ -495,6 +498,7 @@ mod tests {
                 request: (HttpRequest::get("/", "1.1", vec![]), NO_SPAN),
                 response: None,
                 refs: vec![],
+                exprs: vec![],
             };
 
             let expected: Vec<&str> = vec![];
@@ -518,6 +522,7 @@ mod tests {
                 request: (HttpRequest::get("/", "1.1", vec![]), NO_SPAN),
                 response: None,
                 refs: vec![],
+                exprs: vec![],
             };
 
             assert_eq!(vec!["secret_name"], reqfile.secrets());
@@ -539,6 +544,7 @@ mod tests {
                 request: (HttpRequest::get("/", "1.1", vec![]), NO_SPAN),
                 response: None,
                 refs: vec![],
+                exprs: vec![],
             };
 
             let expected: Vec<&str> = vec![];
@@ -553,6 +559,7 @@ mod tests {
                 request: (HttpRequest::get("/", "1.1", vec![]), NO_SPAN),
                 response: None,
                 refs: vec![],
+                exprs: vec![],
             };
 
             let expected: Vec<&str> = vec![];
@@ -588,6 +595,7 @@ mod tests {
                 request: (HttpRequest::get("/", "1.1", vec![]), NO_SPAN),
                 response: None,
                 refs: vec![],
+                exprs: vec![],
             };
 
             let mut actual = reqfile.envs();
@@ -616,6 +624,7 @@ mod tests {
                 request: (HttpRequest::get("/", "1.1", vec![]), NO_SPAN),
                 response: None,
                 refs: vec![],
+                exprs: vec![],
             };
 
             let empty: Vec<String> = Vec::new();
@@ -642,6 +651,7 @@ mod tests {
                 request: (HttpRequest::get("/", "1.1", vec![]), NO_SPAN),
                 response: None,
                 refs: vec![],
+                exprs: vec![],
             };
 
             let empty: Vec<String> = Vec::new();
@@ -668,6 +678,7 @@ mod tests {
                 request: (HttpRequest::get("/", "1.1", vec![]), NO_SPAN),
                 response: None,
                 refs: vec![],
+                exprs: vec![],
             };
 
             let empty: Vec<String> = Vec::new();
@@ -682,6 +693,7 @@ mod tests {
                 request: (HttpRequest::get("/", "1.1", vec![]), NO_SPAN),
                 response: None,
                 refs: vec![],
+                exprs: vec![],
             };
 
             let empty: Vec<String> = Vec::new();
@@ -715,6 +727,7 @@ mod tests {
                 ),
                 response: None,
                 refs: vec![(ReferenceType::Variable("foo".to_string()), NO_SPAN)],
+                exprs: vec![],
             };
 
             assert_eq!(
