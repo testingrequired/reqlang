@@ -11,10 +11,10 @@ A file format specification for defining HTTP requests, response assertions, and
 - Templating with variables, prompts, and secret values
 - Environments with environment specific variable values
 - Client/implementation agnostic
+- Statically typed [expression language](https://github.com/testingrequired/reqlang-expr) in the templates
 
 ### Future
 
-- Typesafe expression language in the templates
 - Chaining requests
 - Response body mapping/transformation/extraction
 - Authenticated requests (e.g. OAuth2) configuration
