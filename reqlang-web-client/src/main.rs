@@ -33,7 +33,7 @@ async fn main() -> Result<(), Error> {
     #[cfg(not(feature = "dynamic_assets"))]
     let static_dir = ServeDir::new(&ASSETS_DIR);
 
-    let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", port)).await?;
+    let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{port}")).await?;
     let addr = listener.local_addr()?;
     let url = format!("http://{addr}");
 

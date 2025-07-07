@@ -96,7 +96,7 @@ impl LanguageServer for Backend {
     async fn initialize(&self, _: InitializeParams) -> RpcResult<InitializeResult> {
         let version = env!("CARGO_PKG_VERSION").to_string();
 
-        let initial_log = format!("Reqlang Language Server (v{}) running...", version);
+        let initial_log = format!("Reqlang Language Server (v{version}) running...");
 
         eprintln!("{initial_log}");
 
@@ -180,7 +180,7 @@ impl LanguageServer for Backend {
             let from_client_params_value = params.arguments.first().expect("Should be present");
 
             self.client
-                .log_message(MessageType::INFO, format!("{:?}", from_client_params_value))
+                .log_message(MessageType::INFO, format!("{from_client_params_value:?}"))
                 .await;
 
             // Get parsed params from JSON `Value`
@@ -211,7 +211,7 @@ impl LanguageServer for Backend {
             self.client
                 .log_message(
                     MessageType::WARNING,
-                    format!("Actual response:\n{:?}", response),
+                    format!("Actual response:\n{response:?}"),
                 )
                 .await;
 
@@ -237,7 +237,7 @@ impl LanguageServer for Backend {
             let from_client_params_value = params.arguments.first().expect("Should be present");
 
             self.client
-                .log_message(MessageType::INFO, format!("{:?}", from_client_params_value))
+                .log_message(MessageType::INFO, format!("{from_client_params_value:?}"))
                 .await;
 
             // Get parsed params from JSON `Value`

@@ -22,7 +22,7 @@ fn main() {
                     .map(str::to_owned)
             })
             .filter(|f| f != "index")
-            .map(|f| format!("export * from \"./{}\"", f))
+            .map(|f| format!("export * from \"./{f}\""))
             .collect();
 
         let mut file = File::create("./bindings/index.ts").unwrap();

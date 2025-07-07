@@ -43,13 +43,13 @@ pub fn export(request: &HttpRequest, format: RequestFormat) -> String {
     match format {
         // HTTP Request message
         RequestFormat::HttpMessage => {
-            format!("{}", request)
+            format!("{request}")
         }
         // Curl command
         RequestFormat::CurlCommand => {
             let request_verb_flag = match request.verb.0.as_str() {
                 "GET" => String::new(),
-                verb => format!("-X {} ", verb),
+                verb => format!("-X {verb} "),
             };
 
             let request_url = &request.target;
@@ -130,7 +130,7 @@ impl FromStr for ResponseFormat {
 /// Export an [HttpResponse] in a specified [ResponseFormat].
 pub fn export_response(response: &HttpResponse, format: ResponseFormat) -> String {
     match format {
-        ResponseFormat::HttpMessage => format!("{}", response),
+        ResponseFormat::HttpMessage => format!("{response}"),
         ResponseFormat::Json => serde_json::to_string_pretty(response).unwrap(),
         ResponseFormat::Body => response.clone().body.unwrap_or_default(),
     }
