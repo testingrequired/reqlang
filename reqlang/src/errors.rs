@@ -47,6 +47,8 @@ pub enum ResolverError {
     PromptValueNotPassed(String),
     #[error("Secret required but not passed: {0}")]
     SecretValueNotPassed(String),
+    #[error("There was an error evaluating the expression: '{0}'; Error: {1}")]
+    ExpressionEvaluationError(String, String),
 }
 
 macro_rules! impl_from_error {

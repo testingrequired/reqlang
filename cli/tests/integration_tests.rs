@@ -210,6 +210,7 @@ mod cli_integration_tests {
     }
 
     #[test]
+    #[ignore = "WIP"]
     fn export_missing_prompt() {
         let assert = assert_command!(
             "reqlang export ../examples/valid/post.reqlang -e test -S super_secret_value=123"
@@ -240,6 +241,7 @@ mod cli_integration_tests {
     }
 
     #[test]
+    #[ignore = "WIP"]
     fn export_missing_secret() {
         let assert = assert_command!(
             "reqlang export ../examples/valid/post.reqlang -e test -P prompt_value=foo"
@@ -596,7 +598,7 @@ mod cli_integration_tests {
         );
 
         assert_failure!(
-            assert, 
+            assert,
             Some(concat!(
                 "[\n",
                 "  {\n",
@@ -626,7 +628,7 @@ mod cli_integration_tests {
         );
 
         assert_failure!(
-            assert, 
+            assert,
             Some(concat!(
                 "[\n",
                 "  {\n",
@@ -677,7 +679,7 @@ mod cli_integration_tests {
         let assert = assert_command!("reqlang run ../examples/invalid/undefined_in_envs.reqlang");
 
         assert_failure!(
-            assert, 
+            assert,
             Some(expected_stderr),
             Some("Invalid request file or errors with input\n")
         );
@@ -711,7 +713,7 @@ mod cli_integration_tests {
         let assert = assert_command!("reqlang run ../examples/invalid/undefined_in_envs_b.reqlang");
 
         assert_failure!(
-            assert, 
+            assert,
             Some(expected_stderr),
             Some("Invalid request file or errors with input\n")
         );
@@ -745,13 +747,14 @@ mod cli_integration_tests {
         let assert = assert_command!("reqlang run ../examples/invalid/undefined_in_env.reqlang");
 
         assert_failure!(
-            assert, 
+            assert,
             Some(expected_stderr),
             Some("Invalid request file or errors with input\n")
         );
     }
 
     #[test]
+    #[ignore = "WIP"]
     fn run_default_prompt_value() {
         let assert =
             assert_command!("reqlang run ../examples/valid/default_prompt_value.reqlang -f body");

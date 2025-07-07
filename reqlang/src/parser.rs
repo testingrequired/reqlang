@@ -12,7 +12,12 @@ use crate::{
     },
 };
 
-pub const TEMPLATE_REFERENCE_PATTERN: &str = r"\{\{([:?!@]{1})([a-zA-Z][_a-zA-Z0-9.]*)\}\}";
+pub const TEMPLATE_REFERENCE_PATTERN: &str = r"\{\{(.+)\}\}";
+pub const TEMPLATE_REFERENCE_PATTERN_INNER: &str = r"([:?!@]{1})([a-zA-Z][_a-zA-Z0-9.]*)";
+
+// This matches patterns for expression references e.g. {(id :var)}
+pub const TEMPLATE_EXPR_REFERENCE_PATTERN: &str = r"(\{\(.*\)\})";
+pub const TEMPLATE_EXPR_REFERENCE_PATTERN_INNER: &str = r"\{(\(.*\))\}";
 
 static FORBIDDEN_REQUEST_HEADER_NAMES: &[&str] = &[
     "host",
@@ -45,6 +50,8 @@ pub fn parse(ast: &Ast) -> Result<ParsedRequestFile, Vec<Spanned<ReqlangError>>>
             let response = ast.response().cloned();
             let config = ast.config().cloned();
 
+            // Extract template references from the request, response, and config
+
             let request_refs = parse_references(request);
             let response_refs = parse_references(&response.clone().unwrap_or_default());
             let config_refs = parse_references(&config.clone().unwrap_or_default());
@@ -52,6 +59,25 @@ pub fn parse(ast: &Ast) -> Result<ParsedRequestFile, Vec<Spanned<ReqlangError>>>
             refs.extend(request_refs);
             refs.extend(response_refs);
             refs.extend(config_refs);
+
+            // Extract expression references from the request, response, and config
+
+            let request_exprs = parse_expressions(request);
+            let response_exprs = parse_expressions(&response.clone().unwrap_or_default());
+            let config_exprs = parse_expressions(&config.clone().unwrap_or_default());
+            let mut exprs: Vec<Spanned<String>> = vec![];
+            exprs.extend(request_exprs);
+            exprs.extend(response_exprs);
+            exprs.extend(config_exprs);
+
+            // Extract template references from expression references
+
+            for (expr, expr_span) in exprs.iter() {
+                let expr_refs = parse_inner_references(&(expr.clone(), expr_span.clone()));
+                refs.extend(expr_refs);
+            }
+
+            // Parse HTTP request
 
             let request = match parse_request(request) {
                 Ok((request, span)) => {
@@ -73,6 +99,8 @@ pub fn parse(ast: &Ast) -> Result<ParsedRequestFile, Vec<Spanned<ReqlangError>>>
                 }
             };
 
+            // Parse HTTP response
+
             let response = match parse_response(&response) {
                 Some(Ok(response)) => Some(response),
                 Some(Err(err)) => {
@@ -91,11 +119,14 @@ pub fn parse(ast: &Ast) -> Result<ParsedRequestFile, Vec<Spanned<ReqlangError>>>
                 None => None,
             };
 
+            // Validate variables are defined correctly in the config
+
             if let Some((config, config_span)) = &config {
-                let vars = config.vars();
                 let env_names = config.envs();
 
-                for var in vars.iter() {
+                for var in config.vars().iter() {
+                    // If a variable is defined, then at least one environment must be defined
+
                     if env_names.is_empty() {
                         parse_errors.push((
                             ParseError::VariableNotDefinedInAnyEnvironment(var.to_string()).into(),
@@ -103,26 +134,36 @@ pub fn parse(ast: &Ast) -> Result<ParsedRequestFile, Vec<Spanned<ReqlangError>>>
                         ));
                     }
 
-                    let mut default_values = HashMap::new();
+                    // Extract default values from variables that define one
 
-                    let default_values_pairs: Vec<(String, String)> = config
-                        .vars
-                        .clone()
-                        .unwrap_or_default()
-                        .iter()
-                        .filter(|x| x.default.is_some())
-                        .map(|x| (x.name.clone(), x.default.clone().unwrap_or_default()))
-                        .collect();
+                    let default_var_values = {
+                        let mut default_values = HashMap::new();
 
-                    for (key, value) in &default_values_pairs {
-                        default_values.insert(key.clone(), value.clone());
-                    }
+                        let default_values_pairs: Vec<(String, String)> = config
+                            .vars
+                            .clone()
+                            .unwrap_or_default()
+                            .iter()
+                            // Find variables that have a default value defined
+                            .filter(|x| x.default.is_some())
+                            // Map to key, value tuple
+                            .map(|x| (x.name.clone(), x.default.clone().unwrap_or_default()))
+                            .collect();
 
-                    // Check that environments are defining the declared variables
+                        for (key, value) in &default_values_pairs {
+                            default_values.insert(key.clone(), value.clone());
+                        }
+
+                        default_values
+                    };
+
+                    // Verify that variables without default values have a defined value in each
+                    // environment
+
                     for env_name in env_names.iter() {
                         match &config.env(env_name) {
                             Some(env) => {
-                                if !env.contains_key(var) && !default_values.contains_key(var) {
+                                if !env.contains_key(var) && !default_var_values.contains_key(var) {
                                     parse_errors.push((
                                         ParseError::VariableUndefinedInEnvironment(
                                             var.clone(),
@@ -139,7 +180,8 @@ pub fn parse(ast: &Ast) -> Result<ParsedRequestFile, Vec<Spanned<ReqlangError>>>
                 }
             }
 
-            // Validate template references are declared/defined vars, secrets, prompts, etc.
+            // Verify template references (variables, prompts, secrets) are defined in the config
+
             for (ref_type, span) in refs.iter() {
                 match ref_type {
                     ReferenceType::Variable(name) => {
@@ -204,6 +246,8 @@ pub fn parse(ast: &Ast) -> Result<ParsedRequestFile, Vec<Spanned<ReqlangError>>>
                 }
             }
 
+            // // ..
+
             if let Some((ref config, ref span)) = config {
                 let ref_names: Vec<String> = refs
                     .clone()
@@ -217,8 +261,14 @@ pub fn parse(ast: &Ast) -> Result<ParsedRequestFile, Vec<Spanned<ReqlangError>>>
                     })
                     .collect();
 
+                let expr_sources: Vec<String> = exprs
+                    .clone()
+                    .into_iter()
+                    .map(|(expr, _)| expr.clone())
+                    .collect();
+
                 for var in &config.vars() {
-                    if !ref_names.contains(var) {
+                    if !ref_names.contains(var) && expr_sources.iter().any(|x| x.contains(var)) {
                         parse_errors.push((
                             ReqlangError::ParseError(ParseError::UnusedValueError(
                                 ReferenceType::Variable(var.clone()),
@@ -229,7 +279,7 @@ pub fn parse(ast: &Ast) -> Result<ParsedRequestFile, Vec<Spanned<ReqlangError>>>
                 }
 
                 for key in &config.prompts() {
-                    if !ref_names.contains(key) {
+                    if !ref_names.contains(key) && expr_sources.iter().any(|x| x.contains(key)) {
                         parse_errors.push((
                             ReqlangError::ParseError(ParseError::UnusedValueError(
                                 ReferenceType::Prompt(key.clone()),
@@ -240,7 +290,9 @@ pub fn parse(ast: &Ast) -> Result<ParsedRequestFile, Vec<Spanned<ReqlangError>>>
                 }
 
                 for secret in &config.secrets() {
-                    if !ref_names.contains(secret) {
+                    if !ref_names.contains(secret)
+                        && expr_sources.iter().any(|x| x.contains(secret))
+                    {
                         parse_errors.push((
                             ReqlangError::ParseError(ParseError::UnusedValueError(
                                 ReferenceType::Secret(secret.clone()),
@@ -260,6 +312,7 @@ pub fn parse(ast: &Ast) -> Result<ParsedRequestFile, Vec<Spanned<ReqlangError>>>
                 response,
                 config,
                 refs,
+                exprs,
             })
         }
         None => Err(vec![(ParseError::MissingRequest.into(), 0..0)]),
@@ -287,11 +340,30 @@ pub fn parse_config(
 
 /// Extract template references from a string
 pub fn parse_references((input, span): &Spanned<String>) -> Vec<Spanned<ReferenceType>> {
-    let re = Regex::new(TEMPLATE_REFERENCE_PATTERN).unwrap();
-
     let mut captured_refs: Vec<Spanned<ReferenceType>> = vec![];
 
-    for (_, [prefix, name]) in re.captures_iter(input).map(|cap| cap.extract()) {
+    let outer_re = Regex::new(TEMPLATE_REFERENCE_PATTERN).unwrap();
+    let inner_re = Regex::new(TEMPLATE_REFERENCE_PATTERN_INNER).unwrap();
+    for (_, [inner]) in outer_re.captures_iter(input).map(|cap| cap.extract()) {
+        for (_, [prefix, name]) in inner_re.captures_iter(inner).map(|cap| cap.extract()) {
+            captured_refs.push(match prefix {
+                ":" => (ReferenceType::Variable(name.to_string()), span.to_owned()),
+                "?" => (ReferenceType::Prompt(name.to_string()), span.to_owned()),
+                "!" => (ReferenceType::Secret(name.to_string()), span.to_owned()),
+                "@" => (ReferenceType::Provider(name.to_string()), span.to_owned()),
+                _ => (ReferenceType::Unknown(name.to_string()), span.to_owned()),
+            });
+        }
+    }
+
+    captured_refs
+}
+
+pub fn parse_inner_references((input, span): &Spanned<String>) -> Vec<Spanned<ReferenceType>> {
+    let mut captured_refs: Vec<Spanned<ReferenceType>> = vec![];
+
+    let inner_re = Regex::new(TEMPLATE_REFERENCE_PATTERN_INNER).unwrap();
+    for (_, [prefix, name]) in inner_re.captures_iter(input).map(|cap| cap.extract()) {
         captured_refs.push(match prefix {
             ":" => (ReferenceType::Variable(name.to_string()), span.to_owned()),
             "?" => (ReferenceType::Prompt(name.to_string()), span.to_owned()),
@@ -302,6 +374,23 @@ pub fn parse_references((input, span): &Spanned<String>) -> Vec<Spanned<Referenc
     }
 
     captured_refs
+}
+
+/// Extract template references from a string
+pub fn parse_expressions((input, _span): &Spanned<String>) -> Vec<Spanned<String>> {
+    let mut captured_exprs: Vec<Spanned<String>> = vec![];
+
+    {
+        let re = Regex::new(TEMPLATE_EXPR_REFERENCE_PATTERN).unwrap();
+        let spans = re.capture_locations();
+
+        for (i, (_, [expr])) in re.captures_iter(input).map(|cap| cap.extract()).enumerate() {
+            let expr_span = spans.get(i).unwrap_or((0, 0));
+            captured_exprs.push((expr.to_string(), expr_span.0..expr_span.1));
+        }
+    };
+
+    captured_exprs
 }
 
 pub fn parse_request(
@@ -1134,7 +1223,8 @@ mod test {
                     13..46
                 ),
                 response: None,
-                refs: vec![]
+                refs: vec![],
+                exprs: vec![],
             })
         );
 
@@ -1174,6 +1264,7 @@ mod test {
                     63..78
                 )),
                 refs: vec![],
+                exprs: vec![],
             })
         );
 
@@ -1239,6 +1330,7 @@ mod test {
                     (ReferenceType::Variable("bar".to_string()), 117..163),
                     (ReferenceType::Variable("foo".to_string()), 12..99),
                 ],
+                exprs: vec![],
             })
         );
 
@@ -1356,6 +1448,7 @@ mod test {
                         380..425
                     )
                 ],
+                exprs: vec![],
             })
         );
 
@@ -1437,7 +1530,8 @@ mod test {
                 )),
                 refs: vec![
                     (ReferenceType::Prompt(String::from("status_code")), 466..522)
-                ]
+                ],
+                exprs: vec![],
             })
         );
     }
