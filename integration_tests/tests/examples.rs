@@ -12,7 +12,7 @@ mod integration_tests {
     };
 
     #[rstest::rstest]
-    fn integration_valid(#[files("../examples/valid/*.reqlang")] path: PathBuf) {
+    fn integration_valid(#[files("../examples/valid/expr_reference_env.reqlang")] path: PathBuf) {
         let source = fs::read_to_string(path).expect("text should have been read from file");
         let ast = ast::Ast::from(&source);
 

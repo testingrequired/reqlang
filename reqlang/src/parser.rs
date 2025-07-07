@@ -345,16 +345,14 @@ pub fn parse_inner_references((input, span): &Spanned<String>) -> Vec<Spanned<Re
 }
 
 /// Extract template references from a string
-pub fn parse_expressions((input, _span): &Spanned<String>) -> Vec<Spanned<String>> {
+pub fn parse_expressions((input, span): &Spanned<String>) -> Vec<Spanned<String>> {
     let mut captured_exprs: Vec<Spanned<String>> = vec![];
 
     {
         let re = Regex::new(TEMPLATE_EXPR_REFERENCE_PATTERN).unwrap();
-        let spans = re.capture_locations();
 
-        for (i, (_, [expr])) in re.captures_iter(input).map(|cap| cap.extract()).enumerate() {
-            let expr_span = spans.get(i).unwrap_or((0, 0));
-            captured_exprs.push((expr.to_string(), expr_span.0..expr_span.1));
+        for (_, [expr]) in re.captures_iter(input).map(|cap| cap.extract()) {
+            captured_exprs.push((expr.to_string(), span.clone()));
         }
     };
 
