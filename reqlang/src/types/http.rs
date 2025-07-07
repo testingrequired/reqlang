@@ -39,7 +39,7 @@ impl Display for HttpVerb {
 /// Http version used in [HttpRequest] and [HttpResponse]
 ///
 /// ```
-/// let http_version: types::http::HttpVersion = "1.1".into();
+/// let http_version: reqlang::types::http::HttpVersion = "1.1".into();
 /// ```
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[ts(export)]

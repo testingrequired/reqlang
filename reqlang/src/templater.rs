@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+use reqlang_expr::prelude::*;
+
 use crate::{
     ast::Ast,
     errors::{ReqlangError, ResolverError},
@@ -49,56 +51,61 @@ pub fn template(
 
     let reqfile: &ParsedRequestFile = &parsed_reqfile;
 
-    let default_variable_values = parsed_reqfile.default_variable_values();
+    // Validate all required prompt values were passed
+    {
+        let missing_prompts_errs = {
+            parsed_reqfile
+                .required_prompts()
+                .into_iter()
+                .filter(|prompt| !prompts.contains_key(prompt))
+                .map(|prompt| ResolverError::PromptValueNotPassed(prompt.clone()).into())
+                .map(|err| (err, NO_SPAN))
+                .collect::<Vec<Spanned<ReqlangError>>>()
+        };
 
-    let required_prompts = parsed_reqfile.required_prompts();
-    let default_prompt_values = parsed_reqfile.default_prompt_values();
-    let missing_prompts = required_prompts
-        .into_iter()
-        .filter(|prompt| !prompts.contains_key(prompt))
-        .map(|prompt| ResolverError::PromptValueNotPassed(prompt.clone()).into())
-        .map(|err| (err, NO_SPAN))
-        .collect::<Vec<Spanned<ReqlangError>>>();
+        templating_errors.extend(missing_prompts_errs);
+    };
 
-    templating_errors.extend(missing_prompts);
+    // Validate all required secret values were passed
+    {
+        let missing_secrets_errs = parsed_reqfile
+            .secrets()
+            .into_iter()
+            .filter(|secret| !secrets.contains_key(secret))
+            .map(|secret| ResolverError::SecretValueNotPassed(secret.clone()).into())
+            .map(|err| (err, NO_SPAN))
+            .collect::<Vec<Spanned<ReqlangError>>>();
 
-    let required_secrets = parsed_reqfile.secrets();
-    let missing_secrets = required_secrets
-        .into_iter()
-        .filter(|secret| !secrets.contains_key(secret))
-        .map(|secret| ResolverError::SecretValueNotPassed(secret.clone()).into())
-        .map(|err| (err, NO_SPAN))
-        .collect::<Vec<Spanned<ReqlangError>>>();
-
-    templating_errors.extend(missing_secrets);
+        templating_errors.extend(missing_secrets_errs);
+    };
 
     if !templating_errors.is_empty() {
         return Err(templating_errors);
     }
 
-    // Gather list of template references along with each reference's type
-    //
-    // e.g. ("{{:var_name}}", ReferenceType::Variable("var_name"))
-    let template_refs_to_replace: Vec<(String, ReferenceType)> = reqfile
-        .refs
-        .iter()
-        .map(|(template_reference, _)| {
-            (format!("{template_reference}"), template_reference.clone())
-        })
-        .collect();
-
     // Replace template references with the resolved values
     let templated_input = {
         let mut input = reqfile_string.to_string();
 
+        // Gather list of template references along with each reference's type
+        //
+        // e.g. ("{{:var_name}}", ReferenceType::Variable("var_name"))
+        let template_refs_to_replace: Vec<(String, ReferenceType)> = reqfile
+            .refs
+            .iter()
+            .map(|(template_reference, _)| {
+                (format!("{template_reference}"), template_reference.clone())
+            })
+            .collect();
+
         // If the environment is provided, use it to resolve template references
         let vars = match env {
             Some(env) => reqfile.env(env).unwrap_or_default(),
-            None => {
-                // TODO: validate if environments are defined in the request file
-                HashMap::new()
-            }
+            None => HashMap::new(),
         };
+
+        let default_variable_values = parsed_reqfile.default_variable_values();
+        let default_prompt_values = parsed_reqfile.default_prompt_values();
 
         // Replace template references with the resolved values
         for (template_ref, ref_type) in &template_refs_to_replace {
@@ -118,6 +125,111 @@ pub fn template(
             if value.is_some() {
                 input = input.replace(template_ref, value.unwrap());
             }
+        }
+
+        let mut compiler_env =
+            CompileTimeEnv::new(reqfile.vars(), reqfile.prompts(), reqfile.secrets(), vec![]);
+
+        let mut runtime_env = {
+            let var_values = match env {
+                Some(env) => reqfile
+                    .vars()
+                    .iter()
+                    .map(|x| {
+                        let config = parsed_reqfile.config.clone().unwrap().0.env(env).unwrap();
+                        let value = config.get(x).unwrap();
+
+                        value.clone()
+                    })
+                    .collect(),
+                None => vec![],
+            };
+
+            let prompt_values: Vec<Option<String>> = reqfile
+                .prompts()
+                .iter()
+                .map(|x| prompts.get(x).cloned())
+                .collect();
+
+            let secret_values: Vec<Option<String>> = reqfile
+                .secrets()
+                .iter()
+                .map(|x| secrets.get(x).cloned())
+                .collect();
+
+            RuntimeEnv {
+                vars: var_values.clone(),
+                prompts: prompt_values.iter().filter_map(|x| x.clone()).collect(),
+                secrets: secret_values.iter().filter_map(|x| x.clone()).collect(),
+                client_context: vec![],
+            }
+        };
+
+        // Set client context `@env` if an environment was provided
+        if let Some(env) = env {
+            let env_context_index = compiler_env.add_to_client_context("env");
+            runtime_env.add_to_client_context(env_context_index, Value::String(env.to_string()));
+        }
+
+        let mut vm = Vm::new();
+
+        let items = &reqfile.exprs.to_vec();
+        for (expr_ref, expr_span) in items {
+            match reqlang_expr::parser::parse(&format!("({expr_ref})")) {
+                Ok(expr) => match compile(&mut (expr, expr_span.clone()), &compiler_env) {
+                    Ok(bytecode) => {
+                        let result = vm.interpret(bytecode.into(), &compiler_env, &runtime_env);
+
+                        let replacement_string = match result {
+                            Ok(expr_value) => expr_value
+                                .get_string()
+                                .expect("should be string")
+                                .to_string(),
+                            Err(expr_errs) => {
+                                templating_errors.push((
+                                    ReqlangError::ResolverError(
+                                        ResolverError::ExpressionEvaluationError(
+                                            expr_ref.clone(),
+                                            format!("{expr_errs:#?}"),
+                                        ),
+                                    ),
+                                    expr_span.clone(),
+                                ));
+
+                                // In the case of an error, replacement string
+                                // is the original string
+                                expr_ref.clone()
+                            }
+                        };
+
+                        let x = format!("{{({expr_ref})}}");
+
+                        input = input.replace(&x, &replacement_string);
+                    }
+                    Err(expr_errs) => {
+                        templating_errors.push((
+                            ReqlangError::ResolverError(ResolverError::ExpressionEvaluationError(
+                                expr_ref.clone(),
+                                format!("{expr_errs:#?}"),
+                            )),
+                            expr_span.clone(),
+                        ));
+                    }
+                },
+                Err(expr_errs) => {
+                    templating_errors.push((
+                        ReqlangError::ResolverError(ResolverError::ExpressionEvaluationError(
+                            expr_ref.clone(),
+                            format!("{expr_errs:#?}"),
+                        )),
+                        expr_span.clone(),
+                    ));
+                }
+            }
+        }
+
+        if !templating_errors.is_empty() {
+            return Err(templating_errors.clone());
         }
 
         input

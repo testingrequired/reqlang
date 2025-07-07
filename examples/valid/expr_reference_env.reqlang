@@ -1,0 +1,9 @@
+```%config
+[envs.dev]
+```
+
+```%request
+GET https://httpbin.org/headers HTTP/1.1
+Content-Type: application/json
+x-env: {(id @env)}
+```
