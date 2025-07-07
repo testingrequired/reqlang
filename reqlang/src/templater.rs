@@ -151,38 +151,16 @@ pub fn template(
                 .map(|x| prompts.get(x).cloned())
                 .collect();
 
-            let missing_prompt_indexes: Vec<_> = prompt_values
-                .iter()
-                .enumerate()
-                .filter(|(i, x)| x.is_none())
-                .map(|(i, _)| i)
-                .collect();
-
             let secret_values: Vec<Option<String>> = reqfile
                 .secrets()
                 .iter()
                 .map(|x| secrets.get(x).cloned())
                 .collect();
 
-            let missing_secret_indexes: Vec<_> = secret_values
-                .iter()
-                .enumerate()
-                .filter(|(i, x)| x.is_none())
-                .map(|(i, _)| i)
-                .collect();
-
             RuntimeEnv {
                 vars: var_values.clone(),
-                prompts: prompt_values
-                    .iter()
-                    .filter(|x| x.is_some())
-                    .map(|x| x.clone().unwrap())
-                    .collect(),
-                secrets: secret_values
-                    .iter()
-                    .filter(|x| x.is_some())
-                    .map(|x| x.clone().unwrap())
-                    .collect(),
+                prompts: prompt_values.iter().filter_map(|x| x.clone()).collect(),
+                secrets: secret_values.iter().filter_map(|x| x.clone()).collect(),
                 client_context: vec![],
             }
         };
@@ -250,7 +228,7 @@ pub fn template(
             }
         }
 
-        if (!templating_errors.is_empty()) {
+        if !templating_errors.is_empty() {
             return Err(templating_errors.clone());
         }
 

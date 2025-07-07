@@ -32,7 +32,7 @@ impl Display for ReferenceType {
                 ReferenceType::Prompt(name) => format!("?{name}"),
                 ReferenceType::Secret(name) => format!("!{name}"),
                 ReferenceType::Provider(name) => format!("@{name}"),
-                ReferenceType::Unknown(name) => panic!("WHHOPS"),
+                ReferenceType::Unknown(_) => panic!("Invalid reference type"),
             }
         )
     }
