@@ -598,7 +598,7 @@ mod cli_integration_tests {
         );
 
         assert_failure!(
-            assert, 
+            assert,
             Some(concat!(
                 "[\n",
                 "  {\n",
@@ -628,7 +628,7 @@ mod cli_integration_tests {
         );
 
         assert_failure!(
-            assert, 
+            assert,
             Some(concat!(
                 "[\n",
                 "  {\n",
@@ -679,7 +679,7 @@ mod cli_integration_tests {
         let assert = assert_command!("reqlang run ../examples/invalid/undefined_in_envs.reqlang");
 
         assert_failure!(
-            assert, 
+            assert,
             Some(expected_stderr),
             Some("Invalid request file or errors with input\n")
         );
@@ -713,7 +713,7 @@ mod cli_integration_tests {
         let assert = assert_command!("reqlang run ../examples/invalid/undefined_in_envs_b.reqlang");
 
         assert_failure!(
-            assert, 
+            assert,
             Some(expected_stderr),
             Some("Invalid request file or errors with input\n")
         );
@@ -747,7 +747,7 @@ mod cli_integration_tests {
         let assert = assert_command!("reqlang run ../examples/invalid/undefined_in_env.reqlang");
 
         assert_failure!(
-            assert, 
+            assert,
             Some(expected_stderr),
             Some("Invalid request file or errors with input\n")
         );

@@ -1,6 +1,7 @@
 ```%config
 [[vars]]
 name = "base_url"
+default = "https://example.com"
 ```
 
 ```%request

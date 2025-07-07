@@ -86,10 +86,11 @@ pub fn template(
         .map(|x| secrets.get(x).unwrap().clone())
         .collect();
 
-    let runtime_env = RuntimeEnv {
+    let mut runtime_env = RuntimeEnv {
         vars: var_values.clone(),
         prompts: prompt_values.clone(),
         secrets: secret_values.clone(),
+        client_context: vec![],
     };
 
     let default_variable_values = parsed_reqfile.default_variable_values();
@@ -119,8 +120,7 @@ pub fn template(
         return Err(templating_errors);
     }
 
-    let expr_refs_to_replace: Vec<Spanned<String>> =
-        reqfile.exprs.iter().map(|expr| expr.clone()).collect();
+    let expr_refs_to_replace: Vec<Spanned<String>> = reqfile.exprs.to_vec();
 
     // Gather list of template references along with each reference's type
     //
@@ -146,22 +146,28 @@ pub fn template(
             }
         };
 
-        let compiler_env = &Env::new(reqfile.vars(), reqfile.prompts(), reqfile.secrets());
+        let mut compiler_env =
+            CompileTimeEnv::new(reqfile.vars(), reqfile.prompts(), reqfile.secrets(), vec![]);
+
+        let env_context_index = compiler_env.add_to_client_context("env");
+        runtime_env.add_to_client_context(
+            env_context_index,
+            Value::String(env.unwrap_or_default().to_string()),
+        );
 
         let mut vm = Vm::new();
 
         for (expr_ref, expr_span) in &expr_refs_to_replace {
-            let expr_source = parse_inner_expr(&expr_ref);
-            let tokens = Lexer::new(&expr_source);
-            let parser = ExprParser::new();
+            let expr_source = parse_inner_expr(expr_ref);
 
-            match parser.parse(tokens) {
-                Ok(expr) => match compile(&expr, compiler_env) {
+            match reqlang_expr::parser::parse(&expr_source) {
+                Ok(expr) => match compile(&mut (expr, expr_span.clone()), &compiler_env) {
                     Ok(compiled_expr) => {
-                        let result = vm.interpret(compiled_expr.into(), compiler_env, &runtime_env);
+                        let result =
+                            vm.interpret(compiled_expr.into(), &compiler_env, &runtime_env);
 
                         let replacement_string = match result {
-                            Ok(value) => value.get_string().to_string(),
+                            Ok(value) => value.get_string().expect("should be string").to_string(),
                             Err(_interpreter_err) => {
                                 templating_errors.push((
                                     ReqlangError::ResolverError(
@@ -229,10 +235,7 @@ pub fn template(
     };
 
     let ast = Ast::from(&templated_input);
-    let request = ast
-        .request()
-        .cloned()
-        .expect(&format!("should have a request: {templated_input}"));
+    let request = ast.request().cloned().expect("should have a request");
     let response = ast.response().cloned();
 
     // Parse the templated request

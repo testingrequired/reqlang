@@ -20,7 +20,7 @@ similar = { version = "2.7.0" }
 console = "0.15.10"
 ts-rs = "10.0"
 markdown = "1.0.0-alpha.21"
-reqlang-expr = "0.2.0"
+reqlang-expr = "0.8.0"
 
 [dev-dependencies]
 pretty_assertions = "1.4.1"
