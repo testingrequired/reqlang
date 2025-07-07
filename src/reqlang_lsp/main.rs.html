@@ -601,7 +601,7 @@
     <span class="kw">async fn </span>initialize(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="kw">_</span>: InitializeParams) -&gt; RpcResult&lt;InitializeResult&gt; {
         <span class="kw">let </span>version = <span class="macro">env!</span>(<span class="string">"CARGO_PKG_VERSION"</span>).to_string();
 
-        <span class="kw">let </span>initial_log = <span class="macro">format!</span>(<span class="string">"Reqlang Language Server (v{}) running..."</span>, version);
+        <span class="kw">let </span>initial_log = <span class="macro">format!</span>(<span class="string">"Reqlang Language Server (v{version}) running..."</span>);
 
         <span class="macro">eprintln!</span>(<span class="string">"{initial_log}"</span>);
 
@@ -685,7 +685,7 @@
             <span class="kw">let </span>from_client_params_value = params.arguments.first().expect(<span class="string">"Should be present"</span>);
 
             <span class="self">self</span>.client
-                .log_message(MessageType::INFO, <span class="macro">format!</span>(<span class="string">"{:?}"</span>, from_client_params_value))
+                .log_message(MessageType::INFO, <span class="macro">format!</span>(<span class="string">"{from_client_params_value:?}"</span>))
                 .<span class="kw">await</span>;
 
             <span class="comment">// Get parsed params from JSON `Value`
@@ -716,7 +716,7 @@
             <span class="self">self</span>.client
                 .log_message(
                     MessageType::WARNING,
-                    <span class="macro">format!</span>(<span class="string">"Actual response:\n{:?}"</span>, response),
+                    <span class="macro">format!</span>(<span class="string">"Actual response:\n{response:?}"</span>),
                 )
                 .<span class="kw">await</span>;
 
@@ -742,7 +742,7 @@
             <span class="kw">let </span>from_client_params_value = params.arguments.first().expect(<span class="string">"Should be present"</span>);
 
             <span class="self">self</span>.client
-                .log_message(MessageType::INFO, <span class="macro">format!</span>(<span class="string">"{:?}"</span>, from_client_params_value))
+                .log_message(MessageType::INFO, <span class="macro">format!</span>(<span class="string">"{from_client_params_value:?}"</span>))
                 .<span class="kw">await</span>;
 
             <span class="comment">// Get parsed params from JSON `Value`

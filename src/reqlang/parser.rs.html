@@ -1569,7 +1569,10 @@
 <a href="#1568" id="1568">1568</a>
 <a href="#1569" id="1569">1569</a>
 <a href="#1570" id="1570">1570</a>
-<a href="#1571" id="1571">1571</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::collections::HashMap;
+<a href="#1571" id="1571">1571</a>
+<a href="#1572" id="1572">1572</a>
+<a href="#1573" id="1573">1573</a>
+<a href="#1574" id="1574">1574</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::collections::HashMap;
 
 <span class="kw">use </span>regex::Regex;
 
@@ -1583,7 +1586,8 @@
     },
 };
 
-<span class="kw">pub const </span>TEMPLATE_REFERENCE_PATTERN: <span class="kw-2">&amp;</span>str = <span class="string">r"\{\{([:?!@]{1})([a-zA-Z][_a-zA-Z0-9.]*)\}\}"</span>;
+<span class="kw">pub const </span>TEMPLATE_REFERENCE_PATTERN: <span class="kw-2">&amp;</span>str = <span class="string">r"\{\{(.+)\}\}"</span>;
+<span class="kw">pub const </span>TEMPLATE_REFERENCE_PATTERN_INNER: <span class="kw-2">&amp;</span>str = <span class="string">r"([:?!@]{1})([a-zA-Z][_a-zA-Z0-9.]*)"</span>;
 
 <span class="kw">static </span>FORBIDDEN_REQUEST_HEADER_NAMES: <span class="kw-2">&amp;</span>[<span class="kw-2">&amp;</span>str] = <span class="kw-2">&amp;</span>[
     <span class="string">"host"</span>,
@@ -1858,18 +1862,20 @@
 
 <span class="doccomment">/// Extract template references from a string
 </span><span class="kw">pub fn </span>parse_references((input, span): <span class="kw-2">&amp;</span>Spanned&lt;String&gt;) -&gt; Vec&lt;Spanned&lt;ReferenceType&gt;&gt; {
-    <span class="kw">let </span>re = Regex::new(TEMPLATE_REFERENCE_PATTERN).unwrap();
-
     <span class="kw">let </span><span class="kw-2">mut </span>captured_refs: Vec&lt;Spanned&lt;ReferenceType&gt;&gt; = <span class="macro">vec!</span>[];
 
-    <span class="kw">for </span>(<span class="kw">_</span>, [prefix, name]) <span class="kw">in </span>re.captures_iter(input).map(|cap| cap.extract()) {
-        captured_refs.push(<span class="kw">match </span>prefix {
-            <span class="string">":" </span>=&gt; (ReferenceType::Variable(name.to_string()), span.to_owned()),
-            <span class="string">"?" </span>=&gt; (ReferenceType::Prompt(name.to_string()), span.to_owned()),
-            <span class="string">"!" </span>=&gt; (ReferenceType::Secret(name.to_string()), span.to_owned()),
-            <span class="string">"@" </span>=&gt; (ReferenceType::Provider(name.to_string()), span.to_owned()),
-            <span class="kw">_ </span>=&gt; (ReferenceType::Unknown(name.to_string()), span.to_owned()),
-        });
+    <span class="kw">let </span>outer_re = Regex::new(TEMPLATE_REFERENCE_PATTERN).unwrap();
+    <span class="kw">let </span>inner_re = Regex::new(TEMPLATE_REFERENCE_PATTERN_INNER).unwrap();
+    <span class="kw">for </span>(<span class="kw">_</span>, [inner]) <span class="kw">in </span>outer_re.captures_iter(input).map(|cap| cap.extract()) {
+        <span class="kw">for </span>(<span class="kw">_</span>, [prefix, name]) <span class="kw">in </span>inner_re.captures_iter(inner).map(|cap| cap.extract()) {
+            captured_refs.push(<span class="kw">match </span>prefix {
+                <span class="string">":" </span>=&gt; (ReferenceType::Variable(name.to_string()), span.to_owned()),
+                <span class="string">"?" </span>=&gt; (ReferenceType::Prompt(name.to_string()), span.to_owned()),
+                <span class="string">"!" </span>=&gt; (ReferenceType::Secret(name.to_string()), span.to_owned()),
+                <span class="string">"@" </span>=&gt; (ReferenceType::Provider(name.to_string()), span.to_owned()),
+                <span class="kw">_ </span>=&gt; (ReferenceType::Unknown(name.to_string()), span.to_owned()),
+            });
+        }
     }
 
     captured_refs
@@ -2026,7 +2032,7 @@
             </span><span class="kw">fn </span><span class="macro-nonterminal">$test_name</span>() {
                 <span class="kw">let </span>ast = <span class="macro-nonterminal">$crate::ast::Ast::from</span>(<span class="macro-nonterminal">$reqfile</span>);
                 <span class="kw">let </span>result = <span class="macro-nonterminal">$crate::parser::parse</span>(<span class="kw-2">&amp;</span>ast);
-                <span class="macro">pretty_assertions::assert_eq!</span>(<span class="macro-nonterminal">$result</span>, result);
+                <span class="macro">::pretty_assertions::assert_eq!</span>(<span class="macro-nonterminal">$result</span>, result);
             }
         };
     }
