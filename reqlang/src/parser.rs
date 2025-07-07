@@ -12,7 +12,8 @@ use crate::{
     },
 };
 
-pub const TEMPLATE_REFERENCE_PATTERN: &str = r"\{\{([:?!@]{1})([a-zA-Z][_a-zA-Z0-9.]*)\}\}";
+pub const TEMPLATE_REFERENCE_PATTERN: &str = r"\{\{(.+)\}\}";
+pub const TEMPLATE_REFERENCE_PATTERN_INNER: &str = r"([:?!@]{1})([a-zA-Z][_a-zA-Z0-9.]*)";
 
 static FORBIDDEN_REQUEST_HEADER_NAMES: &[&str] = &[
     "host",
@@ -287,18 +288,20 @@ pub fn parse_config(
 
 /// Extract template references from a string
 pub fn parse_references((input, span): &Spanned<String>) -> Vec<Spanned<ReferenceType>> {
-    let re = Regex::new(TEMPLATE_REFERENCE_PATTERN).unwrap();
-
     let mut captured_refs: Vec<Spanned<ReferenceType>> = vec![];
 
-    for (_, [prefix, name]) in re.captures_iter(input).map(|cap| cap.extract()) {
-        captured_refs.push(match prefix {
-            ":" => (ReferenceType::Variable(name.to_string()), span.to_owned()),
-            "?" => (ReferenceType::Prompt(name.to_string()), span.to_owned()),
-            "!" => (ReferenceType::Secret(name.to_string()), span.to_owned()),
-            "@" => (ReferenceType::Provider(name.to_string()), span.to_owned()),
-            _ => (ReferenceType::Unknown(name.to_string()), span.to_owned()),
-        });
+    let outer_re = Regex::new(TEMPLATE_REFERENCE_PATTERN).unwrap();
+    let inner_re = Regex::new(TEMPLATE_REFERENCE_PATTERN_INNER).unwrap();
+    for (_, [inner]) in outer_re.captures_iter(input).map(|cap| cap.extract()) {
+        for (_, [prefix, name]) in inner_re.captures_iter(inner).map(|cap| cap.extract()) {
+            captured_refs.push(match prefix {
+                ":" => (ReferenceType::Variable(name.to_string()), span.to_owned()),
+                "?" => (ReferenceType::Prompt(name.to_string()), span.to_owned()),
+                "!" => (ReferenceType::Secret(name.to_string()), span.to_owned()),
+                "@" => (ReferenceType::Provider(name.to_string()), span.to_owned()),
+                _ => (ReferenceType::Unknown(name.to_string()), span.to_owned()),
+            });
+        }
     }
 
     captured_refs
