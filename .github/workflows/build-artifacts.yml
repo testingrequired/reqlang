@@ -11,10 +11,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
+      - name: Install rust toolchain
+        uses: actions-rs/toolchain@v1
         with:
-          components: clippy, rustfmt
-          toolchain: 1.85.0
+          toolchain: stable
+          components: rustfmt, clippy
       - uses: Swatinem/rust-cache@v2
       - uses: actions/setup-node@v4
         with:
@@ -41,10 +42,11 @@ jobs:
     needs: [verify]
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
+      - name: Install rust toolchain
+        uses: actions-rs/toolchain@v1
         with:
-          components: clippy, rustfmt
-          toolchain: 1.85.0
+          toolchain: stable
+          components: rustfmt, clippy
       - uses: Swatinem/rust-cache@v2
       - uses: actions/setup-node@v4
         with:
@@ -82,10 +84,11 @@ jobs:
     needs: [verify]
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
+      - name: Install rust toolchain
+        uses: actions-rs/toolchain@v1
         with:
-          components: clippy, rustfmt
-          toolchain: 1.85.0
+          toolchain: stable
+          components: rustfmt, clippy
       - uses: Swatinem/rust-cache@v2
       - uses: actions/setup-node@v4
         with:
@@ -137,10 +140,11 @@ jobs:
     needs: [verify]
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
+      - name: Install rust toolchain
+        uses: actions-rs/toolchain@v1
         with:
-          components: clippy, rustfmt
-          toolchain: 1.85.0
+          toolchain: stable
+          components: rustfmt, clippy
       - uses: Swatinem/rust-cache@v2
       - uses: actions/setup-node@v4
         with:
@@ -178,10 +182,11 @@ jobs:
     needs: [verify]
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
+      - name: Install rust toolchain
+        uses: actions-rs/toolchain@v1
         with:
-          components: clippy, rustfmt
-          toolchain: 1.85.0
+          toolchain: stable
+          components: rustfmt, clippy
       - uses: Swatinem/rust-cache@v2
       - uses: actions/setup-node@v4
         with:
