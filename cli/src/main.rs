@@ -65,7 +65,7 @@ fn export_command(matches: &ArgMatches) {
         Ok(reqfile) => {
             let exported_request = export(&reqfile.request, format);
 
-            println!("{}", exported_request);
+            println!("{exported_request}");
         }
         Err(errs) => {
             let diagnostics = get_diagnostics(&errs, &contents);
@@ -161,7 +161,7 @@ async fn run_command(matches: &ArgMatches) {
                     // Format the response as specified by the `--format` flag
                     let formatted_response = export_response(response, format);
 
-                    println!("{}", formatted_response);
+                    println!("{formatted_response}");
 
                     // Check if the `--test` flag was passed
                     if is_testing_response {

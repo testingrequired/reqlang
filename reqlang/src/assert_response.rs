@@ -167,13 +167,9 @@ impl ResponseDiffs {
                     Some((expected_status_text, actual_status_text)),
                 ) => Some((
                     format!(
-                        "HTTP/{} {} {}",
-                        expected_http_version, expected_status_code, expected_status_text
+                        "HTTP/{expected_http_version} {expected_status_code} {expected_status_text}"
                     ),
-                    format!(
-                        "HTTP/{} {} {}",
-                        actual_http_version, actual_status_code, actual_status_text
-                    ),
+                    format!("HTTP/{actual_http_version} {actual_status_code} {actual_status_text}"),
                 )),
             };
 
