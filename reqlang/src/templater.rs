@@ -136,8 +136,6 @@ pub fn template(
             let prompt_values = {
                 let default_prompt_values = parsed_reqfile.default_prompt_values();
 
-                
-
                 reqfile
                     .prompts()
                     .iter()
