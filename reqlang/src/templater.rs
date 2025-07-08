@@ -113,7 +113,7 @@ pub fn template(
             reqfile.vars(),
             reqfile.prompts(),
             reqfile.secrets(),
-            provider_values.keys().map(|x| x.clone()).collect(),
+            provider_values.keys().cloned().collect(),
         );
 
         let mut runtime_env = {
@@ -125,18 +125,20 @@ pub fn template(
                         let config = parsed_reqfile.config.clone().unwrap().0.env(env).unwrap();
                         let value = config
                             .get(&x.clone().clone())
-                            .unwrap_or(&vars.get(&x.clone().clone()).unwrap());
+                            .unwrap_or(vars.get(&x.clone().clone()).unwrap());
 
                         value.clone()
                     })
                     .collect(),
-                None => provider_values.values().map(|x| x.clone()).collect(),
+                None => provider_values.values().cloned().collect(),
             };
 
             let prompt_values = {
                 let default_prompt_values = parsed_reqfile.default_prompt_values();
 
-                let prompt_values = reqfile
+                
+
+                reqfile
                     .prompts()
                     .iter()
                     .map(|x| {
@@ -150,9 +152,7 @@ pub fn template(
 
                         value.clone()
                     })
-                    .collect();
-
-                prompt_values
+                    .collect()
             };
 
             let secret_values: Vec<Option<String>> = reqfile
