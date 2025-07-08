@@ -283,16 +283,21 @@ impl InputParamsState {
             ui.separator();
 
             if ui.button("Run").clicked() {
+                let mut provider_values = HashMap::new();
+
+                let env = if self.env.is_empty() {
+                    None
+                } else {
+                    provider_values.insert("env".to_string(), self.env.clone());
+                    Some(self.env.as_str())
+                };
+
                 let reqfile = template(
                     &client_ctx.source.clone().unwrap(),
-                    if self.env.is_empty() {
-                        None
-                    } else {
-                        Some(&self.env)
-                    },
+                    env,
                     &self.prompts.clone(),
                     &self.secrets.clone(),
-                    &HashMap::new(),
+                    &provider_values,
                 )
                 .unwrap();
 

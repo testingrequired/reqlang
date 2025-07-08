@@ -126,12 +126,18 @@ impl From<HttpRequest> for HttpRequestFetcher {
 /// ```
 impl From<RequestParamsFromClient> for HttpRequestFetcher {
     fn from(params: RequestParamsFromClient) -> Self {
+        let mut provider_values: HashMap<String, String> = HashMap::new();
+
+        if let Some(env) = &params.env {
+            provider_values.insert("env".to_string(), env.clone());
+        }
+
         let reqfile = template(
             &params.reqfile,
             params.env.as_deref(),
             &params.prompts,
             &params.secrets,
-            &HashMap::new(),
+            &provider_values,
         )
         .unwrap();
 

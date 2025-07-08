@@ -16,7 +16,7 @@ pub fn template(
     env: Option<&str>,
     prompts: &HashMap<String, String>,
     secrets: &HashMap<String, String>,
-    provider_values: &HashMap<String, String>,
+    provider_values: &HashMap<String, String>, // TODO: Wire this up
 ) -> Result<TemplatedRequestFile, Vec<Spanned<ReqlangError>>> {
     let ast = Ast::from(reqfile_string);
     let parsed_reqfile = parse(&ast)?;
@@ -90,66 +90,70 @@ pub fn template(
         // Gather list of template references along with each reference's type
         //
         // e.g. ("{{:var_name}}", ReferenceType::Variable("var_name"))
-        let template_refs_to_replace: Vec<(String, ReferenceType)> = reqfile
+        let template_refs_to_replace: Vec<(String, ReferenceType, Span)> = reqfile
             .refs
             .iter()
-            .map(|(template_reference, _)| {
-                (format!("{template_reference}"), template_reference.clone())
+            .map(|(template_reference, template_reference_span)| {
+                (
+                    format!("{template_reference}"),
+                    template_reference.clone(),
+                    template_reference_span.clone(),
+                )
             })
             .collect();
 
         // If the environment is provided, use it to resolve template references
+        let default_variable_values = parsed_reqfile.default_variable_values();
         let vars = match env {
-            Some(env) => reqfile.env(env).unwrap_or_default(),
+            Some(env) => reqfile.env(env).unwrap_or(default_variable_values),
             None => HashMap::new(),
         };
 
-        let default_variable_values = parsed_reqfile.default_variable_values();
-        let default_prompt_values = parsed_reqfile.default_prompt_values();
-
-        // Replace template references with the resolved values
-        for (template_ref, ref_type) in &template_refs_to_replace {
-            let value = match ref_type {
-                ReferenceType::Variable(name) => {
-                    vars.get(name).or(default_variable_values.get(name))
-                }
-                ReferenceType::Prompt(name) => {
-                    prompts.get(name).or(default_prompt_values.get(name))
-                }
-                ReferenceType::Secret(name) => secrets.get(name),
-                ReferenceType::Provider(name) => provider_values.get(name),
-                _ => None,
-            };
-
-            // If reference can not be resolved, keep the template reference as is
-            if value.is_some() {
-                input = input.replace(template_ref, value.unwrap());
-            }
-        }
-
-        let mut compiler_env =
-            CompileTimeEnv::new(reqfile.vars(), reqfile.prompts(), reqfile.secrets(), vec![]);
+        let mut compiler_env = CompileTimeEnv::new(
+            reqfile.vars(),
+            reqfile.prompts(),
+            reqfile.secrets(),
+            provider_values.keys().map(|x| x.clone()).collect(),
+        );
 
         let mut runtime_env = {
-            let var_values = match env {
+            let var_values: Vec<String> = match env {
                 Some(env) => reqfile
                     .vars()
                     .iter()
                     .map(|x| {
                         let config = parsed_reqfile.config.clone().unwrap().0.env(env).unwrap();
-                        let value = config.get(x).unwrap();
+                        let value = config
+                            .get(&x.clone().clone())
+                            .unwrap_or(&vars.get(&x.clone().clone()).unwrap());
 
                         value.clone()
                     })
                     .collect(),
-                None => vec![],
+                None => provider_values.values().map(|x| x.clone()).collect(),
             };
 
-            let prompt_values: Vec<Option<String>> = reqfile
-                .prompts()
-                .iter()
-                .map(|x| prompts.get(x).cloned())
-                .collect();
+            let prompt_values = {
+                let default_prompt_values = parsed_reqfile.default_prompt_values();
+
+                let prompt_values = reqfile
+                    .prompts()
+                    .iter()
+                    .map(|x| {
+                        let value = prompts.get(x).cloned().unwrap_or(
+                            default_prompt_values
+                                .get(x)
+                                .cloned()
+                                .unwrap_or_default()
+                                .clone(),
+                        );
+
+                        value.clone()
+                    })
+                    .collect();
+
+                prompt_values
+            };
 
             let secret_values: Vec<Option<String>> = reqfile
                 .secrets()
@@ -159,7 +163,7 @@ pub fn template(
 
             RuntimeEnv {
                 vars: var_values.clone(),
-                prompts: prompt_values.iter().filter_map(|x| x.clone()).collect(),
+                prompts: prompt_values,
                 secrets: secret_values.iter().filter_map(|x| x.clone()).collect(),
                 client_context: vec![],
             }
@@ -172,6 +176,60 @@ pub fn template(
         }
 
         let mut vm = Vm::new();
+
+        for (_, ref_type, ref_span) in &template_refs_to_replace {
+            match reqlang_expr::parser::parse(&ref_type.lookup_name()) {
+                Ok(expr) => match compile(&mut (expr, ref_span.clone()), &compiler_env) {
+                    Ok(bytecode) => {
+                        let result = vm.interpret(bytecode.into(), &compiler_env, &runtime_env);
+
+                        let replacement_string = match result {
+                            Ok(expr_value) => expr_value
+                                .get_string()
+                                .expect("should be string")
+                                .to_string(),
+                            Err(expr_errs) => {
+                                templating_errors.push((
+                                    ReqlangError::ResolverError(
+                                        ResolverError::ExpressionEvaluationError(
+                                            ref_type.lookup_name().clone(),
+                                            format!("{expr_errs:#?}"),
+                                        ),
+                                    ),
+                                    ref_span.clone(),
+                                ));
+
+                                // In the case of an error, replacement string
+                                // is the original string
+                                ref_type.lookup_name().clone()
+                            }
+                        };
+
+                        let x = format!("{{{{{}}}}}", ref_type.lookup_name());
+
+                        input = input.replace(&x, &replacement_string);
+                    }
+                    Err(expr_errs) => {
+                        templating_errors.push((
+                            ReqlangError::ResolverError(ResolverError::ExpressionEvaluationError(
+                                ref_type.lookup_name().clone(),
+                                format!("{expr_errs:#?}"),
+                            )),
+                            ref_span.clone(),
+                        ));
+                    }
+                },
+                Err(expr_errs) => {
+                    templating_errors.push((
+                        ReqlangError::ResolverError(ResolverError::ExpressionEvaluationError(
+                            ref_type.lookup_name().clone(),
+                            format!("{expr_errs:#?}"),
+                        )),
+                        ref_span.clone(),
+                    ));
+                }
+            }
+        }
 
         let items = &reqfile.exprs.to_vec();
         for (expr_ref, expr_span) in items {

@@ -22,6 +22,18 @@ pub enum ReferenceType {
     Unknown(String),
 }
 
+impl ReferenceType {
+    pub fn lookup_name(&self) -> String {
+        match self {
+            ReferenceType::Variable(name) => format!(":{name}"),
+            ReferenceType::Prompt(name) => format!("?{name}"),
+            ReferenceType::Secret(name) => format!("!{name}"),
+            ReferenceType::Provider(name) => format!("@{name}"),
+            ReferenceType::Unknown(_) => panic!("Invalid reference type"),
+        }
+    }
+}
+
 impl Display for ReferenceType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(

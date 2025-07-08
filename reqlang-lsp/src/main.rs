@@ -187,12 +187,20 @@ impl LanguageServer for Backend {
             let from_client_params =
                 Into::<RequestParamsFromClient>::into(from_client_params_value.clone());
 
+            let mut provider_values: HashMap<String, String> = HashMap::new();
+
+            let env = from_client_params.env.as_deref();
+
+            if let Some(env) = env {
+                provider_values.insert("env".to_string(), env.to_string());
+            }
+
             let reqfile = template(
                 &from_client_params.reqfile,
                 from_client_params.env.as_deref(),
                 &from_client_params.prompts,
                 &from_client_params.secrets,
-                &Default::default(),
+                &provider_values,
             )
             .expect("Should get templated request file");
 
