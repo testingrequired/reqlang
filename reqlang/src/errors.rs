@@ -1,9 +1,11 @@
 use crate::types::ReferenceType;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
+use ts_rs::TS;
 
 /// Common error for parsing and templating request files
-#[derive(Debug, Clone, Error, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Error, PartialEq, Serialize, Deserialize, TS)]
+#[ts(export)]
 pub enum ReqlangError {
     #[error("ParseError: {0}")]
     ParseError(ParseError),
@@ -11,7 +13,8 @@ pub enum ReqlangError {
     ResolverError(ResolverError),
 }
 
-#[derive(Debug, Clone, Error, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Error, PartialEq, Serialize, Deserialize, TS)]
+#[ts(export)]
 pub enum ParseError {
     #[error("Request file requires a request be defined")]
     MissingRequest,
@@ -35,7 +38,8 @@ pub enum ParseError {
     VariableNotDefinedInAnyEnvironment(String),
 }
 
-#[derive(Debug, Clone, Error, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Error, PartialEq, Serialize, Deserialize, TS)]
+#[ts(export)]
 pub enum ResolverError {
     #[error("'{0}' is not a defined environment in the request file")]
     InvalidEnvError(String),
