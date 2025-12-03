@@ -62,6 +62,22 @@
         }
       ]
     ],
-    "exprs": []
+    "exprs": [],
+    "comments": [
+      [
+        "# Request Files Are Markdown Files\n\nAnything outside of the config, request, or response code blocks is treated as markdown. This lets you document your request files in a way that is easy to read and understand.\n\n## Config\n\nPrompt the user for the `status_code` to return.\n\n",
+        {
+          "start": 0,
+          "end": 275
+        }
+      ],
+      [
+        "\n\n## Request\n\nThis will respond with the prompted `status_code`.\n\n",
+        {
+          "start": 375,
+          "end": 441
+        }
+      ]
+    ]
   }
 }

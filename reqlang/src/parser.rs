@@ -281,6 +281,7 @@ pub fn parse(ast: &Ast) -> Result<ParsedRequestFile, Vec<Spanned<ReqlangError>>>
                 config,
                 refs,
                 exprs,
+                comments: ast.comments(),
             })
         }
         None => Err(vec![(ParseError::MissingRequest.into(), 0..0)]),
@@ -1191,6 +1192,7 @@ mod test {
                 response: None,
                 refs: vec![],
                 exprs: vec![],
+                comments: vec![("\n".to_string(), 0..1,)],
             })
         );
 
@@ -1231,6 +1233,7 @@ mod test {
                 )),
                 refs: vec![],
                 exprs: vec![],
+                comments: vec![("\n".to_string(), 0..1), ("\n\n".to_string(), 48..50),],
             })
         );
 
@@ -1297,6 +1300,7 @@ mod test {
                     (ReferenceType::Variable("foo".to_string()), 12..99),
                 ],
                 exprs: vec![],
+                comments: vec![("\n".to_string(), 0..1), ("\n\n".to_string(), 103..105),],
             })
         );
 
@@ -1415,6 +1419,11 @@ mod test {
                     )
                 ],
                 exprs: vec![],
+                comments: vec![
+                    ("\n".to_string(), 0..1),
+                    ("\n\n".to_string(), 224..226),
+                    ("\n\n".to_string(), 365..367),
+                ],
             })
         );
 
@@ -1498,6 +1507,20 @@ mod test {
                     (ReferenceType::Prompt(String::from("status_code")), 466..522)
                 ],
                 exprs: vec![],
+                comments: vec![
+                    (
+                        "\n# Request File As Markdown\n\n- Request files are also markdown files.\n- [Configuration](#config), [Request](#request), and [Response](#response) are defined using code blocks.\n- Everything else is considered a comment.\n\n## Config\n\nUse a `%config` code block to define the configuration.\n\n".to_string(),
+                        0..288,
+                    ),
+                    (
+                        "\n\n## Request\n\nUse a `%request` code block to define the request.\n\n".to_string(),
+                        388..454,
+                    ),
+                    (
+                        "\n\n## Response\n\nUse a `%response` code block to define the response.\n\n".to_string(),
+                        526..595,
+                    ),
+                ],
             })
         );
     }

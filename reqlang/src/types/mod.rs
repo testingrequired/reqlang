@@ -61,6 +61,7 @@ pub struct ParsedRequestFile {
     pub response: Option<Spanned<HttpResponse>>,
     pub refs: Vec<Spanned<ReferenceType>>,
     pub exprs: Vec<Spanned<String>>,
+    pub comments: Vec<Spanned<String>>,
 }
 
 impl ParsedRequestFile {
@@ -474,6 +475,7 @@ mod tests {
                 response: None,
                 refs: vec![],
                 exprs: vec![],
+                comments: vec![],
             };
 
             assert_eq!(vec!["key"], reqfile.prompts());
@@ -496,6 +498,7 @@ mod tests {
                 response: None,
                 refs: vec![],
                 exprs: vec![],
+                comments: vec![],
             };
 
             let expected: Vec<&str> = vec![];
@@ -511,6 +514,7 @@ mod tests {
                 response: None,
                 refs: vec![],
                 exprs: vec![],
+                comments: vec![],
             };
 
             let expected: Vec<&str> = vec![];
@@ -535,6 +539,7 @@ mod tests {
                 response: None,
                 refs: vec![],
                 exprs: vec![],
+                comments: vec![],
             };
 
             assert_eq!(vec!["secret_name"], reqfile.secrets());
@@ -557,6 +562,7 @@ mod tests {
                 response: None,
                 refs: vec![],
                 exprs: vec![],
+                comments: vec![],
             };
 
             let expected: Vec<&str> = vec![];
@@ -572,6 +578,7 @@ mod tests {
                 response: None,
                 refs: vec![],
                 exprs: vec![],
+                comments: vec![],
             };
 
             let expected: Vec<&str> = vec![];
@@ -608,6 +615,7 @@ mod tests {
                 response: None,
                 refs: vec![],
                 exprs: vec![],
+                comments: vec![],
             };
 
             let mut actual = reqfile.envs();
@@ -637,6 +645,7 @@ mod tests {
                 response: None,
                 refs: vec![],
                 exprs: vec![],
+                comments: vec![],
             };
 
             let empty: Vec<String> = Vec::new();
@@ -664,6 +673,7 @@ mod tests {
                 response: None,
                 refs: vec![],
                 exprs: vec![],
+                comments: vec![],
             };
 
             let empty: Vec<String> = Vec::new();
@@ -691,6 +701,7 @@ mod tests {
                 response: None,
                 refs: vec![],
                 exprs: vec![],
+                comments: vec![],
             };
 
             let empty: Vec<String> = Vec::new();
@@ -706,6 +717,7 @@ mod tests {
                 response: None,
                 refs: vec![],
                 exprs: vec![],
+                comments: vec![],
             };
 
             let empty: Vec<String> = Vec::new();
@@ -740,6 +752,7 @@ mod tests {
                 response: None,
                 refs: vec![(ReferenceType::Variable("foo".to_string()), NO_SPAN)],
                 exprs: vec![],
+                comments: vec![],
             };
 
             assert_eq!(

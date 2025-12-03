@@ -144,6 +144,11 @@ mod tests {
                     )
                 ],
                 exprs: vec![],
+                comments: vec![
+                    ("\n".to_string(), 0..1),
+                    ("\n\n".to_string(), 223..225),
+                    ("\n\n".to_string(), 338..340),
+                ],
             }),
             reqfile
         );
