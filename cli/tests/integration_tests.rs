@@ -112,6 +112,16 @@ mod cli_integration_tests {
     }
 
     #[test]
+    fn expr_reference_reqlang_parse() {
+        let expected_parse =
+            fs::read_to_string("../examples/valid/expr_reference.reqlang.parse.txt").unwrap();
+
+        let assert = assert_command!("reqlang parse ../examples/valid/expr_reference.reqlang");
+
+        assert_success!(assert, Some(format!("{expected_parse}\n")), None::<String>);
+    }
+
+    #[test]
     fn invalid_subcommand() {
         let assert = assert_command!("reqlang foobar");
 

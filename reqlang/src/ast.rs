@@ -35,12 +35,15 @@ impl Ast {
 
         // Find comment nodes
         for (_, node_span) in nodes.clone().iter() {
-            let start = node_span.start;
+            if index < node_span.start {
+                let new_span = index..node_span.start;
 
-            if index < start {
-                let new_span = index..start;
                 let comment = input.as_ref()[new_span.clone()].to_string();
+
                 nodes.push((AstNode::Comment(comment), new_span.clone()));
+
+                index = node_span.end;
+            } else {
                 index = node_span.end;
             }
         }
@@ -292,6 +295,37 @@ D
                     )),
                     118..196
                 ),
+            ]),
+            ast_result
+        );
+    }
+
+    #[test]
+    fn test_request_no_leading_comments() {
+        let input = textwrap::dedent(
+            r#"```%config
+[[prompts]]
+name = "test"
+```
+
+```%request
+GET https://example.com HTTP/1.1
+```
+        "#,
+        );
+
+        let ast_result = Ast::from(input);
+        assert_eq!(
+            Ast(vec![
+                (
+                    AstNode::ConfigBlock(("[[prompts]]\nname = \"test\"".to_string(), 11..36)),
+                    0..40
+                ),
+                (AstNode::Comment("\n\n".to_string()), 40..42),
+                (
+                    AstNode::RequestBlock(("GET https://example.com HTTP/1.1".to_string(), 54..86)),
+                    42..90
+                )
             ]),
             ast_result
         );

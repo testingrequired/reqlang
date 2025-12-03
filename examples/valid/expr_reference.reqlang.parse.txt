@@ -1,0 +1,117 @@
+{
+  "vars": [],
+  "envs": [],
+  "prompts": [
+    "test"
+  ],
+  "required_prompts": [
+    "test"
+  ],
+  "optional_prompts": [],
+  "default_prompt_values": {},
+  "secrets": [],
+  "request": {
+    "verb": "GET",
+    "target": "https://httpbin.org/headers",
+    "http_version": "1.1",
+    "headers": [
+      [
+        "Content-Type",
+        "application/json"
+      ],
+      [
+        "x-a",
+        "{(uppercase ?test)}"
+      ],
+      [
+        "x-b",
+        "{(noop)}"
+      ]
+    ],
+    "body": ""
+  },
+  "full": {
+    "config": [
+      {
+        "vars": null,
+        "envs": null,
+        "prompts": [
+          {
+            "name": "test",
+            "description": null,
+            "default": null
+          }
+        ],
+        "secrets": null,
+        "auth": null
+      },
+      {
+        "start": 11,
+        "end": 36
+      }
+    ],
+    "request": [
+      {
+        "verb": "GET",
+        "target": "https://httpbin.org/headers",
+        "http_version": "1.1",
+        "headers": [
+          [
+            "Content-Type",
+            "application/json"
+          ],
+          [
+            "x-a",
+            "{(uppercase ?test)}"
+          ],
+          [
+            "x-b",
+            "{(noop)}"
+          ]
+        ],
+        "body": ""
+      },
+      {
+        "start": 54,
+        "end": 164
+      }
+    ],
+    "response": null,
+    "refs": [
+      [
+        {
+          "Prompt": "test"
+        },
+        {
+          "start": 54,
+          "end": 164
+        }
+      ]
+    ],
+    "exprs": [
+      [
+        "uppercase ?test",
+        {
+          "start": 54,
+          "end": 164
+        }
+      ],
+      [
+        "noop",
+        {
+          "start": 54,
+          "end": 164
+        }
+      ]
+    ],
+    "comments": [
+      [
+        "\n\n",
+        {
+          "start": 40,
+          "end": 42
+        }
+      ]
+    ]
+  }
+}
