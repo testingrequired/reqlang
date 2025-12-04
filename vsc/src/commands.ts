@@ -437,6 +437,7 @@ export const runRequest =
           vars,
           prompts: promptsObj,
           secrets: secretsObj,
+          provider_values: {},
         };
 
         /**
