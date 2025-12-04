@@ -163,7 +163,11 @@ pub fn template(
                 vars: var_values.clone(),
                 prompts: prompt_values,
                 secrets: secret_values.iter().filter_map(|x| x.clone()).collect(),
-                client_context: vec![],
+                client_context: provider_values
+                    .values()
+                    .cloned()
+                    .map(|value| Value::String(value))
+                    .collect(),
             }
         };
 

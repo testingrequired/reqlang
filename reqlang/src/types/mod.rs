@@ -303,7 +303,7 @@ impl ParsedConfig {
 /// Parameters sent from the client to execute a request.
 ///
 /// This is useful for language server clients
-#[derive(Debug, Deserialize, Serialize, Default, TS)]
+#[derive(Debug, Clone, Deserialize, Serialize, Default, TS)]
 #[ts(export)]
 pub struct RequestParamsFromClient {
     /// The text content of the request file

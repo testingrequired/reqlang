@@ -126,18 +126,22 @@ impl From<HttpRequest> for HttpRequestFetcher {
 /// ```
 impl From<RequestParamsFromClient> for HttpRequestFetcher {
     fn from(params: RequestParamsFromClient) -> Self {
+        let mut params_provider_values: HashMap<String, String> = params.provider_values.clone();
+
         let mut provider_values: HashMap<String, String> = HashMap::new();
 
         if let Some(env) = &params.env {
             provider_values.insert("env".to_string(), env.clone());
         }
 
+        params_provider_values.extend(provider_values);
+
         let reqfile = template(
             &params.reqfile,
             params.env.as_deref(),
             &params.prompts,
             &params.secrets,
-            &provider_values,
+            &params_provider_values,
         )
         .unwrap();
 
@@ -208,7 +212,7 @@ mod test {
                 request::method("POST"),
                 request::path("/test"),
                 request::headers(contains(("content-type", "application/json"))),
-                request::headers(contains(("x-test", "foo"))),
+                request::headers(contains(("x-test", "bar"))),
                 request::body("test body\n\n")
             ])
             .respond_with(status_code(200).body("test response!")),
@@ -222,7 +226,7 @@ mod test {
 ```%request
 POST {url} HTTP/1.1
 content-type: application/json
-x-test: foo
+x-test: {{{{@foo}}}}
 
 test body
 ```
@@ -233,7 +237,7 @@ test body
             vars: HashMap::new(),
             prompts: HashMap::new(),
             secrets: HashMap::new(),
-            provider_values: HashMap::new(),
+            provider_values: HashMap::from([("foo".to_string(), "bar".to_string())]),
         };
 
         let fetcher: HttpRequestFetcher = params.into();
