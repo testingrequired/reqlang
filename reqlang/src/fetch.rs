@@ -233,6 +233,7 @@ test body
             vars: HashMap::new(),
             prompts: HashMap::new(),
             secrets: HashMap::new(),
+            provider_values: HashMap::new(),
         };
 
         let fetcher: HttpRequestFetcher = params.into();

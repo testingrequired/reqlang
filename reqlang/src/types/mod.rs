@@ -312,6 +312,7 @@ pub struct RequestParamsFromClient {
     pub vars: HashMap<String, String>,
     pub prompts: HashMap<String, String>,
     pub secrets: HashMap<String, String>,
+    pub provider_values: HashMap<String, String>,
 }
 
 impl From<Value> for RequestParamsFromClient {
@@ -370,12 +371,15 @@ impl From<Value> for RequestParamsFromClient {
             );
         }
 
+        let provider_values: HashMap<String, String> = HashMap::default();
+
         RequestParamsFromClient {
             reqfile,
             env,
             vars,
             prompts,
             secrets,
+            provider_values,
         }
     }
 }
