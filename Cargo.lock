@@ -3254,10 +3254,11 @@ dependencies = [
 
 [[package]]
 name = "reqlang-expr"
-version = "0.8.0"
+version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "326fe744596c473363965061e3678b4829e643b055c7de1ecb7ea14f0b8bcfa9"
+checksum = "571304b8321af999634828b258667c80653f35524e8ae8602078cb9c3263925c"
 dependencies = [
+ "base64 0.22.1",
  "codespan-reporting 0.12.0",
  "iota",
  "lalrpop",
