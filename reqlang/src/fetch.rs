@@ -1,8 +1,11 @@
 use std::{collections::HashMap, future::Future};
 
-use crate::types::{
-    RequestParamsFromClient,
-    http::{HttpRequest, HttpResponse, HttpStatusCode, HttpVersion},
+use crate::{
+    errors::{FetchError, ReqlangError},
+    types::{
+        RequestParamsFromClient,
+        http::{HttpRequest, HttpResponse, HttpStatusCode, HttpVersion},
+    },
 };
 use reqwest::{Client, Method, Response, Version};
 
@@ -96,20 +99,27 @@ impl Fetch for HttpRequestFetcher {
 
         request = request.body(self.body());
 
-        let response = request.send().await.expect("Request should have executed");
+        let response = request.send().await;
 
-        let http_version = Self::map_response_http_version(&response);
-        let headers = Self::map_response_headers(&response);
-        let (status_code, status_text) = Self::map_response_status_code_and_text(&response);
-        let body = response.text().await.ok();
+        match response {
+            Ok(response) => {
+                let http_version = Self::map_response_http_version(&response);
+                let headers = Self::map_response_headers(&response);
+                let (status_code, status_text) = Self::map_response_status_code_and_text(&response);
+                let body = response.text().await.ok();
 
-        Ok(HttpResponse {
-            http_version,
-            status_code,
-            status_text,
-            headers,
-            body,
-        })
+                Ok(HttpResponse {
+                    http_version,
+                    status_code,
+                    status_text,
+                    headers,
+                    body,
+                })
+            }
+            Err(err) => Err(Box::new(ReqlangError::FetchError(
+                FetchError::RequestError(err.to_string()),
+            ))),
+        }
     }
 }
 
@@ -201,6 +211,34 @@ mod test {
         assert_eq!("OK", response.status_text);
 
         assert_eq!(Some("test response!".to_string()), response.body);
+    }
+
+    #[tokio::test]
+    async fn test_real_http_request_fetch_when_errors() {
+        let url: httptest::http::Uri = httptest::http::Uri::from_static("http://localhost:9999");
+
+        let http_request = HttpRequest {
+            verb: HttpVerb("POST".to_owned()),
+            target: url.to_string(),
+            http_version: HttpVersion::one_point_one(),
+            headers: vec![
+                ("content-type".to_string(), "application/json".to_string()),
+                ("x-test".to_string(), "foo".to_string()),
+            ],
+            body: Some("test body".to_string()),
+        };
+
+        let fetcher: HttpRequestFetcher = http_request.into();
+        let response = fetcher.fetch().await;
+
+        assert!(response.is_err());
+
+        let err = response.err().unwrap();
+
+        assert_eq!(
+            "FetchError: An error occurred when making request: 'error sending request for url (http://localhost:9999/)'",
+            err.to_string()
+        );
     }
 
     #[tokio::test]

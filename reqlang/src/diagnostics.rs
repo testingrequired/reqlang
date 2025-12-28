@@ -2,7 +2,7 @@ use codespan_reporting::diagnostic::{Diagnostic, Label};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    errors::{ParseError, ReqlangError, ResolverError},
+    errors::{FetchError, ParseError, ReqlangError, ResolverError},
     span::{Span, Spanned},
     str_idxpos::index_to_position,
 };
@@ -99,13 +99,14 @@ macro_rules! impl_as_dianostic {
     )+};
 }
 
-impl_as_dianostic!(ParseError, ResolverError);
+impl_as_dianostic!(ParseError, ResolverError, FetchError);
 
 impl AsDiagnostic for ReqlangError {
     fn as_diagnostic(&self, span: &Span) -> Diagnostic<()> {
         match self {
             ReqlangError::ParseError(e) => e.as_diagnostic(span),
             ReqlangError::ResolverError(e) => e.as_diagnostic(span),
+            ReqlangError::FetchError(e) => e.as_diagnostic(span),
         }
     }
 }

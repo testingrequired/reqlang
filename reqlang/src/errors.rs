@@ -11,6 +11,8 @@ pub enum ReqlangError {
     ParseError(ParseError),
     #[error("ResolverError: {0}")]
     ResolverError(ResolverError),
+    #[error("FetchError: {0}")]
+    FetchError(FetchError),
 }
 
 #[derive(Debug, Clone, Error, PartialEq, Serialize, Deserialize, TS)]
@@ -55,6 +57,13 @@ pub enum ResolverError {
     ExpressionEvaluationError(String, String),
 }
 
+#[derive(Debug, Clone, Error, PartialEq, Serialize, Deserialize, TS)]
+#[ts(export)]
+pub enum FetchError {
+    #[error("An error occurred when making request: '{0}'")]
+    RequestError(String),
+}
+
 macro_rules! impl_from_error {
     ($($error:tt),+) => {$(
         impl From<$error> for ReqlangError {
@@ -65,4 +74,4 @@ macro_rules! impl_from_error {
     )+};
 }
 
-impl_from_error!(ParseError, ResolverError);
+impl_from_error!(ParseError, ResolverError, FetchError);
