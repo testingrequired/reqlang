@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["ParseError","ReqlangError","ResolverError"]};
+window.SIDEBAR_ITEMS = {"enum":["FetchError","ParseError","ReqlangError","ResolverError"]};
