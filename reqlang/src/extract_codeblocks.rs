@@ -28,10 +28,10 @@ pub fn extract_codeblocks(
             let text_start = (3 + 1) + target_lang.as_ref().len() + start;
             let text_end = text_start + text.len();
 
-            if let Some(lang) = &codeblock.lang {
-                if lang == target_lang.as_ref() {
-                    results.push(((text, text_start..text_end), start..end));
-                }
+            if let Some(lang) = &codeblock.lang
+                && lang == target_lang.as_ref()
+            {
+                results.push(((text, text_start..text_end), start..end));
             }
         }
     }

@@ -806,7 +806,7 @@ mod tests {
         fn get_request_no_headers() {
             let req = HttpRequest::get("/", "1.1", Vec::default());
 
-            assert_eq!(concat!("GET / HTTP/1.1\n"), format!("{req}"));
+            assert_eq!("GET / HTTP/1.1\n", format!("{req}"));
         }
     }
 }

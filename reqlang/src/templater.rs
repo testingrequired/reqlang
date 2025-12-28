@@ -166,7 +166,7 @@ pub fn template(
                 client_context: provider_values
                     .values()
                     .cloned()
-                    .map(|value| Value::String(value))
+                    .map(Value::String)
                     .collect(),
             }
         };

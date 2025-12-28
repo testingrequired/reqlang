@@ -2,7 +2,6 @@ use std::{
     collections::HashMap,
     fs,
     ops::ControlFlow,
-    str::FromStr,
     sync::{Arc, Mutex},
 };
 
@@ -35,10 +34,10 @@ impl LoadReqfileState {
         let mut next_state: StateTransition = StateTransition::None;
 
         egui::CentralPanel::default().show(egui_ctx, |ui| {
-            if ui.button("Open file…").clicked() {
-                if let Some(path) = rfd::FileDialog::new().pick_file() {
-                    client_ctx.path = Some(path.display().to_string());
-                }
+            if ui.button("Open file…").clicked()
+                && let Some(path) = rfd::FileDialog::new().pick_file()
+            {
+                client_ctx.path = Some(path.display().to_string());
             }
 
             client_ctx.source = if let Some(path) = &client_ctx.path {
@@ -456,26 +455,6 @@ impl ExecutingRequestState {
         });
 
         Ok(next_state)
-    }
-}
-
-#[derive(Debug, PartialEq, Copy, Clone)]
-enum Method {
-    Get,
-    Head,
-    Post,
-}
-
-impl FromStr for Method {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "GET" => Ok(Self::Get),
-            "HEAD" => Ok(Self::Head),
-            "POST" => Ok(Self::Post),
-            _ => Err(format!("Unsupported HTTP Verb: {s}")),
-        }
     }
 }
 
