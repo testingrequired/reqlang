@@ -144,13 +144,13 @@ impl Display for HttpRequest {
             None
         } else {
             Some(format!(
-                "{}\n",
+                "{}\r\n",
                 self.headers
                     .clone()
                     .into_iter()
                     .map(|x| format!("{}: {}", x.0, x.1))
                     .collect::<Vec<String>>()
-                    .join("\n")
+                    .join("\r\n")
                     .trim_end()
             ))
         };
@@ -161,15 +161,15 @@ impl Display for HttpRequest {
             .and_then(|x| if x.is_empty() { None } else { Some(x) });
 
         let the_rest = match (&headers, &body) {
-            (Some(headers), Some(body)) => format!("{headers}\n{body}"),
+            (Some(headers), Some(body)) => format!("{headers}\r\n{body}"),
             (Some(headers), None) => headers.to_string(),
-            (None, Some(body)) => format!("\n{body}"),
+            (None, Some(body)) => format!("\r\n{body}"),
             (None, None) => String::new(),
         };
 
         write!(
             f,
-            "{} {} HTTP/{}\n{}",
+            "{} {} HTTP/{}\r\n{}",
             self.verb, self.target, self.http_version, the_rest
         )
     }
