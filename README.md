@@ -857,26 +857,6 @@ The [VS Code extension](./vsc/#readme) acts as an in-editor REST client.
 
 ![VS Code Extension Screenshot](./vsc/screenshot.png)
 
-### Desktop Client
-
-The [desktop client](./reqlang-client) is a very simple GUI written in [egui](https://github.com/emilk/egui). It's mostly used for testing.
-
-![GUI Client Screenshot](./reqlang-client/screenshot.png)
-
-### Web Client
-
-The [web client](./reqlang-web-client/) is a React app powered by a Rust API.
-
-```shell
-reqlang-web-client
-
-# Server is running! http://localhost:3000
-```
-
-#### Port
-
-The port defaults to a random open port but it can be set using the `REQLANG_WEB_CLIENT_PORT` environment variable.
-
 ## Contributing
 
 Please see [CONTRIBUTING.md](./CONTRIBUTING.md) for details on how to contribute.
