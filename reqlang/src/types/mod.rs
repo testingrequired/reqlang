@@ -780,8 +780,8 @@ mod tests {
 
             assert_eq!(
                 concat!(
-                    "POST / HTTP/1.1\n",
-                    "host: https://example.com\n\n",
+                    "POST / HTTP/1.1\r\n",
+                    "host: https://example.com\r\n\r\n",
                     "[1, 2, 3]\n"
                 ),
                 format!("{req}"),
@@ -797,7 +797,7 @@ mod tests {
             );
 
             assert_eq!(
-                concat!("GET / HTTP/1.1\n", "host: https://example.com\n"),
+                concat!("GET / HTTP/1.1\r\n", "host: https://example.com\r\n"),
                 format!("{req}"),
             );
         }
@@ -806,7 +806,7 @@ mod tests {
         fn get_request_no_headers() {
             let req = HttpRequest::get("/", "1.1", Vec::default());
 
-            assert_eq!("GET / HTTP/1.1\n", format!("{req}"));
+            assert_eq!("GET / HTTP/1.1\r\n", format!("{req}"));
         }
     }
 }

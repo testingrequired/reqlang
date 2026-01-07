@@ -308,7 +308,7 @@ mod cli_integration_tests {
 
         assert_success!(
             assert,
-            Some("GET https://httpbin.org/status/200 HTTP/1.1\n\n"),
+            Some("GET https://httpbin.org/status/200 HTTP/1.1\r\n\n"),
             None::<String>
         );
     }
