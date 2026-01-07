@@ -44,6 +44,7 @@ build:
 
 # Build the code for release
 build_release:
+    cd reqlang && just build
     cargo build --release
     cd vsc && just build
 
