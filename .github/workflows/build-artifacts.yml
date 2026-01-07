@@ -93,16 +93,6 @@ jobs:
         with:
           name: reqlang-lsp
           path: target/release/reqlang-lsp
-      - name: Upload Desktop App
-        uses: actions/upload-artifact@v4
-        with:
-          name: reqlang-client
-          path: target/release/reqlang-client
-      - name: Upload Web App
-        uses: actions/upload-artifact@v4
-        with:
-          name: reqlang-web-client
-          path: target/release/reqlang-web-client
       - name: Upload VS Code Extension Artifact
         uses: actions/upload-artifact@v4
         with:
@@ -140,16 +130,6 @@ jobs:
         with:
           name: reqlang-lsp (macos)
           path: target/release/reqlang-lsp
-      - name: Upload Desktop App
-        uses: actions/upload-artifact@v4
-        with:
-          name: reqlang-client (macos)
-          path: target/release/reqlang-client
-      - name: Upload Web App
-        uses: actions/upload-artifact@v4
-        with:
-          name: reqlang-web-client (macos)
-          path: target/release/reqlang-web-client
   build-windows:
     runs-on: windows-latest
     needs: [verify]
@@ -182,13 +162,3 @@ jobs:
         with:
           name: reqlang-lsp.exe
           path: target/release/reqlang-lsp.exe
-      - name: Upload Desktop App
-        uses: actions/upload-artifact@v4
-        with:
-          name: reqlang-client.exe
-          path: target/release/reqlang-client.exe
-      - name: Upload Web App
-        uses: actions/upload-artifact@v4
-        with:
-          name: reqlang-web-client.exe
-          path: target/release/reqlang-web-client.exe
