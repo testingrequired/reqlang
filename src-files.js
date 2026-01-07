@@ -1,2 +1,2 @@
-createSrcSidebar('[["integration_tests",["",[],["lib.rs"]]],["reqlang",["",[["types",[],["http.rs","mod.rs"]]],["assert_response.rs","ast.rs","diagnostics.rs","errors.rs","export.rs","extract_codeblocks.rs","fetch.rs","lib.rs","parser.rs","prelude.rs","span.rs","str_idxpos.rs","templater.rs"]]],["reqlang_client",["",[],["main.rs"]]],["reqlang_lsp",["",[],["main.rs"]]]]');
-//{"start":19,"fragment_lengths":[40,236,39,36]}
+createSrcSidebar('[["integration_tests",["",[],["lib.rs"]]],["reqlang",["",[["types",[],["http.rs","mod.rs"]]],["assert_response.rs","ast.rs","diagnostics.rs","errors.rs","export.rs","extract_codeblocks.rs","fetch.rs","lib.rs","parser.rs","prelude.rs","span.rs","str_idxpos.rs","templater.rs"]]],["reqlang_lsp",["",[],["main.rs"]]]]');
+//{"start":19,"fragment_lengths":[40,236,36]}
