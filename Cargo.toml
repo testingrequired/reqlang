@@ -1,12 +1,5 @@
 [workspace]
 
-members = [
-    "cli",
-    "reqlang-lsp",
-    "reqlang-client",
-    "reqlang",
-    "integration_tests",
-    "reqlang-web-client",
-]
+members = ["cli", "reqlang-lsp", "reqlang", "integration_tests"]
 
 resolver = "2"

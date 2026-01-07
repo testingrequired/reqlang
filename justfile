@@ -39,13 +39,11 @@ move-bins-release:
 # Build the code
 build:
     cd reqlang && just build
-    cd reqlang-web-client && just build-client
     cargo build
     cd vsc && just build
 
 # Build the code for release
 build_release:
-    cd reqlang-web-client && just build-client
     cargo build --release
     cd vsc && just build
 
