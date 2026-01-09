@@ -32,7 +32,7 @@ This is a living syntax subject to change wildly at anytime. The core concepts a
 
 [post.reqlang](./examples/valid/post.reqlang):
 
-````reqlang
+````markdown
 ```%config
 secrets = ["super_secret_value"]
 
@@ -68,7 +68,7 @@ POST https://httpbin.org/post HTTP/1.1
 
 The request is written as a [HTTP request message](https://developer.mozilla.org/en-US/docs/Web/HTTP/Messages#http_requests) inside of a `%request` markdown code block.
 
-````reqlang
+````markdown
 ```%request
 GET https://example.com HTTP/1.1
 ```
@@ -78,7 +78,7 @@ GET https://example.com HTTP/1.1
 
 The response assertion is the (optional) expected HTTP response message the actual response will be compared to. It's written inside of a `%response` markdown code block.
 
-````reqlang
+````markdown
 ```%request
 GET https://example.com HTTP/1.1
 ```
@@ -113,7 +113,7 @@ secrets = ["api_key"]
 
 ##### Usage
 
-````reqlang
+````markdown
 ```%config
 secrets = ["api_key"]
 ```
@@ -184,7 +184,7 @@ item_id = "efgh"
 
 ##### Usage
 
-````reqlang
+````markdown
 ```%config
 [[vars]]
 name = "user_id"
@@ -233,7 +233,7 @@ default = "tag1,tag2" # Optional
 
 ##### Usage
 
-````reqlang
+````markdown
 ```%config
 [[prompts]]
 name = "tags"
