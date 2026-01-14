@@ -4,16 +4,16 @@ A file format specification for defining HTTP requests, response assertions, and
 
 ## Goals
 
-- Can be treated as a markdown file
-- HTTP request and response messages
+- Use HTTP request and response messages
 - Easy to read, write, and diff
 - Lives in source control
+- Just a markdown file
 - Templating with variables, prompts, and secret values
 - Environments with environment specific variable values
 - Client/implementation agnostic
 - Statically typed [expression language](https://github.com/testingrequired/reqlang-expr) in the templates
 
-### Future
+### Future Goals
 
 - Chaining requests
 - Response body mapping/transformation/extraction
@@ -22,98 +22,118 @@ A file format specification for defining HTTP requests, response assertions, and
 
 ## Request Files
 
-Request files (`*.reqlang`) are templated markdown files containing an HTTP request, HTTP response assertion, and configuration.
-
-### Living Syntax
-
-This is a living syntax subject to change wildly at anytime. The core concepts and goals will remain the same however.
-
-### Example
-
-[post.reqlang](./examples/valid/post.reqlang):
+Request files are templated markdown files containing an HTTP request message, HTTP response message assertion (optional), and configuration (optional).
 
 ````markdown
-```%config
-secrets = ["super_secret_value"]
+# HTTP Request Message
 
-[[prompts]]
-name = "prompt_value"
+The [request](https://developer.mozilla.org/en-US/docs/Web/HTTP/Messages#http_requests) is defined inside of a markdown code fence block with `%request` as the language.
 
-[[vars]]
-name = "test_value"
+The request is the only required part of the request file.
 
-[envs.test]
-test_value = "test_value"
-
-[envs.prod]
-test_value = "prod_value"
-
-[envs.local]
-test_value = "local_value"
-```
-
-```%request
-POST https://httpbin.org/post HTTP/1.1
-
-{
-  "env": "{{@env}}",
-  "value": "{{:test_value}}",
-  "prompted_value": "{{?prompt_value}}",
-  "secret_value": "{{!super_secret_value}}"
-}
-```
-````
-
-### Request
-
-The request is written as a [HTTP request message](https://developer.mozilla.org/en-US/docs/Web/HTTP/Messages#http_requests) inside of a `%request` markdown code block.
-
-````markdown
 ```%request
 GET https://example.com HTTP/1.1
 ```
 ````
 
-### Response
-
-The response assertion is the (optional) expected HTTP response message the actual response will be compared to. It's written inside of a `%response` markdown code block.
-
 ````markdown
-```%request
-GET https://example.com HTTP/1.1
-```
+# HTTP Response Message Assertion
+
+The expected HTTP response message assertion is what the actual response will be compared to. It's written inside of a `%response` markdown code block.
+
+The assertion applies the following matching rules:
+
+- Exact match of status code and text
+- Exact match of individual headers
+- Exact match of the body
 
 ```%response
 HTTP/1.1 200 OK
 ```
+
+The request, response, and configuration can be defined in any order.
+
+```%request
+GET https://example.com HTTP/1.1
+```
 ````
 
-#### Matching Rules
+````markdown
+# Configuration
 
-Client implementations can choose how to match the response against the expected response. Here are a list of recommended ways to match.
+The configuration defines environments, variables, prompts, and secrets accessible during templating. It's written in a `%config` markdown code block.
 
-- Exact match `status code`
-- Exact match `status text`
-- Exact match `header value` of headers present in the expected response
-- Exact match `body`
+```%config
+# The configuration is written in TOML so comments like this are ignored during parsing.
+```
 
-### Configuration
+```%request
+GET https://example.com HTTP/1.1
+```
+````
 
-The configuration is TOML written in a `%config` markdown code block. Its where variables, environments, prompts, and secrets are declared/defined.
+````markdown
+# Environments & Variables
 
-#### Secrets
+Variables are declared first then defined in the environment declarations.
+
+Here the variable `var1` is declared then defined in the environments `local` and `prod`.
+
+```%config
+[[vars]]
+name = "var1"
+
+[envs.local]
+var1 = "local value"
+
+[envs.prod]
+var1 = "production value"
+```
+
+The variable `var1` is then templated using `{{:var1}}`.
+
+```%request
+GET https://example.com HTTP/1.1
+x-value: {{:var1}}
+x-env: {{@env}}
+```
+
+The environment used at request file execution time can also be templated using `{{@env}}`.
+````
+
+````markdown
+# Default Variable Values
+
+Variables can also have a default value defined.
+
+```%config
+[[vars]]
+name = "var1"
+default = "default value"
+
+[envs.local]
+# No value for `var1` is defined so it will be "default value" in the local environment.
+
+[envs.prod]
+var1 = "production value"
+```
+
+```%request
+GET https://example.com HTTP/1.1
+x-value: {{:var1}}
+x-env: {{@env}}
+```
+
+The environment used at request file execution time can also be templated using `{{@env}}`.
+````
+
+````markdown
+# Secrets
 
 Secrets are protected values referenced by a name and declares what secrets will be required. How secret values are fetched is up to client implementations. They can be referenced using the `{{!secret_name}}` syntax.
 
 Secrets are optional but if they are declared, they must be at the top of the config block (due to how TOML parses tables).
 
-```toml
-secrets = ["api_key"]
-```
-
-##### Usage
-
-````markdown
 ```%config
 secrets = ["api_key"]
 ```
@@ -124,116 +144,11 @@ x-api-key: {{!api_key}}
 ```
 ````
 
-##### Goals
-
-- Secret fetching is outside the scope of the request file
-
-###### Future
-
-- Configuring secret fetching in the workspace
-
-#### Variables & Environments
-
-Variables contain environmental variables that can be used in the request or response. A list of variable names is first declared.
-
-Variables can be templated using the `{{:var_name}}` syntax. The environment of the request execution can be referenced using the `{{@env}}` syntax.
-
-```toml
-[[vars]]
-name = "user_id"
-
-[[vars]]
-name = "item_id"
-```
-
-Then enviroments are declared with the appropriate values.
-
-```toml
-[[vars]]
-name = "user_id"
-
-[[vars]]
-name = "item_id"
-
-[envs.dev]
-user_id = 12345
-item_id = "abcd"
-
-[envs.prod]
-user_id = 67890
-item_id = "efgh"
-```
-
-##### Default values
-
-```toml
-[[vars]]
-name = "user_id"
-default = "12345"
-
-[[vars]]
-name = "item_id"
-
-[envs.dev]
-item_id = "abcd"
-
-[envs.prod]
-user_id = "67890"
-item_id = "efgh"
-```
-
-##### Usage
-
 ````markdown
-```%config
-[[vars]]
-name = "user_id"
-
-[[vars]]
-name = "item_id"
-
-[envs.dev]
-user_id = 12345
-item_id = "abcd"
-
-[envs.prod]
-user_id = 67890
-item_id = "efgh"
-```
-
-```%request
-GET https://{{@env}}.example.com/users/{{:user_id}}/items/{{:item_id}} HTTP/1.1
-```
-````
-
-###### Warning
-
-Be sure to declare env definition blocks using the `[env.ENV]` syntax in TOML. You can use `env.ENV.name = value` but they must be at the top of the config block. This is due ot how TOML handles parsing tables.
-
-##### Goals
-
-- Clearly define everything the request and response will need
-- Declare environments once
-- Require variable declaration before definition
-
-###### Future
-
-- Value type
-
-#### Prompts
+# Prompts
 
 Prompts are values provided by the user at request execution time. These are "inputs" to the request file. They can be templated in the request and responses using the `{{?prompt_name}}` syntax.
 
-```toml
-[[prompts]]
-name = "tags"
-description = "Tags included as a query param" # Optional
-default = "tag1,tag2" # Optional
-```
-
-##### Usage
-
-````markdown
 ```%config
 [[prompts]]
 name = "tags"
