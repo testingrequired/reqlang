@@ -211,14 +211,14 @@ mod test {
         format_to_http_get_request,
         HttpRequest::get("/", "1.1", vec![]),
         RequestFormat::HttpMessage,
-        "GET / HTTP/1.1\n"
+        "GET / HTTP/1.1\r\n"
     );
 
     export_test!(
         format_to_http_post_request,
         HttpRequest::post("/", "1.1", vec![], Some("[1, 2, 3]\n")),
         RequestFormat::HttpMessage,
-        "POST / HTTP/1.1\n\n[1, 2, 3]\n"
+        "POST / HTTP/1.1\r\n\r\n[1, 2, 3]\n"
     );
 
     export_response_test!(
