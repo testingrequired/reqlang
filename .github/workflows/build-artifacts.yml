@@ -42,8 +42,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           cache: npm
-          cache-dependency-path: vsc/package-lock.json
-          node-version: 20
+          cache-dependency-path: "**/package-lock.json"
+          node-version-file: .nvmrc
       - name: Install just
         uses: taiki-e/install-action@v2
         with:
