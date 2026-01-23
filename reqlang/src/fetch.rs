@@ -7,7 +7,7 @@ use crate::{
         http::{HttpRequest, HttpResponse, HttpStatusCode, HttpVersion},
     },
 };
-use reqwest::{Client, Method, Response, Version};
+use reqwest::{Method, Response, Version};
 
 use crate::templater::template;
 
@@ -89,7 +89,10 @@ impl HttpRequestFetcher {
 
 impl Fetch for HttpRequestFetcher {
     async fn fetch(&self) -> std::result::Result<HttpResponse, Box<dyn std::error::Error + Send>> {
-        let client = Client::new();
+        let client = reqwest::ClientBuilder::new()
+            .http1_only()
+            .build()
+            .expect("should build reqwest HTTP client");
 
         let mut request = client.request(self.request_method(), self.request_url());
 
